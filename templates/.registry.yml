@@ -1,0 +1,30 @@
+# .registry.yml
+# AI-only. Connection map and sync rules.
+# Read only when post-action hook fires. Never read proactively.
+# Spec: github.com/Malstrom/zeroth
+
+identity:
+  repo: owner/repo-name          # sostituire
+  type: workspace                 # workspace | tool | gtm | learning
+  version: "1.0.0"
+  last-updated: "YYYY-MM-DD"
+
+connections: []
+  # template connessione:
+  # - repo: owner/altro-repo
+  #   purpose: descrizione della connessione
+  #   conflict_check:
+  #     if_open_pr_on: [file/condiviso.md]
+  #     action: stop and notify
+  #   read:
+  #     - path: path/al/file
+  #       reason: perché lo leggo
+  #   sync:
+  #     - trigger: nome-evento
+  #       condition: quando scatta
+  #       action:
+  #         target: owner/repo
+  #         file: path/al/file
+  #         operation: cosa fare
+  #         pr: true
+  #         auto-merge: false
