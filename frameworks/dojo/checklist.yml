@@ -63,7 +63,7 @@ behaviour:
   - kiroku files are append-only — never overwritten
   - shinsa records are committed before the AI responds
   - shinsa gives no feedback during the exam — only final score
-  - shinsa questions are open-ended (explain / describe / difference between) — never multiple choice
+  - shinsa has exactly 10 open-ended questions (explain / describe / difference between) — never multiple choice
   - quiz uses multiple choice (A/B/C/D) from kata — no state saved
   - randori is called by study_open after each concept, or triggered by user directly
   - level_up requires student confirmation — never automatic
