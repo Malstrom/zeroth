@@ -1,0 +1,35 @@
+# kiroku_makimono — generated and updated by AI, do not edit manually
+subject: ""
+level: ""
+status: active        # active | frozen — frozen after level_up
+
+created: ""           # YYYY-MM-DD
+last_updated: ""      # YYYY-MM-DD
+total_sessions: 0
+
+concepts:
+  - topic: ""
+    status: ""        # not_started | in_progress | mastered | regressed
+    kata: ""          # relative path to kata file, e.g. kata/italian/congiuntivo.yml
+    sessions: 0
+    last_seen: ""     # YYYY-MM-DD
+
+weak_areas:
+  - concept: ""
+    note: ""
+
+milestones:
+  - date: ""          # YYYY-MM-DD
+    note: ""
+
+shinsa_history:
+  - date: ""          # YYYY-MM-DD
+    score: 0
+    questions: 0
+    threshold: 0
+
+books:
+  - title: ""
+    author: ""
+    concepts_covered:
+      - ""
