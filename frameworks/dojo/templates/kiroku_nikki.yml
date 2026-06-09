@@ -8,6 +8,13 @@ duration_minutes: 0
 summary: |
   
 
+# qa — compilato solo se session_type: randori | quiz
+qa:
+  - prompt: ""
+    my_answer: ""
+    correct: true      # true | false
+    correct_answer: "" # compilato solo se correct: false
+
 weak_spots:
   identified:
     - ""
