@@ -7,26 +7,26 @@ required_layout:
     - .registry.yml        # cross-repo connections — read-only
     - .gakusei.yml         # machine-readable student profile — AI reads and writes
     - README.md            # human navigation hub
-    - gakusei.md           # human-readable student profile — AI updates after each session
+    # gakusei.md is NOT required at init — created by AI on first session
   kata/:
     - "{subject}/"            # one subfolder per subject (for example rails/, devops/, psychology/)
     - "{subject}/{topic}.md"  # one file per topic within the subject
   kiroku/:
-    - _index.md            # human-readable study map — one line per studied topic
     - "{subject}/"            # one subfolder per subject
     - "{subject}/YYYY-MM-DD.md"  # immutable session record
   templates/:
     - kata.md
     - kiroku_session.md
-    - final_exam.md
+    - shinsa.md
 
 rules:
-  - .gakusei.yml is the only file the AI reads and writes freely between sessions
-  - gakusei.md is updated by the AI after every session and after every level_up
+  - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
+  - gakusei.md is created by the AI on first session and updated after every session and level_up
   - kiroku/ files are append-only — never overwrite
   - kata/ files are updated via PR, never directly on main
   - templates/ must be read before generating any document
   - densho/ does not exist — books are read from library sources, not stored in the repository
+  - file permissions are declared in .agent.yml file_access — structure.yml is reference only
 
 strict_root:
   allowed:
@@ -53,6 +53,3 @@ dynamic_dirs:
     pattern: "YYYY-MM-DD.md"
     regex: "^\\d{4}-\\d{2}-\\d{2}\\.md$"
     allow_empty: true
-  kiroku/:
-    required_files:
-      - _index.md
