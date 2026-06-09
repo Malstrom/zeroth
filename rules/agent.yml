@@ -14,8 +14,8 @@ structure:
     description: present only when the framework needs them
     blocks:
       - handlers
-      - template_rule
       - post_action_hook
+      - template_rule
 
   scenarios_pattern:
     rule: scenarios always live in .scenarios.yml — never inline in .agent.yml
@@ -35,7 +35,8 @@ rules:
     - never fall back to web or browser
 
   global:
-    - language: always declared or read from an identity file (for example .gakusei.yml)
+    - language: always declared or read from an identity file (e.g. .gakusei.yml)
+    - do not add extra language fields (e.g. replies_in) — language is the single source
     - pr_strategy: batch_per_session is default — exception only for immutable logs
     - merge_strategy: squash — always squash merge PRs into main
     - dedup_scope: current_session_log — each handler runs at most once per topic per session
@@ -60,6 +61,22 @@ rules:
     - state_changes: mandatory — use [] if no events are emitted
     - actions: shared_modules only (read, update, create, emit, if, call)
     - say, ask, propose are forbidden in handler actions
+    - cross-repo file references in actions must use owner/repo:path format — never in read field
+
+  post_action_hook:
+    description: |
+      Fires automatically after every state_change, before the AI replies.
+      Operates at the orchestration level — not tied to a specific event.
+      Does NOT use scenario/handler modules. Has its own fixed-field syntax.
+    syntax:
+      after_every_state_change:
+        description: actions to run after any state_change; use shared_modules
+        allowed_modules: [read, if, call_handlers]
+      conflict_check:
+        description: safety rules for concurrent PR operations
+        fields:
+          if_open_pr_on_same_file: stop | warn | proceed
+    note: giskard validates field presence only — not action syntax inside post_action_hook
 
   write_ahead:
     - rule: commit before responding
