@@ -44,9 +44,9 @@ structure:
     target: templates/
     required_files:
       - kata.yml
-      - kiroku_nikki.md
-      - kiroku_makimono.md
-      - shinsa.md
+      - kiroku_nikki.yml
+      - kiroku_makimono.yml
+      - shinsa.yml
 
   - label: densho/ does NOT exist
     proxy: file_exists
@@ -74,20 +74,20 @@ templates:
     framework: dojo
     template: kata.yml
 
-  - label: "kiroku_nikki.md matches zeroth canonical version"
+  - label: "kiroku_nikki.yml matches zeroth canonical version"
     proxy: template_matches_zeroth
     framework: dojo
-    template: kiroku_nikki.md
+    template: kiroku_nikki.yml
 
-  - label: "kiroku_makimono.md matches zeroth canonical version"
+  - label: "kiroku_makimono.yml matches zeroth canonical version"
     proxy: template_matches_zeroth
     framework: dojo
-    template: kiroku_makimono.md
+    template: kiroku_makimono.yml
 
-  - label: "shinsa.md matches zeroth canonical version"
+  - label: "shinsa.yml matches zeroth canonical version"
     proxy: template_matches_zeroth
     framework: dojo
-    template: shinsa.md
+    template: shinsa.yml
 
 agent_yml:
   block_order:
