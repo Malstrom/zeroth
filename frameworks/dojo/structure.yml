@@ -18,10 +18,10 @@ required_layout:
     nikki/:                 # immutable session diary — append-only, never overwrite
       - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session (e.g. 2026-06-09_python_study.md)
   templates/:
-    - kata.md
-    - kiroku_nikki.md
-    - kiroku_makimono.md
-    - shinsa.md
+    - kata.yml
+    - kiroku_nikki.yml
+    - kiroku_makimono.yml
+    - shinsa.yml
 
 rules:
   - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
@@ -63,3 +63,48 @@ dynamic_dirs:
     pattern: "YYYY-MM-DD_{subject}_{type}.md"
     regex: "^\\d{4}-\\d{2}-\\d{2}_.+\\.md$"
     allow_empty: true
+
+# ---------------------------------------------------------------------------
+# SCAFFOLD STRATEGY
+# Used by the create_framework scenario to know what to do with each file.
+# ---------------------------------------------------------------------------
+scaffold_strategy:
+
+  read:  # read to understand what to do — do not copy
+    - frameworks/{name}/structure.yml
+    - frameworks/{name}/overview.yml
+    - frameworks/{name}/onboarding.yml
+
+  copy:  # copy as-is from zeroth/templates/ into the new repo root
+    - source: templates/.agent.yml
+      dest: .agent.yml
+    - source: templates/.registry.yml
+      dest: .registry.yml
+    - source: templates/.scenarios.yml
+      dest: .scenarios.yml
+
+  copy_framework:  # copy from frameworks/{name}/ into the new repo
+    - source: frameworks/{name}/onboarding.yml
+      dest: onboarding.yml
+    - source: frameworks/{name}/templates/kata.yml
+      dest: templates/kata.yml
+    - source: frameworks/{name}/templates/kiroku_nikki.yml
+      dest: templates/kiroku_nikki.yml
+    - source: frameworks/{name}/templates/kiroku_makimono.yml
+      dest: templates/kiroku_makimono.yml
+    - source: frameworks/{name}/templates/shinsa.yml
+      dest: templates/shinsa.yml
+
+  generate:  # generate from scratch using context + onboarding.yml
+    - dest: .gakusei.yml
+      guided_by: onboarding.yml
+      note: neutral at init — populated during first session
+    - dest: kiroku/makimono/.gitkeep
+      note: empty dir placeholder
+    - dest: kiroku/nikki/.gitkeep
+      note: empty dir placeholder
+    - dest: kata/.gitkeep
+      note: empty dir placeholder
+    - dest: README.md
+      guided_by: overview.yml
+      note: human-facing intro generated from overview
