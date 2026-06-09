@@ -3,7 +3,7 @@
 
 immutability:
   rule: critical event logs are immutable once written
-  critical_events: [exam, decision, hire, milestone]
+  critical_events: [shinsa, decision, hire, milestone]
   correction_policy: append only — never overwrite
   declaration: immutable files must be listed explicitly in .agent.yml
 
@@ -14,17 +14,18 @@ write_ahead:
 naming:
   format: YYYY-MM-DD_{type}_{topic}.yml
   examples:
-    - 2026-06-09_exam_ruby-blocks.yml
+    - 2026-06-09_shinsa_ruby-blocks.yml
     - 2026-06-09_study_activerecord.yml
     - 2026-06-09_randori_rails.yml
+    - 2026-06-09_quiz_ruby.yml
 
 structure:
   required_fields:
     - date
-    - type          # exam | study | randori | decision
+    - type          # shinsa | study | randori | quiz | decision
     - topic
     - summary
   optional_fields:
-    - score         # for exam logs
-    - weak_topics   # for randori logs
-    - corrections   # append-only corrections for exam logs
+    - score         # for shinsa logs
+    - weak_chapters # for shinsa logs — subject areas with low score
+    - weak_spots    # for randori logs — specific concepts missed

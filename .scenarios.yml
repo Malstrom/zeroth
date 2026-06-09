@@ -101,9 +101,15 @@ required_scenarios:
       - "frameworks/{name}/checklist.yml"
     actions:
       - say: "Validating {name} against checklist..."
-      - propose: "Fix failed items?"
-        on_confirm:
-          - call: update_rule
+      - if:
+          condition: failed_checks_exist
+          then:
+            - say: "Failed checks: {{failed_checks}}"
+            - propose: "Fix each failed item now?"
+              on_confirm:
+                - emit: rule-updated
+          else:
+            - say: "{name} is fully compliant."
     state_changes: []
 
   unknown_scenario:

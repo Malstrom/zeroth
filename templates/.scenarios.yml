@@ -9,11 +9,11 @@ required_scenarios:
   session_start:
     trigger_patterns:
       - session opens automatically
-    read:
-      - # declare identity file here (e.g. .gakusei.yml)
+    # declare identity or state file here (e.g. .gakusei.yml)
+    read: []
     actions:
-      - say: "intent: greet user and summarise current state"
-      - propose: "intent: suggest the most relevant next action"
+      - say: "{{greeting_with_current_state}}"
+      - propose: "{{most_relevant_next_action}}"
         on_confirm:
           - call: # most_relevant_scenario
     state_changes: []
