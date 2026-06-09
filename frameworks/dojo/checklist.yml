@@ -68,6 +68,27 @@ structure:
     target: scroll
     must_exist: false
 
+templates:
+  - label: "kata.md matches zeroth canonical version"
+    proxy: template_matches_zeroth
+    framework: dojo
+    template: kata.md
+
+  - label: "kiroku_nikki.md matches zeroth canonical version"
+    proxy: template_matches_zeroth
+    framework: dojo
+    template: kiroku_nikki.md
+
+  - label: "kiroku_makimono.md matches zeroth canonical version"
+    proxy: template_matches_zeroth
+    framework: dojo
+    template: kiroku_makimono.md
+
+  - label: "shinsa.md matches zeroth canonical version"
+    proxy: template_matches_zeroth
+    framework: dojo
+    template: shinsa.md
+
 agent_yml:
   block_order:
     - label: connector_check is the first block
