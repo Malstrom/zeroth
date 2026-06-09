@@ -2,7 +2,8 @@
 # Inherits: zeroth/rules/agent.yml
 # The following are dojo-specific additions
 
-required_scenario_file: .scenarios.yml
+scenarios:
+  scenarios_file: .scenarios.yml
 
 required_handlers:
   session_end:

@@ -9,7 +9,6 @@ required_scenarios:
       - session opens (automatic, no user message required)
     read:
       - .registry.yml
-      - rules/naming.yml
     actions:
       - reply in Italian
       - summarise current state of zeroth (frameworks registered, rules present, giskard status)
@@ -30,7 +29,7 @@ required_scenarios:
     actions:
       - create frameworks/{name}/overview.yml from templates/overview.yml
       - create frameworks/{name}/checklist.yml
-      - create frameworks/{name}/agent.yml from templates/.agent.yml
+      - create frameworks/{name}/.agent.yml from templates/.agent.yml
       - create frameworks/{name}/.scenarios.yml from templates/.scenarios.yml
       - update README.md registered frameworks table
       - add {name} to Malstrom/giskard ZEROTH_CHECKLISTS
