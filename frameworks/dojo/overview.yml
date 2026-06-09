@@ -37,6 +37,11 @@ levels:
   - intermediate
   - advanced
 
+default_subjects:
+  github:
+    description: Git and GitHub — version control, branching, pull requests, Actions, collaboration workflows
+    note: included by default in every dojo instance — fundamental skill for all developers
+
 library_sources:
   - google_drive: shared folder link — the AI downloads the PDF
   - attached_file: PDF, DOCX, MD, TXT, or similar text-readable attachment from chat
