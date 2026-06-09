@@ -1,8 +1,9 @@
 # dojo framework — validation checklist
-# A repo is a valid dojo instance if ALL items below are true
+# A repository is a valid dojo instance if ALL items below are true
 
 structure:
   - .agent.yml exists in root
+  - .scenarios.yml exists in root
   - .registry.yml exists in root
   - .gakusei.yml exists in root
   - gakusei.md exists in root
@@ -19,40 +20,31 @@ agent_yml:
   - connector_check is the first block
   - global.language reads from .gakusei.yml
   - global.pr_strategy is batch_per_session
-  - session_start scenario is present
-  - studio_open scenario is present with all 4 input_sources
-  - randori scenario is present
-  - esame_finale scenario is present
-  - avanzamento_livello scenario is present
+  - .agent.yml explicitly references .scenarios.yml
+  - session_start scenario is present in .scenarios.yml
+  - study_open scenario is present in .scenarios.yml with all 4 input_sources
+  - randori scenario is present in .scenarios.yml
+  - final_exam scenario is present in .scenarios.yml
+  - level_up scenario is present in .scenarios.yml
   - session_end handler is present
   - level_up rule states: AI proposes, student confirms
 
 gakusei_yml:
-  - nome field exists
-  - lingua field exists
-  - materie field exists as map of subject -> level
-  - levels are one of: [non iniziato, principiante, intermedio, avanzato]
-  - ultima_sessione field exists with materia, argomento, prossimo
-  - libri_attivi field exists as list
-  - libri_completati field exists as list
-  - esami field exists per subject with stato and soglia
+  - name field exists
+  - language field exists
+  - subjects field exists as map of subject -> level
+  - levels are one of: [not_started, beginner, intermediate, advanced]
+  - last_session field exists with subject, topic, next
+  - active_books field exists as list
+  - completed_books field exists as list
+  - exams field exists per subject with status and threshold
 
 behaviour:
-  - AI reads .gakusei.yml at every session start
-  - AI updates .gakusei.yml and gakusei.md after every session
+  - the AI reads .gakusei.yml at every session start
+  - the AI updates .gakusei.yml and gakusei.md after every session
   - kiroku files are append-only — never overwritten
-  - exam records are committed before AI responds
+  - exam records are committed before the AI responds
   - level_up requires student confirmation
-  - AI adapts explanation depth to gakusei level in .gakusei.yml
-  - AI never reads densho/ (it does not exist)
+  - the AI adapts explanation depth to the student level in .gakusei.yml
+  - the AI never reads densho/ because it does not exist
   - templates are read before generating any document
-
-dynamic_dirs:
-  kata/{subject}/:
-    pattern: "{topic}.md"
-    regex: "^.+\.md$"
-    allow_empty: false
-  kiroku/{subject}/:
-    pattern: "YYYY-MM-DD.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}\.md$"
-    allow_empty: true
