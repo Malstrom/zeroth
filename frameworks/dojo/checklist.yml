@@ -6,10 +6,9 @@ structure:
   - .scenarios.yml exists in root
   - .registry.yml exists in root
   - .gakusei.yml exists in root
-  - gakusei.md exists in root
   - README.md exists in root
   - kata/ exists with at least one subject subfolder
-  - kiroku/ exists with _index.md
+  - kiroku/ exists
   - templates/ exists with all required templates
   - densho/ does NOT exist
   - sensei.yml does NOT exist
@@ -17,17 +16,33 @@ structure:
   - scroll/ does NOT exist
 
 agent_yml:
-  - connector_check is the first block
-  - global.language reads from .gakusei.yml
-  - global.pr_strategy is batch_per_session
-  - .agent.yml explicitly references .scenarios.yml
-  - session_start scenario is present in .scenarios.yml
-  - study_open scenario is present in .scenarios.yml with all 4 input_sources
-  - randori scenario is present in .scenarios.yml
-  - final_exam scenario is present in .scenarios.yml
-  - level_up scenario is present in .scenarios.yml
-  - session_end handler is present
-  - level_up rule states: AI proposes, student confirms
+  block_order:
+    - connector_check is the first block
+    - global is the second block
+    - repo_map is present
+    - file_access is present
+    - tool_approval is present
+    - write_ahead is present
+    - scenarios is present and declares scenarios_file
+    - post_action_hook is present (may be empty)
+    - handlers is present (may be empty)
+  global:
+    - global.language reads from .gakusei.yml
+    - global.pr_strategy is batch_per_session
+    - global.merge_strategy is squash
+    - global.dedup_scope is current_session
+  scenarios:
+    - session_start scenario is present in .scenarios.yml
+    - study_open scenario is present in .scenarios.yml with all 4 input_sources
+    - randori scenario is present in .scenarios.yml
+    - final_exam scenario is present in .scenarios.yml
+    - level_up scenario is present in .scenarios.yml
+    - unknown_scenario is present and is the last scenario
+  handlers:
+    - session_end handler is present
+    - session_end has dedup declared
+    - session_end has state_changes declared
+    - level_up rule states: AI proposes, student confirms
 
 gakusei_yml:
   - name field exists
@@ -41,10 +56,10 @@ gakusei_yml:
 
 behaviour:
   - the AI reads .gakusei.yml at every session start
-  - the AI updates .gakusei.yml and gakusei.md after every session
+  - gakusei.md does not need to pre-exist; the AI creates it on first session
+  - the AI updates .gakusei.yml and gakusei.md after every session via PR
   - kiroku files are append-only — never overwritten
   - exam records are committed before the AI responds
   - level_up requires student confirmation
   - the AI adapts explanation depth to the student level in .gakusei.yml
-  - the AI never reads densho/ because it does not exist
   - templates are read before generating any document
