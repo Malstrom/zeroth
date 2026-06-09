@@ -91,6 +91,16 @@ work_style:
     update_before_pr: true    # crystallize decisions in issue body before opening PR
   applies_to: all_repos
 
+  issue_discipline:
+    rule: issues are the single source of truth for every decision made in chat
+    always:
+      - every decision or constraint agreed in chat → update current issue before moving on
+      - every new topic that emerges → open a new issue immediately, even mid-conversation
+      - never let a decision live only in chat — if it’s not in the issue, it doesn’t exist
+    update_trigger: after every decision, clarification, or constraint agreed with Igor
+    open_trigger: when topic shifts or a new workstream is identified
+    applies_to: all_repos
+
 # ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
