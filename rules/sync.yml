@@ -22,3 +22,11 @@ rules:
   - sync is always unidirectional per connection declaration
   - circular sync between two repos must be explicitly documented and justified
   - a repo must never modify files in another repo outside declared connections
+
+post_action_hook_obligation:
+  rule: |
+    post_action_hook MUST read .registry.yml after every state_change.
+    This is mandatory, not a recommendation.
+    If a framework has no sync connections, post_action_hook still reads .registry.yml
+    and executes nothing (zero matching triggers).
+  rationale: ensures all sync logic is driven by .registry.yml, never hardcoded
