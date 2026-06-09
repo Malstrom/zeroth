@@ -9,20 +9,24 @@ required_layout:
     - README.md            # human navigation hub
     # gakusei.md is NOT required at init — created by AI on first session
   kata/:
-    - "{subject}/"            # one subfolder per subject (for example rails/, devops/, psychology/)
+    - "{subject}/"            # one subfolder per subject (e.g. github/, rails/, devops/)
     - "{subject}/{topic}.md"  # one file per topic within the subject
   kiroku/:
-    - "{subject}/"            # one subfolder per subject
-    - "{subject}/YYYY-MM-DD.md"  # immutable session record
+    makimono/:              # living documents — evolve with the student, updated via PR
+      - "{subject}.md"      # one file per subject (e.g. github.md, python.md)
+    nikki/:                 # immutable session diary — append-only, never overwrite
+      - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session (e.g. 2026-06-09_python_study.md)
   templates/:
     - kata.md
-    - kiroku_session.md
+    - kiroku_nikki.md
+    - kiroku_makimono.md
     - shinsa.md
 
 rules:
   - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
   - gakusei.md is created by the AI on first session and updated after every session and level_up
-  - kiroku/ files are append-only — never overwrite
+  - kiroku/nikki/ files are append-only — never overwrite
+  - kiroku/makimono/ files are living documents — updated via PR, never directly on main
   - kata/ files are updated via PR, never directly on main
   - templates/ must be read before generating any document
   - densho/ does not exist — books are read from library sources, not stored in the repository
@@ -49,7 +53,11 @@ dynamic_dirs:
     pattern: "{topic}.md"
     regex: "^.+\\.md$"
     allow_empty: false
-  kiroku/{subject}/:
-    pattern: "YYYY-MM-DD.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}\\.md$"
+  kiroku/makimono/:
+    pattern: "{subject}.md"
+    regex: "^.+\\.md$"
+    allow_empty: true
+  kiroku/nikki/:
+    pattern: "YYYY-MM-DD_{subject}_{type}.md"
+    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\\.md$"
     allow_empty: true

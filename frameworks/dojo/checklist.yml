@@ -31,12 +31,21 @@ structure:
     proxy: file_exists
     target: kiroku
 
+  - label: "kiroku/makimono/ exists"
+    proxy: file_exists
+    target: kiroku/makimono
+
+  - label: "kiroku/nikki/ exists"
+    proxy: file_exists
+    target: kiroku/nikki
+
   - label: templates/ exists with all required templates
     proxy: dir_has_templates
     target: templates/
     required_files:
       - kata.md
-      - kiroku_session.md
+      - kiroku_nikki.md
+      - kiroku_makimono.md
       - shinsa.md
 
   - label: densho/ does NOT exist
@@ -215,9 +224,9 @@ behaviour:
     file: .scenarios.yml
     terms: [session_start]
 
-  - label: kiroku files are append-only — never overwritten
+  - label: kiroku/nikki files are append-only — never overwritten
     proxy: file_access_mode
-    pattern: "kiroku/**"
+    pattern: "kiroku/nikki/**"
     mode: append
 
   - label: shinsa records are committed before the AI responds

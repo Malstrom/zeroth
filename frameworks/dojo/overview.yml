@@ -12,7 +12,9 @@ cycle:
 
 vocabulary:
   kata: unit of knowledge — theory, explanations, examples, and snippets for one topic, organised by subject
-  kiroku: immutable session record — what was studied, drilled, or examined
+  kiroku: (記録) namespace for all session records — contains makimono/ and nikki/
+  makimono: (巻物) living document — the kata that evolves with the student; "maki" = to roll/wrap, "mono" = thing — the scroll the sensei writes knowledge on
+  nikki: (日記) immutable session diary — one file per session; "nichi" = day, "ki" = record — append-only, never overwritten
   randori: interactive drill during study — the AI asks open questions after each concept, no score, feedback immediate
   quiz: autonomous practice — multiple choice questions from kata, no state saved, lightweight (metro/break use)
   shinsa: formal exam — 10 open-ended questions covering the full subject, scored, no feedback during, required before level_up
@@ -24,10 +26,12 @@ vocabulary:
 key_principles:
   - one repository per student instance
   - the AI reads .gakusei.yml at session start — no exceptions
-  - kiroku files are immutable — append-only, never overwrite
+  - nikki files are immutable — append-only, never overwrite
+  - makimono files are living documents — updated via PR after each session
   - mastery state lives in .gakusei.yml — not in AI memory
   - files for the AI are hidden YAML files; files for the human are Markdown
-  - kata/ and kiroku/ are organised by subject subfolder
+  - kata/ is organised by subject subfolder
+  - kiroku/ contains makimono/ (living docs) and nikki/ (session records)
   - level progression requires completing a book and passing the shinsa
   - the AI proposes level_up, the student confirms
 
