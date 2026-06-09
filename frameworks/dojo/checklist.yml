@@ -35,9 +35,11 @@ agent_yml:
     - session_start scenario is present in .scenarios.yml
     - study_open scenario is present in .scenarios.yml with all 4 input_sources
     - randori scenario is present in .scenarios.yml
-    - final_exam scenario is present in .scenarios.yml
+    - quiz scenario is present in .scenarios.yml
+    - shinsa scenario is present in .scenarios.yml
     - level_up scenario is present in .scenarios.yml
     - unknown_scenario is present and is the last scenario
+    - final_exam does NOT exist (renamed to shinsa)
   handlers:
     - session_end handler is present
     - session_end has dedup declared
@@ -59,7 +61,11 @@ behaviour:
   - gakusei.md does not need to pre-exist; the AI creates it on first session
   - the AI updates .gakusei.yml and gakusei.md after every session via PR
   - kiroku files are append-only — never overwritten
-  - exam records are committed before the AI responds
-  - level_up requires student confirmation
+  - shinsa records are committed before the AI responds
+  - shinsa gives no feedback during the exam — only final score
+  - shinsa questions are open-ended (explain / describe / difference between) — never multiple choice
+  - quiz uses multiple choice (A/B/C/D) from kata — no state saved
+  - randori is called by study_open after each concept, or triggered by user directly
+  - level_up requires student confirmation — never automatic
   - the AI adapts explanation depth to the student level in .gakusei.yml
   - templates are read before generating any document
