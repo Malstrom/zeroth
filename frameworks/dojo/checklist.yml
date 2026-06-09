@@ -31,16 +31,24 @@ behaviour:
   - templates are read before generating any document
 
 # ---------------------------------------------------------------------------
-# STRICT ROOT — no extra files allowed in root
+# STRICT ROOT — no extra files/dirs allowed in root
 # ---------------------------------------------------------------------------
 strict_root:
   allowed:
     - .agent.yml
     - .registry.yml
+    - .github
+    - .git
     - sensei.md
     - onboarding.yml
     - README.md
-    - .github
+    - LICENSE
+    - SETUP.md
+    - WHY.md
+    - kata
+    - kiroku
+    - densho
+    - templates
 
 # ---------------------------------------------------------------------------
 # DYNAMIC DIRS — content is variable but must match naming patterns
@@ -59,8 +67,8 @@ dynamic_dirs:
     regex: "^(.+\\.md|\\.agent\\.yml)$"
     allow_empty: false
   densho/:
-    pattern: "{course}.md or .agent.yml"
-    regex: "^(.+\\.md|\\.agent\\.yml)$"
+    pattern: "{course}.md or .pdf or .agent.yml"
+    regex: "^(.+\\.md|.+\\.pdf|\\.agent\\.yml)$"
     allow_empty: true
   templates/:
     pattern: "known template files only"
