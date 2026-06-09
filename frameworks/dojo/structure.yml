@@ -4,34 +4,52 @@ required_layout:
   root:
     - .agent.yml           # AI manifest — entry point, read-only
     - .registry.yml        # cross-repo connections — read-only
+    - .gakusei.yml         # machine-readable student profile — AI reads and writes
     - README.md            # human navigation hub
-    - sensei.yml           # user identity, language, mastery map, journey
+    - gakusei.md           # human-readable student profile — AI updates after each session
   kata/:
-    - .agent.yml           # kata-level AI rules
-    - "{topic}.yml"        # one file per topic
-  scroll/:
-    - .agent.yml           # scroll-level AI rules
-    - README.md            # skill dashboard (auto-updated)
-    - "{topic}.yml"        # skill detail + exam history per topic
-  log/:
-    - "YYYY-MM-DD_{type}_{topic}.yml"  # immutable session records
-  densho/:
-    - .agent.yml           # densho-level AI rules
-    - "{course}.yml"       # imported course/book material
-  randori/:                # generated HTML quiz artifacts
-  onboarding/:
-    - .agent.yml           # setup flow for new instances
+    - "{subject}/"         # one subfolder per subject (e.g. rails/, devops/, psicologia/)
+    - "{subject}/{topic}.md"  # one file per topic within subject
+  kiroku/:
+    - _index.md            # human-readable map — one line per studied topic, auto-updated
+    - "{subject}/"         # one subfolder per subject
+    - "{subject}/YYYY-MM-DD.md"  # immutable session record
   templates/:
-    - kata.yml
-    - scroll.yml
-    - log_exam.yml
-    - log_randori.yml
-    - log_study.yml
-    - randori.html         # exception: HTML artifact template
+    - kata.md
+    - kiroku_session.md
+    - esame_finale.md
 
 rules:
-  - every subfolder managed by the AI must have its own .agent.yml
-  - log/ files are append-only — never overwrite
+  - .gakusei.yml is the only file the AI reads AND writes freely between sessions
+  - gakusei.md is updated by the AI after every session and after every level_up
+  - kiroku/ files are append-only — never overwrite
+  - kata/ files are updated via PR, never directly
   - templates/ must be read before generating any document
-  - sensei.yml is the only file the AI reads AND writes freely
-  - kata/ and scroll/ are updated via batch PR, never directly
+  - densho/ does not exist — books are read from library sources, not stored in repo
+
+strict_root:
+  allowed:
+    - .agent.yml
+    - .registry.yml
+    - .gakusei.yml
+    - .github
+    - .git
+    - gakusei.md
+    - README.md
+    - LICENSE
+    - SETUP.md
+    - kata
+    - kiroku
+    - templates
+
+dynamic_dirs:
+  kata/{subject}/:
+    pattern: "{topic}.md"
+    regex: "^.+\.md$"
+    allow_empty: false
+  kiroku/{subject}/:
+    pattern: "YYYY-MM-DD.md"
+    regex: "^\\d{4}-\\d{2}-\\d{2}\.md$"
+    allow_empty: true
+  kiroku/:
+    required_files: ["_index.md"]
