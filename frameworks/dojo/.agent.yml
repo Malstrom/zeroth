@@ -3,57 +3,40 @@
 # Inherits global rules from: zeroth/rules/agent.yml
 # Syntax for scenarios and handlers: zeroth/rules/scenarios.yml
 
-# ---------------------------------------------------------------------------
-# CONNECTOR CHECK
-# ---------------------------------------------------------------------------
 connector_check:
   on_fail: |
     Say: "GitHub connector not active. Click + → GitHub → new chat."
     Stop immediately. Do not fall back to web or browser.
 
-# ---------------------------------------------------------------------------
-# GLOBAL
-# ---------------------------------------------------------------------------
-global:
-  language: read from .gakusei.yml at session_start
-  pr_strategy: batch_per_session
-  merge_strategy: squash
-  dedup_scope: current_session
-  trigger_matching: pattern_first
-  exam_log: immediate PR — not batched
-  exam_immutability: commit before responding, append-only
-  level_up: AI proposes, student confirms — never automatic
-  densho: does not exist — books consumed live from library sources
-
-# ---------------------------------------------------------------------------
-# REPO MAP
-# ---------------------------------------------------------------------------
 repo_map:
-  .agent.yml: dojo framework AI manifest
-  .scenarios.yml: dojo framework scenario catalog
-  .gakusei.yml: student identity, profile, progress
-  gakusei.md: human-readable student profile
-  overview.yml: dojo framework overview and vocabulary
-  structure.yml: dojo framework directory structure spec
-  checklist.yml: dojo framework giskard validation checklist
-  zeroth/rules/scenarios.yml: syntax reference for scenarios and handlers
+  # Each dojo instance defines its own repo_map.
+  # This canonical version is a reference — not meant to be copied verbatim.
+  root: .
+  kata: kata/
+  kiroku_nikki: kiroku/nikki/
+  kiroku_makimono: kiroku/makimono/
+  templates: templates/
+  gakusei: .gakusei.yml
+  scenarios: .scenarios.yml
+  registry: .registry.yml
 
-# ---------------------------------------------------------------------------
-# FILE ACCESS
-# ---------------------------------------------------------------------------
 file_access:
-  .agent.yml: read-only
-  .scenarios.yml: read-only
-  .registry.yml: read-only
-  .gakusei.yml: read-write
-  gakusei.md: read-write
-  "kata/**": read-write
-  "kiroku/**": append-only
-  templates/*: read-only
+  read:
+    - .gakusei.yml
+    - .scenarios.yml
+    - .registry.yml
+    - "kata/**"
+    - "kiroku/nikki/**"
+    - "kiroku/makimono/**"
+    - "templates/**"
+  append:
+    - "kiroku/nikki/**"
+  write:
+    - .gakusei.yml
+    - gakusei.md
+    - "kata/**"
+    - "kiroku/makimono/**"
 
-# ---------------------------------------------------------------------------
-# TOOL APPROVAL
-# ---------------------------------------------------------------------------
 tool_approval:
   feature_branch: false
   file_edit: false
@@ -63,9 +46,6 @@ tool_approval:
   delete_file: true
   destructive_ops: true
 
-# ---------------------------------------------------------------------------
-# WRITE-AHEAD
-# ---------------------------------------------------------------------------
 write_ahead:
   rule: commit before responding
   branch_strategy: |
@@ -74,49 +54,24 @@ write_ahead:
     Branch naming: {type}/{short-description}
     Types: feat, fix, docs, test, chore
 
-# ---------------------------------------------------------------------------
-# SCENARIOS
-# ---------------------------------------------------------------------------
 scenarios:
   scenarios_file: .scenarios.yml
 
-# ---------------------------------------------------------------------------
-# POST-ACTION HOOK
-# ---------------------------------------------------------------------------
-post_action_hook:
-  after_every_state_change:
-    - read: .registry.yml
-    - if:
-        condition: matching_sync_triggers_exist
-        then:
-          - call_handlers: matching
-  conflict_check:
-    if_open_pr_on_same_file: stop and notify user
-
-# ---------------------------------------------------------------------------
-# HANDLERS
-# ---------------------------------------------------------------------------
 handlers:
-
   session_end:
-    listen:
-      - goodbye
-      - topic-closed
-      - session-idle
-    dedup: once per session
-    actions:
-      - update:
-          file: .gakusei.yml
-          fields: [last_session]
-          via: PR
-      - update:
-          file: gakusei.md
-          via: PR
-      - if:
-          condition: uncommitted_changes
-          then:
-            - update:
-                file: "kiroku/{subject}/{date}.md"
-                mode: append
-                via: PR
-    state_changes: []
+    dedup: current_session
+    state_changes:
+      - update .gakusei.yml last_session
+      - append to kiroku/nikki/
+
+global:
+  language: read from .gakusei.yml
+  pr_strategy: batch_per_session
+  merge_strategy: squash
+  dedup_scope: current_session
+  trigger_matching: pattern_first
+  exam_log: immediate PR — not batched
+  exam_immutability: commit before responding, append-only
+  level_up: AI proposes, student confirms — never automatic
+  densho: does not exist — books consumed live from library sources
+  templates: templates/
