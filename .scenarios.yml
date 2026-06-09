@@ -76,7 +76,6 @@ required_scenarios:
       - user wants to fix or update giskard
     read:
       - "frameworks/{framework}/checklist.yml"
-      - Malstrom/giskard giskard.py
     actions:
       - if:
           condition: root_cause == checklist
@@ -89,7 +88,7 @@ required_scenarios:
                 condition: root_cause == giskard
                 then:
                   - update:
-                      file: Malstrom/giskard giskard.py
+                      file: Malstrom/giskard:giskard.py
                       via: PR
     state_changes:
       - giskard-updated

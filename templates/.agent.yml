@@ -73,12 +73,17 @@ scenarios:
 # ---------------------------------------------------------------------------
 handlers:
   # declare reactive handlers for state_changes emitted by scenarios
-  # every handler MUST declare dedup
+  # every handler must have: listen, dedup, actions, state_changes
+  # actions use shared_modules only (read, update, create, emit, if, call)
+  # say, ask, propose are forbidden in handlers
   # example:
   # my_handler:
   #   listen:
   #     - some-event
   #   dedup: once per session
   #   actions:
-  #     - do something
+  #     - update:
+  #         file: path/to/file.yml
+  #         fields: [field1]
+  #         via: PR
   #   state_changes: []
