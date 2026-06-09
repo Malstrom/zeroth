@@ -1,32 +1,40 @@
 # Zeroth — Naming Rules
 
-## Regola fondamentale
-I nomi devono essere **evocativi**, non descrittivi. Il nome suggerisce l'essenza, non la funzione.
+## Fundamental Rule
+Names must be **evocative**, not descriptive. The name suggests the essence, not the function.
+
+## Language Rule
+**All files read or written by an AI agent must be in English.** This applies to:
+- `.agent.yml` and `.registry.yml` — always English
+- `kata/`, `scroll/`, `log/`, `densho/`, `templates/` content — always English
+- Any file declared in `repo_map` inside `.agent.yml` — always English
+
+Exception: files that are explicitly human-only (e.g. `README.md`) may be in any language.
 
 ## Repo
-- Massimo 2 parole
-- Lowercase, separatore: trattino `-`
-- Evocativo, non tecnico
-- Esempi validi: `dojo`, `tensho`, `zeroth`, `sudo-hire-me`
-- Esempi non validi: `ai-learning-framework`, `skill-tracker-v2`, `my-repo`
+- Maximum 2 words
+- Lowercase, separator: hyphen `-`
+- Evocative, not technical
+- Valid examples: `dojo`, `tensho`, `zeroth`, `sudo-hire-me`
+- Invalid examples: `ai-learning-framework`, `skill-tracker-v2`, `my-repo`
 
-## Cartelle
-- Massimo 2 parole
-- Lowercase, nessun separatore se possibile
-- Evocativo del contenuto, non tecnico
-- Esempi validi: `kata/`, `scroll/`, `forge/`, `hunt/`, `log/`
-- Esempi non validi: `training-data/`, `session-logs/`, `user-profiles/`
+## Folders
+- Maximum 2 words
+- Lowercase, no separator if possible
+- Evocative of content, not technical
+- Valid examples: `kata/`, `scroll/`, `forge/`, `hunt/`, `log/`
+- Invalid examples: `training-data/`, `session-logs/`, `user-profiles/`
 
-## File
-- Lowercase, separatore: trattino `-` o underscore `_` (coerente per repo)
-- File speciali AI: sempre con punto `.agent.yml`, `.registry.yml`
-- File identità: nome proprio minuscolo (es. `sensei.md`, `igor.md`)
-- Log: formato `YYYY-MM-DD_{type}_{topic}.md`
+## Files
+- Lowercase, separator: hyphen `-` or underscore `_` (consistent per repo)
+- Special AI files: always with dot prefix — `.agent.yml`, `.registry.yml`
+- Identity files: lowercase proper name (e.g. `sensei.md`, `igor.md`)
+- Logs: format `YYYY-MM-DD_{type}_{topic}.md`
 
-## File speciali riservati
-| File | Ruolo | Accesso AI |
-|---|---|---|
-| `.agent.yml` | Manifest AI, entry point | Read-only |
-| `.registry.yml` | Mappa connessioni cross-repo | Read-only, mai proattivo |
-| `sensei.md` | Identità utente e profilo | Read-write |
-| `README.md` | Hub navigazione umana | Write-only (AI non legge) |
+## Reserved Special Files
+| File | Role | AI Access |
+|------|------|-----------|
+| `.agent.yml` | AI manifest, entry point | Read-only |
+| `.registry.yml` | Cross-repo connection map | Read-only, never proactive |
+| `sensei.md` | User identity and profile | Read-write |
+| `README.md` | Human navigation hub | Write-only (AI does not read) |
