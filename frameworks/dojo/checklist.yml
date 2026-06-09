@@ -7,10 +7,11 @@ structure:
   - sensei.md exists in root
   - onboarding.yml exists in root
   - kata/ exists with .agent.yml
-  - scroll/ exists with .agent.yml and README.md
-  - log/ directory exists
-  - templates/ exists with all required templates
+  - kiroku/ exists with .agent.yml
+  - kiroku/makimono/ exists with .agent.yml and README.md
+  - kiroku/nikki/ exists with .agent.yml
   - densho/ exists with .agent.yml
+  - templates/ exists with all required templates
 
 agent_yml:
   - connector_check is the first block
@@ -45,7 +46,7 @@ strict_root:
 # DYNAMIC DIRS — content is variable but must match naming patterns
 # ---------------------------------------------------------------------------
 dynamic_dirs:
-  log/:
+  kiroku/nikki/:
     pattern: "YYYY-MM-DD_{type}_{topic}.md"
     regex: "^\\d{4}-\\d{2}-\\d{2}_(exam|randori|study)_.+\\.md$"
     allow_empty: true
@@ -53,7 +54,7 @@ dynamic_dirs:
     pattern: "{topic}.md or .agent.yml"
     regex: "^(.+\\.md|\\.agent\\.yml)$"
     allow_empty: false
-  scroll/:
+  kiroku/makimono/:
     pattern: "{topic}.md or .agent.yml or README.md"
     regex: "^(.+\\.md|\\.agent\\.yml)$"
     allow_empty: false
