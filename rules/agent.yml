@@ -60,8 +60,8 @@ rules:
       push_files: false
       create_pr: false
       merge_to_main: false
-      delete_file: true  # irreversible outside git history
-      destructive_ops: true  # any operation that cannot be undone via PR
+      delete_file: true
+      destructive_ops: true
     definition:
       destructive_ops: |
         delete_file, overwrite without branch, clear directory, any operation
@@ -69,3 +69,15 @@ rules:
     note: |
       This mapping applies to the _requires_user_approval flag on every tool call.
       The AI must follow this mapping and never ask approval for false entries.
+
+  yaml_validity:
+    - all .agent.yml files must be parseable by yaml.safe_load without errors
+    - never use flow sequences [...] when values contain { } characters
+    - use block sequences for read: lists in scenarios and handlers
+    - correct:
+        read:
+          - sensei.md
+          - "kata/{topic}.md"
+    - incorrect:
+        read: [sensei.md, kata/{topic}.md]
+    - template placeholders like {topic} or {course} must be quoted when inside sequences
