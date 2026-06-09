@@ -3,29 +3,38 @@
 # Read-only for the AI. Managed manually or via PR.
 
 framework: zeroth
-version: 0.1.0
+version: 0.2.0
 description: spec and foundational rules for all Malstrom frameworks
 
 connections:
   - repo: Malstrom/giskard
     role: validation tool — enforces zeroth checklists on all framework repos
-    sync_trigger: [rule-updated, framework-added, checklist-updated]
+    sync_trigger:
+      - rule-updated
+      - framework-added
+      - checklist-updated
     access: read-write
     note: |
       When a checklist in zeroth changes, giskard.py may need updating.
       When a new framework is added, add it to ZEROTH_CHECKLISTS in giskard.py.
 
   - repo: Malstrom/dojo
-    role: reference implementation of zeroth spec
-    sync_trigger: [rule-updated, framework-added]
-    access: read
+    role: reference implementation of zeroth dojo framework spec
+    sync_trigger:
+      - rule-updated
+      - framework-added
+    access: read-write
+    note: |
+      When dojo framework rules change in zeroth, propagate to Malstrom/dojo.
 
   - repo: Malstrom/tensho
     role: registered framework
-    sync_trigger: [rule-updated]
+    sync_trigger:
+      - rule-updated
     access: read
 
   - repo: Malstrom/sudo-hire-me
     role: registered framework
-    sync_trigger: [rule-updated]
+    sync_trigger:
+      - rule-updated
     access: read
