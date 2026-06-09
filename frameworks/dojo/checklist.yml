@@ -4,73 +4,55 @@
 structure:
   - .agent.yml exists in root
   - .registry.yml exists in root
-  - sensei.md exists in root
-  - onboarding.yml exists in root
-  - kata/ exists with .agent.yml
-  - kiroku/ exists with .agent.yml
-  - kiroku/makimono/ exists with .agent.yml and README.md
-  - kiroku/nikki/ exists with .agent.yml
-  - densho/ exists with .agent.yml
+  - .gakusei.yml exists in root
+  - gakusei.md exists in root
+  - README.md exists in root
+  - kata/ exists with at least one subject subfolder
+  - kiroku/ exists with _index.md
   - templates/ exists with all required templates
+  - densho/ does NOT exist
+  - sensei.yml does NOT exist
+  - sensei.md does NOT exist
+  - scroll/ does NOT exist
 
 agent_yml:
   - connector_check is the first block
-  - global.language reads from sensei.md
+  - global.language reads from .gakusei.yml
   - global.pr_strategy is batch_per_session
-  - all 6 required scenarios are present
-  - all 3 required handlers are present
-  - write_ahead.exam_mode is defined
-  - tool_approval.destructive_ops is true
-  - template_rule mapping covers all required templates
+  - session_start scenario is present
+  - studio_open scenario is present with all 4 input_sources
+  - randori scenario is present
+  - esame_finale scenario is present
+  - avanzamento_livello scenario is present
+  - session_end handler is present
+  - level_up rule states: AI proposes, student confirms
+
+gakusei_yml:
+  - nome field exists
+  - lingua field exists
+  - materie field exists as map of subject -> level
+  - levels are one of: [non iniziato, principiante, intermedio, avanzato]
+  - ultima_sessione field exists with materia, argomento, prossimo
+  - libri_attivi field exists as list
+  - libri_completati field exists as list
+  - esami field exists per subject with stato and soglia
 
 behaviour:
-  - exam logs are committed before AI responds
-  - exam logs are never overwritten (append-only)
-  - AI language is read from sensei.md not hardcoded
-  - AI does not read README.md (human-only)
+  - AI reads .gakusei.yml at every session start
+  - AI updates .gakusei.yml and gakusei.md after every session
+  - kiroku files are append-only — never overwritten
+  - exam records are committed before AI responds
+  - level_up requires student confirmation
+  - AI adapts explanation depth to gakusei level in .gakusei.yml
+  - AI never reads densho/ (it does not exist)
   - templates are read before generating any document
 
-# ---------------------------------------------------------------------------
-# STRICT ROOT — no extra files/dirs allowed in root
-# ---------------------------------------------------------------------------
-strict_root:
-  allowed:
-    - .agent.yml
-    - .registry.yml
-    - .github
-    - .git
-    - sensei.md
-    - onboarding.yml
-    - README.md
-    - LICENSE
-    - SETUP.md
-    - WHY.md
-    - kata
-    - kiroku
-    - densho
-    - templates
-
-# ---------------------------------------------------------------------------
-# DYNAMIC DIRS — content is variable but must match naming patterns
-# ---------------------------------------------------------------------------
 dynamic_dirs:
-  kiroku/nikki/:
-    pattern: "YYYY-MM-DD_{type}_{topic}.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}_(exam|randori|study)_.+\\.md$"
+  kata/{subject}/:
+    pattern: "{topic}.md"
+    regex: "^.+\.md$"
+    allow_empty: false
+  kiroku/{subject}/:
+    pattern: "YYYY-MM-DD.md"
+    regex: "^\\d{4}-\\d{2}-\\d{2}\.md$"
     allow_empty: true
-  kata/:
-    pattern: "{topic}.md or .agent.yml"
-    regex: "^(.+\\.md|\\.agent\\.yml)$"
-    allow_empty: false
-  kiroku/makimono/:
-    pattern: "{topic}.md or .agent.yml or README.md"
-    regex: "^(.+\\.md|\\.agent\\.yml)$"
-    allow_empty: false
-  densho/:
-    pattern: "{course}.md or .pdf or .agent.yml"
-    regex: "^(.+\\.md|.+\\.pdf|\\.agent\\.yml)$"
-    allow_empty: true
-  templates/:
-    pattern: "known template files only"
-    regex: "^(kata|scroll|log_exam|log_randori|log_study|randori)\\.(?:md|html)|README\\.md$"
-    allow_empty: false
