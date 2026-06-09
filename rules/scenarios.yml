@@ -87,6 +87,12 @@ actions:
       - emit
       - if
 
+  post_action_hook_modules:
+    description: available in post_action_hook only — not in scenarios or handlers
+    modules:
+      - call_handlers
+    note: call_handlers invokes all handlers whose listen list matches the current state_change
+
   modules:
 
     read:
@@ -101,7 +107,7 @@ actions:
       description: emit a fixed or templated message to the user
       scenario_only: true
       syntax:
-        - say: "message text"
+        - say: "message text or {{token}}"
       example:
         - say: "Session complete. Good work!"
 
@@ -109,9 +115,9 @@ actions:
       description: ask the user a question and wait for their answer before continuing
       scenario_only: true
       syntax:
-        - ask: "Are you ready to start the exam?"
+        - ask: "question text"
       example:
-        - ask: "Are you ready to start the exam?"
+        - ask: "Are you ready to start the shinsa?"
 
     call:
       description: invoke another scenario by name
@@ -152,7 +158,10 @@ actions:
 
     emit:
       description: emit a state_change event that handlers can react to
-      note: prefer declaring state_changes at scenario level; use emit only for conditional events
+      note: |
+        Prefer declaring state_changes at scenario level for unconditional events.
+        Use emit inside an if block for conditional events only.
+        Do not declare the same event in both emit and state_changes — that is a duplicate.
       syntax:
         - emit: event-name
       example:
@@ -187,6 +196,13 @@ actions:
           on_confirm:
             - call: level_up
 
+    call_handlers:
+      description: invoke all handlers whose listen list matches the current state_change event
+      post_action_hook_only: true
+      syntax:
+        - call_handlers: matching
+      note: only valid inside post_action_hook.after_every_state_change — forbidden in scenarios and handlers
+
 # ---------------------------------------------------------------------------
 # HANDLERS
 # ---------------------------------------------------------------------------
@@ -205,7 +221,7 @@ handlers:
     listen: block sequence of event names the handler reacts to
     dedup: once per session | once per {variable} per session
     actions: shared_modules only
-    state_changes: block sequence or []
+    state_changes: block sequence or [] — mandatory, never omit
   example:
     giskard_sync:
       listen:
@@ -271,8 +287,10 @@ validation:
     - trigger patterns must be intent descriptions in English — not phrases in any specific language
     - placeholders in file paths must be quoted strings
     - say, ask, propose are not allowed in handler actions
+    - emit and state_changes must not declare the same event (duplicate)
   handlers:
     - every handler must have listen, dedup, actions, state_changes
     - actions must use shared_modules only
     - say, ask, propose are forbidden in handler actions
     - dedup must be declared
+    - state_changes must be present — use [] when empty

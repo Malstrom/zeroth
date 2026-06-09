@@ -39,7 +39,7 @@ rules:
     - do not add extra language fields (e.g. replies_in) — language is the single source
     - pr_strategy: batch_per_session is default — exception only for immutable logs
     - merge_strategy: squash — always squash merge PRs into main
-    - dedup_scope: current_session_log — each handler runs at most once per topic per session
+    - dedup_scope: current_session — each handler runs at most once per topic per session
     - trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
 
   scenarios:
@@ -52,25 +52,25 @@ rules:
     - giskard validates .scenarios.yml, not the scenarios block in .agent.yml
 
   handlers:
-    - mandatory in every .agent.yml, even when empty
+    - mandatory in every .agent.yml, even when empty (use handlers: {})
     - reactive to state_changes emitted by scenarios
     - never called directly by the user
     - syntax and allowed modules defined in rules/scenarios.yml handlers section
     - required fields for each handler: listen, dedup, actions, state_changes
     - listen: block sequence of event names
     - dedup: once per session | once per {variable} per session
-    - state_changes: mandatory — use [] if no events are emitted
+    - state_changes: mandatory — use [] when the handler emits no events
     - actions: shared_modules only (read, update, create, emit, if, call)
     - say, ask, propose are forbidden in handler actions
     - cross-repo file references in actions must use owner/repo:path format — never in read field
-    - use handlers: {} when no handlers are needed
 
   post_action_hook:
-    - mandatory in every .agent.yml, even when empty
+    - mandatory in every .agent.yml
+    - must always read .registry.yml after every state_change — no exceptions
+    - if no sync triggers match, the hook reads .registry.yml and does nothing
+    - post_action_hook: {} is NOT valid — always declare after_every_state_change with read: .registry.yml
     - runs automatically after every state_change, before the AI replies
     - operates at the orchestration level — not tied to a specific event
-    - does not use scenario/handler modules as a free-form block; has fixed-field syntax
-    - use post_action_hook: {} when no hook is needed
     syntax:
       after_every_state_change:
         description: actions to run after any state_change
@@ -78,17 +78,28 @@ rules:
           - read
           - if
           - call_handlers
+        note: call_handlers is post_action_hook-exclusive — not a scenario or handler module
       conflict_check:
         description: safety rules for concurrent PR operations
         fields:
           if_open_pr_on_same_file: stop | warn | proceed
+    minimal_valid_example: |
+      post_action_hook:
+        after_every_state_change:
+          - read: .registry.yml
+          - if:
+              condition: matching_sync_triggers_exist
+              then:
+                - call_handlers: matching
+        conflict_check:
+          if_open_pr_on_same_file: stop and notify user
     note: giskard validates field presence only — not action syntax inside post_action_hook
 
   write_ahead:
     - rule: commit before responding
     - NEVER push directly to main — always feature branch → PR → squash merge
     - branch naming: {type}/{short-description} where type is feat/fix/docs/test/chore
-    - critical logs (exam): immediate PR → squash merge, immutable
+    - critical logs (shinsa): immediate PR → squash merge, immutable
     - everything else: batch per session
 
   file_access:
