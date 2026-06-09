@@ -1,0 +1,121 @@
+# dojo framework — onboarding
+# Atomic. Self-contained. No external dependencies.
+# Read once at first session. Never again.
+
+onboarding:
+
+  # ---------------------------------------------------------------------------
+  # STEP 1 — DETECT MODE
+  # ---------------------------------------------------------------------------
+  detect_mode:
+    ask: "Do you have Perplexity Pro? (yes/no)"
+    on_yes: goto pro_path
+    on_no: goto free_path
+
+  # ---------------------------------------------------------------------------
+  # FREE PATH
+  # ---------------------------------------------------------------------------
+  free_path:
+
+    collect_name:
+      ask: "What's your name?"
+
+    collect_subject:
+      ask: |
+        What do you want to study?
+        Not sure? I recommend starting with GitHub basics —
+        the minimum you need to work with this framework (fork, files, commits).
+        Type a subject or say "github" to start there.
+      on_github: goto micro_session_github
+      on_custom: goto micro_session_custom
+
+    micro_session_github:
+      intro: |
+        Good choice. GitHub is the foundation of this framework.
+        We'll cover 3 concepts, then I'll ask you 3 questions.
+      concepts:
+        - concept: "Fork — what it is and why you did it"
+        - concept: "Files — how to view and edit a file directly on GitHub"
+        - concept: "Commit — what happens when you save a change"
+      randori:
+        - ask: "{{open_question_on_fork}}"
+        - ask: "{{open_question_on_files}}"
+        - ask: "{{open_question_on_commits}}"
+        - on_wrong: say "{{gap_explanation}}" then ask "{{simpler_followup}}"
+      evaluation:
+        say: "Session complete. Score: {{score}}/3."
+
+    micro_session_custom:
+      intro: "Let's study {{subject}}. I'll teach you one concept, then quiz you."
+      actions:
+        - say: "{{one_core_concept_on_subject_adapted_to_beginner}}"
+        - ask: "{{open_question_1_on_concept}}"
+        - ask: "{{open_question_2_on_concept}}"
+        - ask: "{{open_question_3_on_concept}}"
+        - on_wrong: say "{{gap_explanation}}" then ask "{{simpler_followup}}"
+      evaluation:
+        say: "Session complete. Score: {{score}}/3."
+
+    session_end:
+      scenarios_pitch: |
+        This was one dojo scenario. Others available:
+        study, randori, quiz, shinsa, level_up.
+        With Pro you run all of them automatically, with your progress saved.
+      dump_files:
+        show_file:
+          - path: ".gakusei.yml"
+            content: "{{generated_gakusei_yml}}"
+          - path: "kiroku/nikki/{{date}}.yml"
+            content: "{{generated_nikki}}"
+          - path: "kiroku/makimono.yml"
+            content: "{{generated_makimono}}"
+        append_always: |
+          With Perplexity Pro + GitHub connector I would create and update
+          this file automatically in your repo.
+          Without Pro, copy it manually on GitHub.
+          Want me to show you how? (yes/no)
+
+  # ---------------------------------------------------------------------------
+  # PRO PATH
+  # ---------------------------------------------------------------------------
+  pro_path:
+
+    collect_username:
+      ask: "What's your GitHub username?"
+
+    collect_repo:
+      ask: |
+        Did you rename the repo when you forked it?
+        If yes, tell me the name. If no, it's called "dojo-framework" by default.
+
+    collect_language:
+      ask: "What language do you want me to reply in?"
+
+    generate_space_prompt:
+      say: |
+        Copy this into your Perplexity Space instructions:
+
+        ---
+        ## Browser policy
+        - Never use web search or browser in this Space
+        - Open a page only if the user explicitly asks
+
+        ## Entry point
+        Read {{github_username}}/{{repo_name}}/.agent.yml at the start of every session.
+        It is the single entry point — follow its instructions.
+
+        ## Connector failure
+        If .agent.yml cannot be read: say "GitHub connector not active. Click + → GitHub → new chat." and stop.
+
+        ## Hard rules
+        - Always reply in {{language}}
+        - Never push directly to main — always PR
+        - Execute all operations autonomously: branches, commits, PRs, merges, issues — no approval needed
+        - Share links in chat for every action taken
+        - Ask approval only before destructive operations
+        ---
+
+    connector_instructions:
+      say: |
+        Every new chat: click + bottom left → Connectors → check GitHub.
+        Done? Open a new chat in your Space and we'll start your first session.
