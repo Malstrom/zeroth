@@ -8,7 +8,6 @@ required_scenarios:
       - session opens automatically
     read:
       - .gakusei.yml
-      - kiroku/_index.md
     actions:
       - say: "{{student_name}}!"
       - say: "Last session: {{last_session.subject}} — {{last_session.topic}}. Next: {{last_session.next}}"
@@ -24,7 +23,6 @@ required_scenarios:
       - user wants to open a study session on a subject
     read:
       - .gakusei.yml
-      - kiroku/_index.md
       - "kata/{subject}/{topic}.md"
     input_sources:
       - google_drive
@@ -43,9 +41,6 @@ required_scenarios:
           mode: append
           via: PR
       - update:
-          file: kiroku/_index.md
-          via: PR
-      - update:
           file: .gakusei.yml
           fields: [last_session, book_progress]
           via: PR
@@ -57,20 +52,21 @@ required_scenarios:
 
   randori:
     trigger_patterns:
-      - user wants to be quizzed on a topic
-      - user wants to verify their understanding of something
+      - user wants to drill on the current topic
+      - user asks to be quizzed on what was just explained
+      - user wants to practice a concept
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
     actions:
-      - ask: "question on the concept just explained, adapted to student level"
+      - ask: "{{open_question_on_current_concept_adapted_to_student_level}}"
       - if:
           condition: answer_correct
           then:
-            - say: "Correct. Moving on."
+            - say: "Correct."
           else:
-            - say: "Not quite — here is the gap."
-            - ask: "simpler follow-up question on the same concept"
+            - say: "Not quite — {{gap_explanation}}"
+            - ask: "{{simpler_followup_on_same_concept}}"
       - update:
           file: "kiroku/{subject}/{date}.md"
           fields: [weak_spots]
@@ -79,16 +75,45 @@ required_scenarios:
     state_changes:
       - randori-completed
 
-  final_exam:
+  quiz:
     trigger_patterns:
-      - user wants to take the final exam for a subject
-      - user says they finished a book
+      - user wants to do a quick quiz on their current subject
+      - user wants to practice on their own without studying
+      - user wants to review what they know
     read:
       - .gakusei.yml
-      - kiroku/_index.md
+      - "kata/{subject}/"
     actions:
-      - ask: "Are you ready to start the final exam for {subject}?"
-      - say: "Asking 10 to 15 questions one at a time. Only your first answer counts."
+      - say: "Quiz on {{last_session.subject}}. Answer by typing A, B, C or D."
+      - ask: "{{mc_question_1_with_4_options_from_kata}}"
+      - ask: "{{mc_question_2_with_4_options_from_kata}}"
+      - ask: "{{mc_question_3_with_4_options_from_kata}}"
+      - ask: "{{mc_question_4_with_4_options_from_kata}}"
+      - ask: "{{mc_question_5_with_4_options_from_kata}}"
+      - say: "Score: {{score}}/5. {{weak_topics_summary}}"
+    state_changes: []
+
+  shinsa:
+    trigger_patterns:
+      - user says they finished a book or subject
+      - user wants to take the formal exam for a subject
+      - user wants to test their overall knowledge of a subject
+    read:
+      - .gakusei.yml
+      - "kata/{subject}/"
+    actions:
+      - ask: "Are you ready to begin the shinsa for {subject}? There is no feedback during the exam — only your final score."
+      - say: "Shinsa begins. Answer each question in your own words. 10 to 15 questions."
+      - ask: "{{open_exam_question_1_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_2_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_3_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_4_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_5_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_6_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_7_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_8_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_9_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_10_explain_or_describe_or_difference}}"
       - if:
           condition: score >= 80
           then:
@@ -97,7 +122,12 @@ required_scenarios:
                 fields: [exam_result, score]
                 mode: append
                 via: PR
-            - propose: "You passed! Move to the next level for {subject}?"
+            - update:
+                file: .gakusei.yml
+                fields: [exams]
+                via: PR
+            - say: "Shinsa passed. Score: {{score}}%."
+            - propose: "Move to the next level for {subject}?"
               on_confirm:
                 - call: level_up
           else:
@@ -106,14 +136,19 @@ required_scenarios:
                 fields: [exam_result, score, weak_chapters]
                 mode: append
                 via: PR
-            - say: "Not passed. Weak chapters: {{weak_chapters}}. Review and retry."
+            - update:
+                file: .gakusei.yml
+                fields: [exams]
+                via: PR
+            - say: "Shinsa not passed. Score: {{score}}%. Weak chapters: {{weak_chapters}}. Review and retry."
     state_changes:
-      - exam-passed
-      - exam-failed
+      - shinsa-passed
+      - shinsa-failed
 
   level_up:
     trigger_patterns:
-      - user confirms level up after passing the final exam
+      - user confirms level up after passing the shinsa
+      - user wants to manually advance their level on a subject
     read:
       - .gakusei.yml
       - gakusei.md
