@@ -82,6 +82,16 @@ write_ahead:
     Types: feat, fix, docs, test, chore
 
 # ---------------------------------------------------------------------------
+# WORK STYLE
+# ---------------------------------------------------------------------------
+work_style:
+  new_topic_in_chat:
+    rule: open issue immediately
+    precision: low_ok         # solution does not need to be known yet
+    update_before_pr: true    # crystallize decisions in issue body before opening PR
+  applies_to: all_repos
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
 scenarios:
