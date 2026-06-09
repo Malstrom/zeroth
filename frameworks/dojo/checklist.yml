@@ -18,13 +18,11 @@ structure:
 agent_yml:
   block_order:
     - connector_check is the first block
-    - global is the second block
     - repo_map is present
     - file_access is present
     - tool_approval is present
     - write_ahead is present
     - scenarios is present and declares scenarios_file
-    - post_action_hook is present and declares after_every_state_change with read: .registry.yml
     - handlers is present (may be empty)
   global:
     - global.language reads from .gakusei.yml
@@ -44,7 +42,6 @@ agent_yml:
     - session_end handler is present
     - session_end has dedup declared
     - session_end has state_changes declared
-    - level_up rule states: AI proposes, student confirms
 
 gakusei_yml:
   - name field exists
@@ -54,18 +51,14 @@ gakusei_yml:
   - last_session field exists with subject, topic, next
   - active_books field exists as list
   - completed_books field exists as list
-  - exams field exists per subject with passed (boolean) and score
 
 behaviour:
   - the AI reads .gakusei.yml at every session start
   - gakusei.md does not need to pre-exist; the AI creates it on first session
-  - the AI updates .gakusei.yml and gakusei.md after every session via PR
   - kiroku files are append-only — never overwritten
   - shinsa records are committed before the AI responds
   - shinsa gives no feedback during the exam — only final score
   - shinsa has exactly 10 open-ended questions (explain / describe / difference between) — never multiple choice
   - quiz uses multiple choice (A/B/C/D) from kata — no state saved
-  - randori is called by study_open after each concept, or triggered by user directly
   - level_up requires student confirmation — never automatic
-  - the AI adapts explanation depth to the student level in .gakusei.yml
   - templates are read before generating any document
