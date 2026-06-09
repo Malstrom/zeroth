@@ -5,6 +5,23 @@
 Spec and foundational rules for building AI-native frameworks in the Malstrom ecosystem.
 Every framework that respects `zeroth` can be automatically validated by giskard.
 
+## Why "zeroth"
+
+Isaac Asimov introduced the Three Laws of Robotics in 1942.
+Decades later, in *Robots and Empire* (1985), he added a law so fundamental
+it had to precede all others — the Zeroth Law:
+
+> *"A robot may not harm humanity, or, by inaction, allow humanity to come to harm."*
+
+A zeroth law doesn't replace the others. It governs them.
+This repo works the same way: not a framework itself, but the law above all frameworks.
+
+## giskard
+
+Every framework built on zeroth can be validated by [giskard](https://github.com/Malstrom/giskard).
+giskard enforces the zeroth law — if a repo violates the rules defined here, giskard catches it.
+No zeroth, no giskard. The law comes first.
+
 ## Structure
 
 ```
@@ -39,7 +56,7 @@ zeroth/
 ## How to use this repo
 
 - **Build a new framework**: read all of `rules/` → use the closest `frameworks/` folder as reference → create your repo.
-- **Validate an existing framework**: run giskard or manually follow the `checklist.yml` in the framework’s folder.
+- **Validate an existing framework**: run giskard or manually follow the `checklist.yml` in the framework's folder.
 - **Add a new framework**: create `frameworks/{name}/` with at least `overview.yml`, `structure.yml`, `checklist.yml`.
 
 ## Universal Quick Rules
@@ -58,11 +75,3 @@ zeroth/
 Required (in order): `connector_check` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `scenarios` → `post_action_hook` → `handlers`
 
 Optional (template only): `template_rule`
-
-## Registered Frameworks
-
-| Framework | Repo | Type | Status |
-|-----------|------|------|--------|
-| dojo | [Malstrom/dojo](https://github.com/Malstrom/dojo) | AI learning | ✅ reference impl |
-| tensho | [Malstrom/tensho](https://github.com/Malstrom/tensho) | GTM tracker | ⚠️ rules WIP |
-| sudo-hire-me | [Malstrom/sudo-hire-me](https://github.com/Malstrom/sudo-hire-me) | resume | ⚠️ rules WIP |
