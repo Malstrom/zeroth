@@ -18,7 +18,7 @@ global:
   language: read from identity file
   pr_strategy: batch_per_session
   merge_strategy: squash
-  dedup_scope: current_session_log
+  dedup_scope: current_session
   trigger_matching: pattern_first
 
 # ---------------------------------------------------------------------------
@@ -69,21 +69,11 @@ scenarios:
   scenarios_file: .scenarios.yml
 
 # ---------------------------------------------------------------------------
+# POST-ACTION HOOK
+# ---------------------------------------------------------------------------
+post_action_hook: {}
+
+# ---------------------------------------------------------------------------
 # HANDLERS
 # ---------------------------------------------------------------------------
-handlers:
-  # declare reactive handlers for state_changes emitted by scenarios
-  # every handler must have: listen, dedup, actions, state_changes
-  # actions use shared_modules only (read, update, create, emit, if, call)
-  # say, ask, propose are forbidden in handlers
-  # example:
-  # my_handler:
-  #   listen:
-  #     - some-event
-  #   dedup: once per session
-  #   actions:
-  #     - update:
-  #         file: path/to/file.yml
-  #         fields: [field1]
-  #         via: PR
-  #   state_changes: []
+handlers: {}

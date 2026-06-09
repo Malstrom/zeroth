@@ -31,10 +31,10 @@ connections:
     role: registered framework
     sync_trigger:
       - rule-updated
-    access: read
+    access: read-write
 
   - repo: Malstrom/sudo-hire-me
     role: registered framework
     sync_trigger:
       - rule-updated
-    access: read
+    access: read-write
