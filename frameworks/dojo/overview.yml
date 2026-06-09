@@ -15,7 +15,7 @@ vocabulary:
   kiroku: immutable session record — what was studied, drilled, or examined
   randori: interactive drill during study — the AI asks open questions after each concept, no score, feedback immediate
   quiz: autonomous practice — multiple choice questions from kata, no state saved, lightweight (metro/break use)
-  shinsa: formal exam — 10+ open-ended questions covering the full subject, scored, no feedback during, required before level_up
+  shinsa: formal exam — 10 open-ended questions covering the full subject, scored, no feedback during, required before level_up
   gakusei: the student profile
   .gakusei.yml: machine-readable student profile — the AI reads this at every session start
   gakusei.md: human-readable student profile — shows current level and what has been learned; created by AI on first session
