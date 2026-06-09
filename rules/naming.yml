@@ -60,8 +60,8 @@ reserved_files:
     role: cross-repo connection map
     ai_access: read-only, never proactive
   .scenarios.yml:
-    role: AI scenario catalog when scenarios are split from .agent.yml
-    ai_access: read-write
+    role: AI scenario catalog
+    ai_access: read-only
   README.md:
     role: human navigation hub
     ai_access: write-only (AI does not read)

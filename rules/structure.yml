@@ -3,6 +3,7 @@
 
 required_files:
   - .agent.yml       # AI manifest — mandatory
+  - .scenarios.yml   # AI scenario catalog — mandatory, dot-prefixed, read-only
   - .registry.yml    # cross-repo connections — mandatory even if empty
   - README.md        # human navigation hub
 
