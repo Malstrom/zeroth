@@ -1,0 +1,30 @@
+# kata — generato dall'AI, non modificare a mano
+topic: ""
+subject: ""
+level: ""          # valore dalla lista levels in .gakusei.yml
+
+key_concepts:
+  - ""
+
+explanation: |
+  
+
+# sezioni opzionali — generate solo se dichiarate in kata_sections del subject in .gakusei.yml
+
+examples:
+  - prompt: ""
+    answer: ""
+
+exercises:
+  - type: ""        # fill_in | translation | conjugation | problem | multiple_choice
+    prompt: ""
+    answer: ""
+    hint: ""        # opzionale
+
+code:
+  language: ""
+  snippet: |
+    
+
+notes: |
+  
