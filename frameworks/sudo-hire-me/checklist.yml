@@ -1,0 +1,6 @@
+# sudo-hire-me framework — validation checklist
+# status: work-in-progress
+
+structure:
+  - .agent.yml exists in root
+  - .registry.yml exists in root

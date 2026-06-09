@@ -1,0 +1,21 @@
+# dojo framework — overview
+
+framework: dojo
+purpose: AI-assisted learning framework — the repo is the source of truth, the AI is the sensei, the user is the student
+
+cycle: study -> drill -> exam -> track
+
+vocabulary:
+  kata: unit of knowledge — theory + snippets + flashcards for one topic
+  scroll: mastery tracker — exam history + current level per topic
+  randori: free-drill session — AI generates quiz, user answers, weak spots surfaced
+  densho: source material — imported course/book structured by chapter
+  sensei: user identity file — language, mastery map, learning journey
+  log: immutable session record — exam, randori, or study session
+  onboarding: first-run setup flow for new instances
+
+key_principles:
+  - one repo per student instance (fork of dojo-framework)
+  - AI reads .agent.yml at session start — no exceptions
+  - exam logs are immutable — commit before responding, never overwrite
+  - mastery state lives in sensei.yml + scroll/ — not in AI memory

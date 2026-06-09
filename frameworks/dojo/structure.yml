@@ -1,0 +1,37 @@
+# dojo framework — directory structure
+
+required_layout:
+  root:
+    - .agent.yml           # AI manifest — entry point, read-only
+    - .registry.yml        # cross-repo connections — read-only
+    - README.md            # human navigation hub
+    - sensei.yml           # user identity, language, mastery map, journey
+  kata/:
+    - .agent.yml           # kata-level AI rules
+    - "{topic}.yml"        # one file per topic
+  scroll/:
+    - .agent.yml           # scroll-level AI rules
+    - README.md            # skill dashboard (auto-updated)
+    - "{topic}.yml"        # skill detail + exam history per topic
+  log/:
+    - "YYYY-MM-DD_{type}_{topic}.yml"  # immutable session records
+  densho/:
+    - .agent.yml           # densho-level AI rules
+    - "{course}.yml"       # imported course/book material
+  randori/:                # generated HTML quiz artifacts
+  onboarding/:
+    - .agent.yml           # setup flow for new instances
+  templates/:
+    - kata.yml
+    - scroll.yml
+    - log_exam.yml
+    - log_randori.yml
+    - log_study.yml
+    - randori.html         # exception: HTML artifact template
+
+rules:
+  - every subfolder managed by the AI must have its own .agent.yml
+  - log/ files are append-only — never overwrite
+  - templates/ must be read before generating any document
+  - sensei.yml is the only file the AI reads AND writes freely
+  - kata/ and scroll/ are updated via batch PR, never directly

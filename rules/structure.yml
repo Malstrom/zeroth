@@ -1,0 +1,24 @@
+# zeroth — structure rules
+# Applies to: every framework repo in the Malstrom ecosystem
+
+required_files:
+  - .agent.yml       # AI manifest — mandatory
+  - .registry.yml    # cross-repo connections — mandatory even if empty
+  - README.md        # human navigation hub
+
+principles:
+  - one file = one responsibility
+  - small files per domain — never monoliths
+  - max_lines_per_file: 150  # if exceeded: split the file
+  - folders group by function, not by file type
+
+templates:
+  - every generatable document has a template in templates/
+  - the AI reads the template BEFORE generating any document
+  - placeholders use format: "{{TOKEN}}"
+  - never deviate from template structure — update template first, then use it
+
+immutability:
+  - critical event logs (exams, decisions) are immutable
+  - corrections: append only, never overwrite
+  - immutable files must be declared explicitly in .agent.yml

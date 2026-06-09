@@ -1,0 +1,30 @@
+# zeroth — log rules
+# Applies to: all session logs and event records in Malstrom frameworks
+
+immutability:
+  rule: critical event logs are immutable once written
+  critical_events: [exam, decision, hire, milestone]
+  correction_policy: append only — never overwrite
+  declaration: immutable files must be listed explicitly in .agent.yml
+
+write_ahead:
+  rule: commit the log BEFORE the AI responds to the user
+  rationale: if session ends unexpectedly, the log must already exist
+
+naming:
+  format: YYYY-MM-DD_{type}_{topic}.yml
+  examples:
+    - 2026-06-09_exam_ruby-blocks.yml
+    - 2026-06-09_study_activerecord.yml
+    - 2026-06-09_randori_rails.yml
+
+structure:
+  required_fields:
+    - date
+    - type          # exam | study | randori | decision
+    - topic
+    - summary
+  optional_fields:
+    - score         # for exam logs
+    - weak_topics   # for randori logs
+    - corrections   # append-only corrections for exam logs

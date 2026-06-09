@@ -1,0 +1,56 @@
+# zeroth — agent rules
+# Applies to: every .agent.yml in every Malstrom framework
+
+structure:
+  required_blocks_in_order:
+    - connector_check
+    - global
+    - repo_map
+    - scenarios
+  optional_blocks:
+    - handlers
+    - template_rule
+    - file_access
+    - tool_approval
+    - write_ahead
+    - post_action_hook
+
+rules:
+
+  connector_check:
+    - must be the first block
+    - if connector not active: show clear message and stop immediately
+    - never fall back to web or browser
+
+  global:
+    - language: always declared or read from an identity file (e.g. sensei.md)
+    - pr_strategy: batch_per_session is default — exception only for immutable logs
+    - dedup_scope: current_session_log — each handler runs at most once per topic per session
+    - trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
+
+  scenarios:
+    - every scenario must have: trigger_patterns, read, actions, state_changes
+    - session_start is mandatory
+    - unknown_scenario is mandatory — no message may be left unhandled
+    - triggers are natural language patterns, not technical commands
+    - scenarios are user-triggered — handlers are not
+
+  handlers:
+    - reactive to state_changes emitted by scenarios
+    - never called directly by the user
+    - must declare dedup
+    - listen: list of events they react to
+
+  write_ahead:
+    - rule: commit before responding
+    - critical logs: immediate commit, immutable
+    - everything else: batch per session
+
+  file_access:
+    - .agent.yml: read-only
+    - .registry.yml: read-only
+    - every file must have its permission declared explicitly
+
+  tool_approval:
+    - destructive_ops: true — always require approval for destructive operations
+    - merge_to_main: declare explicitly whether allowed or not

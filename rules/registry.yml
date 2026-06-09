@@ -1,0 +1,23 @@
+# zeroth — registry rules
+# Applies to: .registry.yml in every framework repo
+
+required: true
+note: mandatory in every repo root, even if empty
+
+structure:
+  required_fields:
+    - framework       # name of this framework
+    - version         # semver
+    - connections     # list of cross-repo links (can be empty list)
+
+connection_fields:
+  - repo             # GitHub repo slug (owner/repo)
+  - role             # what this connection is used for
+  - sync_trigger     # which state_changes trigger a sync to this repo
+  - access           # read / write / read-write
+
+rules:
+  - .registry.yml is read-only for the AI
+  - the AI must read .registry.yml after every state_change via post_action_hook
+  - the AI never writes to .registry.yml proactively
+  - all cross-repo dependencies must be declared here — no implicit connections
