@@ -1,0 +1,171 @@
+# .agent.yml
+# AI-only operational manifest. Not for humans.
+# Read this at the start of every session. Single entry point.
+# Model: Ansible-inspired — scenarios (user-triggered) + handlers (auto-reactive)
+# Spec: github.com/Malstrom/zeroth
+
+# ---------------------------------------------------------------------------
+# CONNECTOR CHECK
+# ---------------------------------------------------------------------------
+connector_check:
+  on_fail: |
+    Say: "GitHub connector not active. Click + → GitHub → new chat."
+    Stop immediately. Do not fall back to web or browser.
+
+# ---------------------------------------------------------------------------
+# GLOBAL
+# ---------------------------------------------------------------------------
+global:
+  language: Italian
+  replies_in: Italian
+  pr_strategy: batch_per_session
+  dedup_scope: current_session
+  trigger_matching: pattern_first
+
+# ---------------------------------------------------------------------------
+# FILE ACCESS
+# ---------------------------------------------------------------------------
+file_access:
+  .agent.yml: read-only
+  .registry.yml: read-only
+  rules/*.yml: read-write
+  frameworks/**/*.yml: read-write
+  README.md: read-write
+  templates/*.yml: read-write
+
+# ---------------------------------------------------------------------------
+# TOOL APPROVAL
+# ---------------------------------------------------------------------------
+tool_approval:
+  feature_branch: false
+  file_edit: false
+  create_pr: false
+  merge_to_main: false
+  destructive_ops: true
+
+# ---------------------------------------------------------------------------
+# WRITE-AHEAD
+# ---------------------------------------------------------------------------
+write_ahead:
+  rule: commit before responding
+  note: all changes go to feature branch first — never push directly to main
+
+# ---------------------------------------------------------------------------
+# POST-ACTION HOOK
+# ---------------------------------------------------------------------------
+post_action_hook:
+  after_every_state_change:
+    - read: .registry.yml
+    - execute: matching sync triggers
+    - approval_required: false
+  conflict_check:
+    if_open_pr_on_same_file: stop and notify Igor
+
+# ---------------------------------------------------------------------------
+# REPO MAP
+# ---------------------------------------------------------------------------
+repo_map:
+  rules/agent.yml: universal rules for .agent.yml structure
+  rules/structure.yml: universal rules for repo structure
+  rules/naming.yml: universal naming rules + language rule
+  rules/registry.yml: universal rules for .registry.yml
+  rules/sync.yml: universal cross-repo sync patterns
+  rules/log.yml: universal immutability and logging rules
+  frameworks/dojo/: spec and validation rules for the dojo framework
+  frameworks/tensho/: spec and validation rules for the tensho framework
+  frameworks/sudo-hire-me/: spec and validation rules for the sudo-hire-me framework
+  templates/.agent.yml: base template for new framework agent files
+  templates/.registry.yml: base template for new framework registry files
+
+# ---------------------------------------------------------------------------
+# SCENARIOS
+# ---------------------------------------------------------------------------
+scenarios:
+
+  session_start:
+    trigger_patterns:
+      - session opens (automatic, no user message required)
+    read: [rules/naming.yml, README.md]
+    actions:
+      - reply in Italian
+      - summarise current state of zeroth (frameworks registered, rules present)
+      - propose next action based on context
+    state_changes: []
+
+  add_framework:
+    trigger_patterns:
+      - "aggiungi framework {name}"
+      - "nuovo framework {name}"
+      - "crea le regole per {name}"
+      - "voglio aggiungere {name}"
+    read: [frameworks/dojo/overview.yml, frameworks/dojo/checklist.yml]
+    actions:
+      - create frameworks/{name}/overview.yml
+      - create frameworks/{name}/structure.yml
+      - create frameworks/{name}/agent.yml
+      - create frameworks/{name}/checklist.yml
+      - update README.md registered frameworks table
+      - batch PR
+    state_changes: [framework-added]
+
+  update_rule:
+    trigger_patterns:
+      - "aggiorna la regola {rule}"
+      - "modifica {file}"
+      - "aggiungi regola"
+      - "cambia la regola su {topic}"
+    read: [rules/{rule}.yml]
+    actions:
+      - read current rule file
+      - apply change
+      - feature branch → commit → PR
+    state_changes: [rule-updated]
+
+  validate_framework:
+    trigger_patterns:
+      - "valida {name}"
+      - "il framework {name} e conforme?"
+      - "controlla {name}"
+      - "checklist {name}"
+    read: [frameworks/{name}/checklist.yml]
+    actions:
+      - read checklist
+      - read target repo structure (if accessible)
+      - report pass/fail per checklist item
+      - propose fixes for failed items
+    state_changes: []
+
+  add_rule:
+    trigger_patterns:
+      - "aggiungi una regola universale"
+      - "nuova regola in rules"
+      - "metti questa regola in zeroth"
+    read: [rules/]
+    actions:
+      - determine correct rule file (or create new one)
+      - append rule
+      - feature branch → commit → PR
+    state_changes: [rule-updated]
+
+  unknown_scenario:
+    trigger_patterns:
+      - any message that does not match any other scenario
+    actions:
+      - attempt to map message to closest existing scenario and ask for confirmation
+      - if no match: say "Scenario not defined. Want me to add it?"
+      - if user confirms: draft new scenario block + update .agent.yml → batch PR
+    state_changes: []
+
+# ---------------------------------------------------------------------------
+# HANDLERS
+# ---------------------------------------------------------------------------
+handlers:
+
+  readme_sync:
+    listen: [framework-added, rule-updated]
+    dedup: once per session
+    actions:
+      - read README.md
+      - update structure section and registered frameworks table if needed
+      - batch PR
+    state_changes: [readme-updated]

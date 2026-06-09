@@ -1,0 +1,23 @@
+# .registry.yml
+# Cross-repo connection map for zeroth.
+# Read-only for the AI. Managed manually or via PR.
+
+framework: zeroth
+version: 0.1.0
+description: spec and foundational rules for all Malstrom frameworks
+
+connections:
+  - repo: Malstrom/dojo
+    role: reference implementation of zeroth spec
+    sync_trigger: [rule-updated, framework-added]
+    access: read
+
+  - repo: Malstrom/tensho
+    role: registered framework
+    sync_trigger: [rule-updated]
+    access: read
+
+  - repo: Malstrom/sudo-hire-me
+    role: registered framework
+    sync_trigger: [rule-updated]
+    access: read
