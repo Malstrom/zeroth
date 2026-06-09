@@ -10,7 +10,7 @@ required_files:
 principles:
   - one file = one responsibility
   - small files per domain — never monoliths
-  - max_lines_per_file: 150  # if exceeded: split the file
+  - max_lines_per_file: 400  # if exceeded: split the file
   - folders group by function, not by file type
   - files used by the AI for navigation or execution should be hidden YAML files when possible
   - files intended for humans should be readable Markdown when possible
@@ -22,6 +22,6 @@ templates:
   - never deviate from template structure — update template first, then use it
 
 immutability:
-  - critical event logs (exams, decisions) are immutable
+  - critical event logs (shinsa, decisions) are immutable
   - corrections: append only, never overwrite
   - immutable files must be declared explicitly in .agent.yml

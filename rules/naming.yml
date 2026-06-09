@@ -43,14 +43,17 @@ folders:
   case: lowercase
   separator: none if possible
   style: evocative of content not technical
-  valid_examples: [kata, forge, hunt, log]
+  valid_examples: [kata, kiroku, templates]
   invalid_examples: [training-data, session-logs, user-profiles]
 
 files:
   case: lowercase
   separator: hyphen or underscore (consistent per repo)
   ai_special_files: always dot-prefixed YAML
-  logs: format YYYY-MM-DD_{type}_{topic}.yml
+  logs:
+    session_records: YYYY-MM-DD.md
+    event_logs: "YYYY-MM-DD_{type}_{subject}.yml"
+    note: format declared per framework in structure.yml — this is the default pattern
 
 reserved_files:
   .agent.yml:
