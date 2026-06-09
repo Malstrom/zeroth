@@ -5,7 +5,10 @@
 framework: {{FRAMEWORK_NAME}}
 purpose: {{PURPOSE}}
 
-cycle: {{CYCLE_STEPS}}
+cycle:
+  - {{CYCLE_STEP_1}}
+  - {{CYCLE_STEP_2}}
+  # add more steps as needed
 
 vocabulary:
   # define evocative names and their meaning
@@ -18,3 +21,4 @@ key_principles:
   - files for the AI are hidden YAML files
   - files for the human are Markdown
   - immutable logs are declared explicitly and never overwritten
+  # add framework-specific principles below

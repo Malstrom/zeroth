@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 connector_check:
   on_fail: |
-    Say: "GitHub connector not active."
+    Say: "GitHub connector not active. Click + → GitHub → new chat."
     Stop immediately. Do not fall back to web or browser.
 
 # ---------------------------------------------------------------------------
@@ -71,7 +71,15 @@ scenarios:
 # ---------------------------------------------------------------------------
 # POST-ACTION HOOK
 # ---------------------------------------------------------------------------
-post_action_hook: {}
+post_action_hook:
+  after_every_state_change:
+    - read: .registry.yml
+    - if:
+        condition: matching_sync_triggers_exist
+        then:
+          - call_handlers: matching
+  conflict_check:
+    if_open_pr_on_same_file: stop and notify user
 
 # ---------------------------------------------------------------------------
 # HANDLERS
