@@ -28,3 +28,40 @@ behaviour:
   - AI language is read from sensei.md not hardcoded
   - AI does not read README.md (human-only)
   - templates are read before generating any document
+
+# ---------------------------------------------------------------------------
+# STRICT ROOT — no extra files allowed in root
+# ---------------------------------------------------------------------------
+strict_root:
+  allowed:
+    - .agent.yml
+    - .registry.yml
+    - sensei.md
+    - onboarding.yml
+    - README.md
+    - .github
+
+# ---------------------------------------------------------------------------
+# DYNAMIC DIRS — content is variable but must match naming patterns
+# ---------------------------------------------------------------------------
+dynamic_dirs:
+  log/:
+    pattern: "YYYY-MM-DD_{type}_{topic}.md"
+    regex: "^\\d{4}-\\d{2}-\\d{2}_(exam|randori|study)_.+\\.md$"
+    allow_empty: true
+  kata/:
+    pattern: "{topic}.md or .agent.yml"
+    regex: "^(.+\\.md|\\.agent\\.yml)$"
+    allow_empty: false
+  scroll/:
+    pattern: "{topic}.md or .agent.yml or README.md"
+    regex: "^(.+\\.md|\\.agent\\.yml)$"
+    allow_empty: false
+  densho/:
+    pattern: "{course}.md or .agent.yml"
+    regex: "^(.+\\.md|\\.agent\\.yml)$"
+    allow_empty: true
+  templates/:
+    pattern: "known template files only"
+    regex: "^(kata|scroll|log_exam|log_randori|log_study|randori)\\.(?:md|html)|README\\.md$"
+    allow_empty: false
