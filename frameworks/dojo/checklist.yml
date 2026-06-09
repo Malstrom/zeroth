@@ -43,8 +43,8 @@ structure:
     proxy: dir_has_templates
     target: templates/
     required_files:
-      - kata.md
-      - kiroku_nikki.md
+      - kata.yml
+      - kiroku_nikki.yml
       - kiroku_makimono.md
       - shinsa.md
 
@@ -69,15 +69,15 @@ structure:
     must_exist: false
 
 templates:
-  - label: "kata.md matches zeroth canonical version"
+  - label: "kata.yml matches zeroth canonical version"
     proxy: template_matches_zeroth
     framework: dojo
-    template: kata.md
+    template: kata.yml
 
-  - label: "kiroku_nikki.md matches zeroth canonical version"
+  - label: "kiroku_nikki.yml matches zeroth canonical version"
     proxy: template_matches_zeroth
     framework: dojo
-    template: kiroku_nikki.md
+    template: kiroku_nikki.yml
 
   - label: "kiroku_makimono.md matches zeroth canonical version"
     proxy: template_matches_zeroth
@@ -217,11 +217,11 @@ gakusei_yml:
     file: .gakusei.yml
     key: subjects
 
-  - label: "levels are one of: not_started, beginner, intermediate, advanced"
-    proxy: yaml_levels_valid
+  - label: each subject has level_system declared
+    proxy: yaml_subkeys_check
     file: .gakusei.yml
     key: subjects
-    allowed: [not_started, beginner, intermediate, advanced]
+    required_subkeys: [level_system, levels, current_level, kata_sections]
 
   - label: last_session field exists with subject, topic, next
     proxy: yaml_subkeys_exist

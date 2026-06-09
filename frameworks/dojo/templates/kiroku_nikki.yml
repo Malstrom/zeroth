@@ -1,0 +1,21 @@
+# kiroku_nikki — generato dall'AI, non modificare a mano
+date: ""               # YYYY-MM-DD
+subject: ""
+topic: ""
+session_type: ""       # study | randori | quiz | shinsa
+duration_minutes: 0
+
+summary: |
+  
+
+weak_spots:
+  identified:
+    - ""
+  in_remediation:
+    - ""
+  resolved:
+    - ""
+
+next:
+  - action: ""
+    type: ""           # study | randori | quiz | shinsa
