@@ -15,6 +15,16 @@ structure:
     - write_ahead
     - post_action_hook
 
+  scenarios_pattern:
+    rule: scenarios always live in .scenarios.yml — never inline in .agent.yml
+    rationale: structural separation, not a size threshold
+    agent_yml_declares: scenarios_file pointing to .scenarios.yml
+    agent_yml_scenarios_block: reference only — no inline scenario definitions
+    example_agent_yml: |
+      scenarios:
+        scenarios_file: .scenarios.yml
+    validation: giskard reads and validates .scenarios.yml directly
+
 rules:
 
   connector_check:
@@ -30,13 +40,13 @@ rules:
     - trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
 
   scenarios:
+    - scenarios live in .scenarios.yml — never inline in .agent.yml
     - every scenario must have: trigger_patterns, read, actions, state_changes
     - session_start is mandatory
     - unknown_scenario is mandatory — no message may be left unhandled
     - triggers are natural language patterns, not technical commands
     - scenarios are user-triggered — handlers are not
-    - if scenario definitions are large, they should be moved to .scenarios.yml
-    - when .scenarios.yml exists, .agent.yml must reference it explicitly
+    - giskard validates .scenarios.yml, not the scenarios block in .agent.yml
 
   handlers:
     - reactive to state_changes emitted by scenarios
@@ -75,7 +85,7 @@ rules:
 
   yaml_validity:
     - all .agent.yml files must be parseable by yaml.safe_load without errors
-    - all .scenarios.yml files must be parseable by yaml.safe_load without errors
+    - all dot-prefixed YAML files used by the AI must be parseable by yaml.safe_load without errors
     - never use flow sequences [...] when values contain { } characters
     - use block sequences for read: lists in scenarios and handlers
     - correct:
