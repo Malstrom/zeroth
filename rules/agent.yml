@@ -15,6 +15,24 @@ structure:
     - write_ahead
     - post_action_hook
 
+  scenarios_split_pattern:
+    description: |
+      When the scenario catalog grows beyond 150 lines, scenarios must be extracted
+      into a hidden YAML file (dot-prefixed, for example .scenarios.yml).
+      When this pattern is used:
+        - .agent.yml must declare scenarios_file pointing to the hidden file
+        - the scenarios block in .agent.yml becomes a reference, not a full definition
+        - the external file is validated with the same rules as inline scenarios
+        - giskard checks the external file for required scenarios, not .agent.yml
+    required_when: scenarios block would exceed max_lines_per_file
+    example_agent_yml: |
+      scenarios:
+        scenarios_file: .scenarios.yml
+    example_scenarios_file: |
+      required_scenarios:
+        session_start: ...
+        unknown_scenario: ...
+
 rules:
 
   connector_check:
@@ -23,7 +41,7 @@ rules:
     - never fall back to web or browser
 
   global:
-    - language: always declared or read from an identity file (e.g. sensei.md)
+    - language: always declared or read from an identity file (for example .gakusei.yml)
     - pr_strategy: batch_per_session is default — exception only for immutable logs
     - merge_strategy: squash — always squash merge PRs into main
     - dedup_scope: current_session_log — each handler runs at most once per topic per session
@@ -35,6 +53,7 @@ rules:
     - unknown_scenario is mandatory — no message may be left unhandled
     - triggers are natural language patterns, not technical commands
     - scenarios are user-triggered — handlers are not
+    - if scenarios_file is declared in .agent.yml, giskard validates that file instead of the inline block
 
   handlers:
     - reactive to state_changes emitted by scenarios
@@ -55,8 +74,6 @@ rules:
     - every file must have its permission declared explicitly
 
   tool_approval:
-    # false = execute without asking the user
-    # true  = ask the user before executing
     mapping:
       feature_branch: false
       file_edit: false
@@ -75,12 +92,13 @@ rules:
 
   yaml_validity:
     - all .agent.yml files must be parseable by yaml.safe_load without errors
+    - all dot-prefixed YAML files used by the AI must be parseable by yaml.safe_load without errors
     - never use flow sequences [...] when values contain { } characters
     - use block sequences for read: lists in scenarios and handlers
     - correct:
         read:
-          - sensei.md
+          - .gakusei.yml
           - "kata/{topic}.md"
     - incorrect:
-        read: [sensei.md, kata/{topic}.md]
+        read: [.gakusei.yml, kata/{topic}.md]
     - template placeholders like {topic} or {course} must be quoted when inside sequences
