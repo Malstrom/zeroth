@@ -75,6 +75,7 @@ post_action_hook:
 # ---------------------------------------------------------------------------
 repo_map:
   rules/agent.yml: universal rules for .agent.yml structure
+  rules/scenarios.yml: universal rules for writing scenarios and action modules
   rules/structure.yml: universal rules for repo structure
   rules/naming.yml: universal naming rules + language rule
   rules/registry.yml: universal rules for .registry.yml
