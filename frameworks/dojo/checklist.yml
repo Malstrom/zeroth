@@ -4,17 +4,17 @@
 structure:
   - .agent.yml exists in root
   - .registry.yml exists in root
-  - sensei.yml exists in root
+  - sensei.md exists in root
+  - onboarding.md exists in root
   - kata/ exists with .agent.yml
   - scroll/ exists with .agent.yml and README.md
   - log/ directory exists
   - templates/ exists with all required templates
   - densho/ exists with .agent.yml
-  - onboarding/.agent.yml exists
 
 agent_yml:
   - connector_check is the first block
-  - global.language reads from sensei.yml
+  - global.language reads from sensei.md
   - global.pr_strategy is batch_per_session
   - all 6 required scenarios are present
   - all 3 required handlers are present
@@ -25,6 +25,6 @@ agent_yml:
 behaviour:
   - exam logs are committed before AI responds
   - exam logs are never overwritten (append-only)
-  - AI language is read from sensei.yml not hardcoded
+  - AI language is read from sensei.md not hardcoded
   - AI does not read README.md (human-only)
   - templates are read before generating any document
