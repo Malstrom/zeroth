@@ -26,20 +26,24 @@ structure:
 # TRIGGER PATTERNS
 # ---------------------------------------------------------------------------
 trigger_patterns:
-  rule: natural language patterns, not technical commands
-  language: language-agnostic — never hardcode a specific language in patterns
-  wildcard: use {placeholder} for variable parts
+  rule: describe the user intent in plain English — never list phrases in a specific language
+  language_rule: |
+    Trigger patterns are intent descriptions, not literal phrases.
+    The AI resolves the user's language from global.language or the identity file (e.g. .gakusei.yml).
+    Matching is semantic: the AI maps the user's message to the closest intent regardless of language.
+    Never hardcode phrases in Italian, Russian, Japanese, or any other specific language.
+  wildcard: use {placeholder} for variable parts when an example phrase is needed
   unknown_scenario: must always be the last fallthrough
   example:
     correct:
       trigger_patterns:
-        - "study {topic}"
-        - "teach me {topic}"
-        - "let's study {subject}"
+        - user wants to study a specific topic or chapter
+        - user asks to be taught something
     incorrect:
       trigger_patterns:
+        - "study {topic}"
+        - "studiamo {topic}"
         - "!study"
-        - "study japanese"
 
 # ---------------------------------------------------------------------------
 # READ
@@ -163,7 +167,7 @@ actions:
           on_confirm:
             - module: ...
       example:
-        - propose: "Move to advanced level for Japanese?"
+        - propose: "Move to advanced level for this subject?"
           on_confirm:
             - call: level_up
 
@@ -213,5 +217,5 @@ validation:
   - read must never be omitted
   - every action item must use a declared module
   - free-form prose in actions is a validation failure
-  - trigger patterns must not be hardcoded to a specific language
+  - trigger patterns must be intent descriptions in English — not phrases in any specific language
   - placeholders in file paths must be quoted strings

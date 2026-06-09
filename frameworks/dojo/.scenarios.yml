@@ -5,7 +5,7 @@ required_scenarios:
 
   session_start:
     trigger_patterns:
-      - session opens (automatic, no user message required)
+      - session opens automatically
     read:
       - .gakusei.yml
       - kiroku/_index.md
@@ -19,12 +19,9 @@ required_scenarios:
 
   study_open:
     trigger_patterns:
-      - "study {topic}"
-      - "study chapter {chapter} of {book}"
-      - "teach me {topic}"
-      - "let's study {subject}"
-      - "studiamo {topic}"
-      - "spiegami {topic}"
+      - user wants to study a specific topic or chapter
+      - user asks to be taught something
+      - user wants to open a study session on a subject
     read:
       - .gakusei.yml
       - kiroku/_index.md
@@ -60,11 +57,8 @@ required_scenarios:
 
   randori:
     trigger_patterns:
-      - "quiz me on {topic}"
-      - "let's do randori"
-      - "check if I understood {topic}"
-      - "metti alla prova su {topic}"
-      - "randori su {topic}"
+      - user wants to be quizzed on a topic
+      - user wants to verify their understanding of something
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
@@ -87,11 +81,8 @@ required_scenarios:
 
   final_exam:
     trigger_patterns:
-      - "test me on {book}"
-      - "final exam for {subject}"
-      - "I finished the book"
-      - "esame finale per {subject}"
-      - "ho finito il libro"
+      - user wants to take the final exam for a subject
+      - user says they finished a book
     read:
       - .gakusei.yml
       - kiroku/_index.md
@@ -122,7 +113,7 @@ required_scenarios:
 
   level_up:
     trigger_patterns:
-      - level up confirmed (called via propose — not triggered directly by user)
+      - user confirms level up after passing the final exam
     read:
       - .gakusei.yml
       - gakusei.md
