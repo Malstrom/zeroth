@@ -5,7 +5,7 @@ structure:
   - .agent.yml exists in root
   - .registry.yml exists in root
   - sensei.md exists in root
-  - onboarding.md exists in root
+  - onboarding.yml exists in root
   - kata/ exists with .agent.yml
   - scroll/ exists with .agent.yml and README.md
   - log/ directory exists
