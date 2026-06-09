@@ -75,7 +75,7 @@ post_action_hook:
 # ---------------------------------------------------------------------------
 repo_map:
   rules/agent.yml: universal rules for .agent.yml structure
-  rules/scenarios.yml: universal rules for writing scenarios and action modules
+  rules/scenarios.yml: universal rules for writing scenarios and handlers
   rules/structure.yml: universal rules for repo structure
   rules/naming.yml: universal naming rules + language rule
   rules/registry.yml: universal rules for .registry.yml
@@ -110,10 +110,21 @@ handlers:
       - giskard-updated
     dedup: once per session
     actions:
-      - read Malstrom/giskard giskard.py
-      - update ZEROTH_CHECKLISTS if new framework added
-      - update REQUIRED_TEMPLATES if templates changed
-      - feature branch → PR → squash merge
+      - read: Malstrom/giskard giskard.py
+      - if:
+          condition: event == framework-added
+          then:
+            - update:
+                file: Malstrom/giskard giskard.py
+                fields: [ZEROTH_CHECKLISTS]
+                via: PR
+      - if:
+          condition: event == giskard-updated
+          then:
+            - update:
+                file: Malstrom/giskard giskard.py
+                fields: [REQUIRED_TEMPLATES]
+                via: PR
     state_changes: []
 
   readme_sync:
@@ -122,8 +133,10 @@ handlers:
       - rule-updated
     dedup: once per session
     actions:
-      - update README.md structure section and registered frameworks table if needed
-      - feature branch → PR → squash merge
+      - update:
+          file: README.md
+          fields: [structure, registered_frameworks]
+          via: PR
     state_changes:
       - readme-updated
 
@@ -132,7 +145,11 @@ handlers:
       - rule-updated
     dedup: once per rule per session
     actions:
-      - read .registry.yml
-      - for each connected repo with access read-write check if rule impacts .agent.yml
-      - if yes propose update to that repo
+      - read: .registry.yml
+      - if:
+          condition: repo.access == read-write and rule_impacts_agent
+          then:
+            - update:
+                file: "{repo}/.agent.yml"
+                via: PR
     state_changes: []

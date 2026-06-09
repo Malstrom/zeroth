@@ -1,21 +1,34 @@
 # .agent.yml
 # AI-only operational manifest for the dojo framework.
 # Inherits: zeroth/rules/agent.yml
-# The following are dojo-specific additions.
+# Syntax for handlers: rules/scenarios.yml
 
 scenarios:
   scenarios_file: .scenarios.yml
 
 required_handlers:
+
   session_end:
-    listens_to:
+    listen:
       - goodbye
       - topic-closed
       - session-idle
     dedup: once per session
     actions:
-      - flush any pending updates to kiroku and .gakusei.yml
-      - commit via PR if uncommitted changes exist
+      - update:
+          file: .gakusei.yml
+          fields: [last_session]
+          via: PR
+      - update:
+          file: gakusei.md
+          via: PR
+      - if:
+          condition: uncommitted_changes
+          then:
+            - update:
+                file: "kiroku/{subject}/{date}.md"
+                mode: append
+                via: PR
     state_changes: []
 
 global_rules:
