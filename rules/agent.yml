@@ -23,7 +23,7 @@ rules:
     - never fall back to web or browser
 
   global:
-    - language: always declared or read from an identity file (e.g. sensei.md)
+    - language: always declared or read from an identity file (for example .gakusei.yml)
     - pr_strategy: batch_per_session is default — exception only for immutable logs
     - merge_strategy: squash — always squash merge PRs into main
     - dedup_scope: current_session_log — each handler runs at most once per topic per session
@@ -35,6 +35,8 @@ rules:
     - unknown_scenario is mandatory — no message may be left unhandled
     - triggers are natural language patterns, not technical commands
     - scenarios are user-triggered — handlers are not
+    - if scenario definitions are large, they should be moved to .scenarios.yml
+    - when .scenarios.yml exists, .agent.yml must reference it explicitly
 
   handlers:
     - reactive to state_changes emitted by scenarios
@@ -55,8 +57,6 @@ rules:
     - every file must have its permission declared explicitly
 
   tool_approval:
-    # false = execute without asking the user
-    # true  = ask the user before executing
     mapping:
       feature_branch: false
       file_edit: false
@@ -75,12 +75,13 @@ rules:
 
   yaml_validity:
     - all .agent.yml files must be parseable by yaml.safe_load without errors
+    - all .scenarios.yml files must be parseable by yaml.safe_load without errors
     - never use flow sequences [...] when values contain { } characters
     - use block sequences for read: lists in scenarios and handlers
     - correct:
         read:
-          - sensei.md
+          - .gakusei.yml
           - "kata/{topic}.md"
     - incorrect:
-        read: [sensei.md, kata/{topic}.md]
+        read: [.gakusei.yml, kata/{topic}.md]
     - template placeholders like {topic} or {course} must be quoted when inside sequences

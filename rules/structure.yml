@@ -11,6 +11,8 @@ principles:
   - small files per domain — never monoliths
   - max_lines_per_file: 150  # if exceeded: split the file
   - folders group by function, not by file type
+  - files used by the AI for navigation or execution should be hidden YAML files when possible
+  - files intended for humans should be readable Markdown when possible
 
 templates:
   - every generatable document has a template in templates/

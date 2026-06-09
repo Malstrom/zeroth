@@ -1,16 +1,34 @@
 # zeroth — naming rules
 # Applies to: every framework repo in the Malstrom ecosystem
 
-fundamental_rule: names must be evocative, not descriptive — the name suggests the essence, not the function
+fundamental_rule: names for repositories and folders must be evocative, not descriptive — the name suggests the essence, not the function
 
 language_rule:
   rule: all files read or written by an AI agent must be in English
   applies_to:
     - .agent.yml and .registry.yml
+    - any hidden YAML file used by the AI for navigation or execution
     - any file declared in repo_map inside .agent.yml
     - all framework spec files (rules/, frameworks/)
   exceptions:
     - README.md may be in any language (human-only file)
+    - human-facing Markdown files may use the language defined by the framework
+
+naming_model:
+  repositories_and_folders:
+    rule: evocative, compact, not technical
+  ai_operational_files:
+    rule: explicit, unambiguous, dot-prefixed
+    examples:
+      - .agent.yml
+      - .registry.yml
+      - .gakusei.yml
+      - .scenarios.yml
+  human_facing_files:
+    rule: readable and context-appropriate
+    examples:
+      - README.md
+      - gakusei.md
 
 repo:
   max_words: 2
@@ -25,14 +43,13 @@ folders:
   case: lowercase
   separator: none if possible
   style: evocative of content not technical
-  valid_examples: [kata, scroll, forge, hunt, log]
+  valid_examples: [kata, forge, hunt, log]
   invalid_examples: [training-data, session-logs, user-profiles]
 
 files:
   case: lowercase
   separator: hyphen or underscore (consistent per repo)
-  ai_special_files: always dot-prefixed (.agent.yml, .registry.yml)
-  identity_files: lowercase proper name (e.g. sensei.yml, igor.yml)
+  ai_special_files: always dot-prefixed YAML
   logs: format YYYY-MM-DD_{type}_{topic}.yml
 
 reserved_files:
@@ -42,6 +59,9 @@ reserved_files:
   .registry.yml:
     role: cross-repo connection map
     ai_access: read-only, never proactive
+  .scenarios.yml:
+    role: AI scenario catalog when scenarios are split from .agent.yml
+    ai_access: read-write
   README.md:
     role: human navigation hub
     ai_access: write-only (AI does not read)

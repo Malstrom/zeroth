@@ -3,33 +3,35 @@
 required_layout:
   root:
     - .agent.yml           # AI manifest — entry point, read-only
+    - .scenarios.yml       # AI scenario catalog — detailed user-triggered flows
     - .registry.yml        # cross-repo connections — read-only
     - .gakusei.yml         # machine-readable student profile — AI reads and writes
     - README.md            # human navigation hub
     - gakusei.md           # human-readable student profile — AI updates after each session
   kata/:
-    - "{subject}/"         # one subfolder per subject (e.g. rails/, devops/, psicologia/)
-    - "{subject}/{topic}.md"  # one file per topic within subject
+    - "{subject}/"            # one subfolder per subject (for example rails/, devops/, psychology/)
+    - "{subject}/{topic}.md"  # one file per topic within the subject
   kiroku/:
-    - _index.md            # human-readable map — one line per studied topic, auto-updated
-    - "{subject}/"         # one subfolder per subject
+    - _index.md            # human-readable study map — one line per studied topic
+    - "{subject}/"            # one subfolder per subject
     - "{subject}/YYYY-MM-DD.md"  # immutable session record
   templates/:
     - kata.md
     - kiroku_session.md
-    - esame_finale.md
+    - final_exam.md
 
 rules:
-  - .gakusei.yml is the only file the AI reads AND writes freely between sessions
+  - .gakusei.yml is the only file the AI reads and writes freely between sessions
   - gakusei.md is updated by the AI after every session and after every level_up
   - kiroku/ files are append-only — never overwrite
-  - kata/ files are updated via PR, never directly
+  - kata/ files are updated via PR, never directly on main
   - templates/ must be read before generating any document
-  - densho/ does not exist — books are read from library sources, not stored in repo
+  - densho/ does not exist — books are read from library sources, not stored in the repository
 
 strict_root:
   allowed:
     - .agent.yml
+    - .scenarios.yml
     - .registry.yml
     - .gakusei.yml
     - .github
@@ -45,11 +47,12 @@ strict_root:
 dynamic_dirs:
   kata/{subject}/:
     pattern: "{topic}.md"
-    regex: "^.+\.md$"
+    regex: "^.+\\.md$"
     allow_empty: false
   kiroku/{subject}/:
     pattern: "YYYY-MM-DD.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}\.md$"
+    regex: "^\\d{4}-\\d{2}-\\d{2}\\.md$"
     allow_empty: true
   kiroku/:
-    required_files: ["_index.md"]
+    required_files:
+      - _index.md
