@@ -25,6 +25,7 @@ rules:
   global:
     - language: always declared or read from an identity file (e.g. sensei.md)
     - pr_strategy: batch_per_session is default — exception only for immutable logs
+    - merge_strategy: squash — always squash merge PRs into main
     - dedup_scope: current_session_log — each handler runs at most once per topic per session
     - trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
 
@@ -43,7 +44,9 @@ rules:
 
   write_ahead:
     - rule: commit before responding
-    - critical logs: immediate commit, immutable
+    - NEVER push directly to main — always feature branch → PR → squash merge
+    - branch naming: {type}/{short-description} where type is feat/fix/docs/test/chore
+    - critical logs (exam): immediate PR → squash merge, immutable
     - everything else: batch per session
 
   file_access:
