@@ -1,64 +1,251 @@
 # dojo framework — validation checklist
-# A repository is a valid dojo instance if ALL items below are true
+# A repository is a valid dojo instance if ALL checks below pass.
+# Each check declares a proxy — giskard executes it, no framework logic in the runner.
 
 structure:
-  - .agent.yml exists in root
-  - .scenarios.yml exists in root
-  - .registry.yml exists in root
-  - .gakusei.yml exists in root
-  - README.md exists in root
-  - kata/ exists with at least one subject subfolder
-  - kiroku/ exists
-  - templates/ exists with all required templates
-  - densho/ does NOT exist
-  - sensei.yml does NOT exist
-  - sensei.md does NOT exist
-  - scroll/ does NOT exist
+  - label: .agent.yml exists in root
+    proxy: file_exists
+    target: .agent.yml
+
+  - label: .scenarios.yml exists in root
+    proxy: file_exists
+    target: .scenarios.yml
+
+  - label: .registry.yml exists in root
+    proxy: file_exists
+    target: .registry.yml
+
+  - label: .gakusei.yml exists in root
+    proxy: file_exists
+    target: .gakusei.yml
+
+  - label: README.md exists in root
+    proxy: file_exists
+    target: README.md
+
+  - label: "kata/ exists with at least one subject subfolder"
+    proxy: dir_has_subfolders
+    target: kata/
+
+  - label: kiroku/ exists
+    proxy: file_exists
+    target: kiroku
+
+  - label: templates/ exists with all required templates
+    proxy: dir_has_templates
+    target: templates/
+    required_files:
+      - kata.md
+      - kiroku_session.md
+      - shinsa.md
+
+  - label: densho/ does NOT exist
+    proxy: file_exists
+    target: densho
+    must_exist: false
+
+  - label: sensei.yml does NOT exist
+    proxy: file_exists
+    target: sensei.yml
+    must_exist: false
+
+  - label: sensei.md does NOT exist
+    proxy: file_exists
+    target: sensei.md
+    must_exist: false
+
+  - label: scroll/ does NOT exist
+    proxy: file_exists
+    target: scroll
+    must_exist: false
 
 agent_yml:
   block_order:
-    - connector_check is the first block
-    - repo_map is present
-    - file_access is present
-    - tool_approval is present
-    - write_ahead is present
-    - scenarios is present and declares scenarios_file
-    - handlers is present (may be empty)
+    - label: connector_check is the first block
+      proxy: yaml_first_key
+      file: .agent.yml
+      expected: connector_check
+
+    - label: repo_map is present
+      proxy: yaml_key_exists
+      file: .agent.yml
+      key: repo_map
+
+    - label: file_access is present
+      proxy: yaml_key_exists
+      file: .agent.yml
+      key: file_access
+
+    - label: tool_approval is present
+      proxy: yaml_key_exists
+      file: .agent.yml
+      key: tool_approval
+
+    - label: write_ahead is present
+      proxy: yaml_key_exists
+      file: .agent.yml
+      key: write_ahead
+
+    - label: scenarios is present and declares scenarios_file
+      proxy: yaml_subkeys_exist
+      file: .agent.yml
+      key: scenarios
+      required_subkeys: [scenarios_file]
+
+    - label: handlers is present
+      proxy: yaml_key_exists
+      file: .agent.yml
+      key: handlers
+
   global:
-    - global.language reads from .gakusei.yml
-    - global.pr_strategy is batch_per_session
-    - global.merge_strategy is squash
-    - global.dedup_scope is current_session
+    - label: global.language reads from .gakusei.yml
+      proxy: yaml_key_contains
+      file: .agent.yml
+      key: global.language
+      contains: .gakusei.yml
+
+    - label: global.pr_strategy is batch_per_session
+      proxy: yaml_key_equals
+      file: .agent.yml
+      key: global.pr_strategy
+      expected: batch_per_session
+
+    - label: global.merge_strategy is squash
+      proxy: yaml_key_equals
+      file: .agent.yml
+      key: global.merge_strategy
+      expected: squash
+
+    - label: global.dedup_scope is current_session
+      proxy: yaml_key_equals
+      file: .agent.yml
+      key: global.dedup_scope
+      expected: current_session
+
   scenarios:
-    - session_start scenario is present in .scenarios.yml
-    - study_open scenario is present in .scenarios.yml with all 4 input_sources
-    - randori scenario is present in .scenarios.yml
-    - quiz scenario is present in .scenarios.yml
-    - shinsa scenario is present in .scenarios.yml
-    - level_up scenario is present in .scenarios.yml
-    - unknown_scenario is present and is the last scenario
-    - final_exam does NOT exist (renamed to shinsa)
+    - label: session_start scenario is present in .scenarios.yml
+      proxy: scenario_present
+      scenario: session_start
+
+    - label: study_open scenario is present with all 4 input_sources
+      proxy: scenario_input_sources
+      scenario: study_open
+      min_count: 4
+
+    - label: randori scenario is present in .scenarios.yml
+      proxy: scenario_present
+      scenario: randori
+
+    - label: quiz scenario is present in .scenarios.yml
+      proxy: scenario_present
+      scenario: quiz
+
+    - label: shinsa scenario is present in .scenarios.yml
+      proxy: scenario_present
+      scenario: shinsa
+
+    - label: level_up scenario is present in .scenarios.yml
+      proxy: scenario_present
+      scenario: level_up
+
+    - label: unknown_scenario is the last scenario
+      proxy: scenario_last
+      scenario: unknown_scenario
+
+    - label: final_exam does NOT exist (renamed to shinsa)
+      proxy: scenario_not_present
+      scenario: final_exam
+
   handlers:
-    - session_end handler is present
-    - session_end has dedup declared
-    - session_end has state_changes declared
+    - label: session_end handler is present
+      proxy: handler_present
+      handler: session_end
+
+    - label: session_end has dedup declared
+      proxy: handler_has_key
+      handler: session_end
+      key: dedup
+
+    - label: session_end has state_changes declared
+      proxy: handler_has_key
+      handler: session_end
+      key: state_changes
 
 gakusei_yml:
-  - name field exists
-  - language field exists
-  - subjects field exists as map of subject -> level
-  - levels are one of: [not_started, beginner, intermediate, advanced]
-  - last_session field exists with subject, topic, next
-  - active_books field exists as list
-  - completed_books field exists as list
+  - label: name field exists
+    proxy: yaml_key_exists
+    file: .gakusei.yml
+    key: name
+
+  - label: language field exists
+    proxy: yaml_key_exists
+    file: .gakusei.yml
+    key: language
+
+  - label: subjects field exists as map
+    proxy: yaml_key_exists
+    file: .gakusei.yml
+    key: subjects
+
+  - label: "levels are one of: not_started, beginner, intermediate, advanced"
+    proxy: yaml_levels_valid
+    file: .gakusei.yml
+    key: subjects
+    allowed: [not_started, beginner, intermediate, advanced]
+
+  - label: last_session field exists with subject, topic, next
+    proxy: yaml_subkeys_exist
+    file: .gakusei.yml
+    key: last_session
+    required_subkeys: [subject, topic, next]
+
+  - label: active_books field exists as list
+    proxy: yaml_key_exists
+    file: .gakusei.yml
+    key: active_books
+
+  - label: completed_books field exists as list
+    proxy: yaml_key_exists
+    file: .gakusei.yml
+    key: completed_books
 
 behaviour:
-  - the AI reads .gakusei.yml at every session start
-  - gakusei.md does not need to pre-exist; the AI creates it on first session
-  - kiroku files are append-only — never overwritten
-  - shinsa records are committed before the AI responds
-  - shinsa gives no feedback during the exam — only final score
-  - shinsa has exactly 10 open-ended questions (explain / describe / difference between) — never multiple choice
-  - quiz uses multiple choice (A/B/C/D) from kata — no state saved
-  - level_up requires student confirmation — never automatic
-  - templates are read before generating any document
+  - label: the AI reads .gakusei.yml at every session start
+    proxy: text_search
+    file: .scenarios.yml
+    terms: [session_start]
+
+  - label: kiroku files are append-only — never overwritten
+    proxy: file_access_mode
+    pattern: "kiroku/**"
+    mode: append
+
+  - label: shinsa records are committed before the AI responds
+    proxy: write_ahead_rule
+    contains: commit before responding
+
+  - label: shinsa gives no feedback during the exam — only final score
+    proxy: text_search
+    file: .scenarios.yml
+    terms: ["only your final score"]
+
+  - label: shinsa has exactly 10 open-ended questions — never multiple choice
+    proxy: token_count
+    file: .scenarios.yml
+    token: open_exam_question_
+    expected: 10
+
+  - label: quiz uses multiple choice (A/B/C/D) from kata — no state saved
+    proxy: text_search
+    file: .scenarios.yml
+    terms: ["mc_question"]
+
+  - label: level_up requires student confirmation — never automatic
+    proxy: text_search
+    file: .scenarios.yml
+    terms: ["AI proposes", "student confirms"]
+
+  - label: templates are read before generating any document
+    proxy: text_search
+    file: .agent.yml
+    terms: ["templates"]
