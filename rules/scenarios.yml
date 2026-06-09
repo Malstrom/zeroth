@@ -1,0 +1,217 @@
+# zeroth — scenario writing rules
+# Applies to: every .scenarios.yml in every Malstrom framework
+#
+# Goal: scenarios must be unambiguous and machine-readable.
+# Every action must declare WHAT happens, not describe it in prose.
+
+# ---------------------------------------------------------------------------
+# FILE STRUCTURE
+# ---------------------------------------------------------------------------
+structure:
+  root_key: required_scenarios
+  required_scenarios:
+    - session_start
+    - unknown_scenario
+  scenario_fields:
+    required:
+      - trigger_patterns
+      - read
+      - actions
+      - state_changes
+    optional:
+      - input_sources
+      - when
+
+# ---------------------------------------------------------------------------
+# TRIGGER PATTERNS
+# ---------------------------------------------------------------------------
+trigger_patterns:
+  rule: natural language patterns, not technical commands
+  language: language-agnostic — never hardcode a specific language in patterns
+  wildcard: use {placeholder} for variable parts
+  unknown_scenario: must always be the last fallthrough
+  example:
+    correct:
+      trigger_patterns:
+        - "study {topic}"
+        - "teach me {topic}"
+        - "let's study {subject}"
+    incorrect:
+      trigger_patterns:
+        - "!study"
+        - "study japanese"
+
+# ---------------------------------------------------------------------------
+# READ
+# ---------------------------------------------------------------------------
+read:
+  rule: list all files the AI must read BEFORE executing actions
+  format: block sequence — never flow sequence
+  placeholders: template placeholders like {topic} must be quoted
+  empty: use read: [] when no files are needed — never omit the field
+  example:
+    correct:
+      read:
+        - .gakusei.yml
+        - "kata/{subject}/{topic}.md"
+    incorrect:
+      read: [.gakusei.yml]
+
+# ---------------------------------------------------------------------------
+# ACTION MODULES
+# ---------------------------------------------------------------------------
+actions:
+  rule: |
+    Every action must use one of the declared modules below.
+    Free-form prose is not allowed.
+    One module per list item.
+
+  modules:
+
+    read:
+      description: read a file into context (use in actions only for conditional reads)
+      note: prefer the top-level read field for unconditional reads
+      syntax:
+        - read: path/to/file.yml
+      example:
+        - read: "kata/{subject}/{topic}.md"
+
+    say:
+      description: emit a fixed or templated message to the user
+      syntax:
+        - say: "message text"
+      example:
+        - say: "Session complete. Good work!"
+
+    ask:
+      description: ask the user a question and wait for their answer before continuing
+      syntax:
+        - ask: "question text"
+      example:
+        - ask: "Are you ready to start the exam?"
+
+    call:
+      description: invoke another scenario by name
+      syntax:
+        - call: scenario_name
+        - call: scenario_name
+          after: each_item | once | condition_expression
+      example:
+        - call: randori
+          after: each_concept
+
+    update:
+      description: write or modify a file; always goes through a PR unless stated otherwise
+      syntax:
+        - update:
+            file: path/to/file.yml
+            fields: [field1, field2]     # optional: list of fields to update
+            via: PR                       # always PR unless explicitly: via: direct
+            mode: append | overwrite      # optional: default is overwrite
+      example:
+        - update:
+            file: .gakusei.yml
+            fields: [last_session, book_progress]
+            via: PR
+        - update:
+            file: "kiroku/{subject}/{date}.md"
+            mode: append
+            via: PR
+
+    create:
+      description: create a new file from scratch or from a template
+      syntax:
+        - create:
+            file: path/to/new_file.yml
+            from: path/to/template.yml   # optional
+            via: PR
+      example:
+        - create:
+            file: "frameworks/{name}/overview.yml"
+            from: templates/overview.yml
+            via: PR
+
+    emit:
+      description: emit a state_change event that handlers can react to
+      note: prefer declaring state_changes at scenario level; use emit only for conditional events
+      syntax:
+        - emit: event-name
+      example:
+        - emit: level-up-completed
+
+    if:
+      description: conditional branch
+      syntax:
+        - if:
+            condition: expression
+            then:
+              - module: ...
+            else:
+              - module: ...
+      example:
+        - if:
+            condition: score >= 80
+            then:
+              - call: level_up
+            else:
+              - say: "Not passed. Review chapters and retry."
+
+    propose:
+      description: present an option to the user and wait for confirmation before acting
+      syntax:
+        - propose: action description
+          on_confirm:
+            - module: ...
+      example:
+        - propose: "Move to advanced level for Japanese?"
+          on_confirm:
+            - call: level_up
+
+# ---------------------------------------------------------------------------
+# STATE_CHANGES
+# ---------------------------------------------------------------------------
+state_changes:
+  rule: list of event names emitted when the scenario completes
+  format: block sequence or empty list []
+  naming: kebab-case
+  empty: use state_changes: [] when no events are emitted — never omit the field
+  example:
+    correct:
+      state_changes:
+        - study-completed
+    also_correct:
+      state_changes: []
+    incorrect:
+      state_changes: study_completed
+
+# ---------------------------------------------------------------------------
+# INPUT_SOURCES
+# ---------------------------------------------------------------------------
+input_sources:
+  rule: optional field for scenarios that accept multiple input types
+  allowed_values:
+    - google_drive
+    - attached_file
+    - pasted_text
+    - ai_knowledge
+  example:
+    input_sources:
+      - google_drive
+      - attached_file
+      - pasted_text
+      - ai_knowledge
+
+# ---------------------------------------------------------------------------
+# VALIDATION RULES (for giskard)
+# ---------------------------------------------------------------------------
+validation:
+  - root key must be required_scenarios
+  - session_start must be present
+  - unknown_scenario must be present and must be the last scenario
+  - every scenario must have all required fields
+  - state_changes must never be omitted
+  - read must never be omitted
+  - every action item must use a declared module
+  - free-form prose in actions is a validation failure
+  - trigger patterns must not be hardcoded to a specific language
+  - placeholders in file paths must be quoted strings
