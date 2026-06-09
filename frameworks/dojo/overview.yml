@@ -1,39 +1,21 @@
 # dojo framework — overview
 
 framework: dojo
-purpose: AI-assisted learning framework — the repo is the source of truth, the AI is the sensei, the student is the gakusei
+purpose: AI-assisted learning framework — the repo is the source of truth, the AI is the sensei, the user is the student
 
-cycle: study -> randori -> exam -> level_up
+cycle: study -> drill -> exam -> track
 
 vocabulary:
-  kata: unit of knowledge — theory + examples + snippets for one topic, organised by subject
-  kiroku: session record — immutable log of what was studied, drilled, or examined
-  kiroku/_index.md: human-readable map of all studied topics across all subjects — one line per topic
-  randori: interactive drill — AI asks one question per concept during study, conversational, no score
-  esame_finale: end-of-book exam — 10-15 questions across the full book, scored, required for level_up
-  gakusei: the student — identity, level per subject, active books, last session
-  .gakusei.yml: machine-readable student profile — AI reads this at every session start
-  gakusei.md: human-readable student profile — shows current level and what has been learned
-  library: collection of books available for study (Google Drive folder, attached files, or pasted text)
+  kata: unit of knowledge — theory + snippets + flashcards for one topic
+  scroll: mastery tracker — exam history + current level per topic
+  randori: free-drill session — AI generates quiz, user answers, weak spots surfaced
+  densho: source material — imported course/book structured by chapter
+  sensei: user identity file — language, mastery map, learning journey
+  log: immutable session record — exam, randori, or study session
+  onboarding: first-run setup flow for new instances
 
 key_principles:
-  - one repo per student instance
-  - AI reads .gakusei.yml at session start — no exceptions
-  - kiroku files are immutable — append-only, never overwrite
-  - mastery state lives in .gakusei.yml — not in AI memory
-  - files for the AI are YAML (hidden, dot-prefixed); files for the human are Markdown
-  - kata/ and kiroku/ are organised by subject subfolder
-  - level progression requires completing a book AND passing esame_finale
-  - AI proposes level_up, student confirms
-
-levels:
-  - non iniziato
-  - principiante
-  - intermedio
-  - avanzato
-
-library_sources:
-  - google_drive: shared folder link — AI downloads PDF
-  - attached_file: PDF or text attached directly in chat
-  - pasted_text: chapter text pasted inline in chat
-  - ai_knowledge: no book — AI teaches from internal knowledge, adapted to gakusei level
+  - one repo per student instance (fork of dojo-framework)
+  - AI reads .agent.yml at session start — no exceptions
+  - exam logs are immutable — commit before responding, never overwrite
+  - mastery state lives in sensei.yml + scroll/ — not in AI memory

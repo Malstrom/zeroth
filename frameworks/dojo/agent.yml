@@ -3,82 +3,48 @@
 # The following are dojo-specific additions
 
 required_scenarios:
-
   session_start:
     trigger: auto on session open
-    actions:
-      - read .gakusei.yml
-      - read kiroku/_index.md
-      - greet student by name
-      - summarise: last session + current level per subject
-      - propose next action (continue last book, start new subject, do esame_finale if book complete)
-
-  studio_open:
-    trigger: user wants to study a topic or chapter
-    input_sources:
-      - google_drive: download PDF from .gakusei.yml library_drive link
-      - attached_file: read from chat attachment
-      - pasted_text: read from chat inline
-      - ai_knowledge: use internal knowledge, adapt to gakusei level from .gakusei.yml
-    actions:
-      - identify subject and topic
-      - extract 5-7 key concepts from source (or generate from ai_knowledge)
-      - explain concepts one at a time, adapted to gakusei level
-      - after each concept: trigger randori (1-2 questions)
-      - after all concepts: update kata/{subject}/{topic}.md via PR
-      - update kiroku/{subject}/YYYY-MM-DD.md (append-only)
-      - update kiroku/_index.md (one line per topic)
-      - update .gakusei.yml (ultima_sessione, book progress)
-      - update gakusei.md
-
-  randori:
-    trigger: embedded in studio_open after each concept, or user requests standalone drill
-    purpose: interactive check — not an exam, no score, conversational
-    actions:
-      - ask 1-2 open questions on the concept just explained
-      - wait for student answer
-      - if correct: brief positive feedback, move on
-      - if wrong: explain the gap, re-ask a simpler version
-      - record weak spots in kiroku session file
-
-  esame_finale:
-    trigger: user requests exam OR .gakusei.yml shows book progresso at 100%
-    purpose: end-of-book assessment — required for level_up
-    actions:
-      - confirm student is ready
-      - ask 10-15 questions covering the full book, one at a time
-      - track score internally (first answer only)
-      - at end: report score and pass/fail (threshold 80%)
-      - if passed: propose level_up, wait for student confirmation
-      - if failed: identify weak chapters, propose targeted study before retry
-      - write immutable exam record to kiroku/{subject}/YYYY-MM-DD.md
-
-  avanzamento_livello:
-    trigger: student confirms level_up after passing esame_finale
-    actions:
-      - update .gakusei.yml materie.{subject} level
-      - update gakusei.md
-      - move book from libri_attivi to libri_completati in .gakusei.yml
-      - commit via PR
-
+    purpose: read sensei + last log, propose next action
+  dojo_study:
+    trigger: user asks to study a topic
+    purpose: explain topic + create/update kata
+  dojo_exam:
+    trigger: user requests exam on topic
+    purpose: 6-question exam, score/30, immutable log
+  dojo_randori:
+    trigger: user requests drill or quiz
+    purpose: generate HTML quiz artifact
+  densho_open:
+    trigger: user imports a course or book
+    purpose: parse + create densho file, detect kata gaps
   unknown_scenario:
     trigger: no other trigger matched
-    actions:
-      - map to closest scenario and ask for confirmation
-      - if no match: propose new scenario
+    purpose: map to closest scenario or propose new one
 
 required_handlers:
-
+  kata_trigger:
+    listens_to: [exam-failed, kata-gap-detected, densho-updated]
+    purpose: create or update kata file
+  sensei_trigger:
+    listens_to: [exam-passed, scroll-updated]
+    purpose: update mastery in sensei.yml
   session_end:
     listens_to: [goodbye, topic-closed, session-idle]
-    actions:
-      - flush any pending updates to kiroku and .gakusei.yml
-      - commit via PR if uncommitted changes exist
+    purpose: write session log
 
 global_rules:
-  language: always read from .gakusei.yml at session_start
+  language: always read from sensei.yml at session_start
   pr_strategy: batch_per_session
   exam_log: immediate PR — not batched
   exam_immutability: commit before responding, append-only on correction
-  level_up: AI proposes, student confirms — never automatic
-  densho: does not exist — books are consumed live from library sources
+  scoring: first answer only — correction is learning signal not retry
+
+exam_format:
+  questions: 6
+  points_each: 5
+  total: 30
+  pass_threshold: 18
+  style: one at a time, interview style
+  pc_mode: theory + code
+  phone_mode: theory only
