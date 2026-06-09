@@ -32,6 +32,8 @@ file_access:
   .scenarios.yml: read-only
   rules/*.yml: read-write
   frameworks/**/*.yml: read-write
+  frameworks/**/.agent.yml: read-write
+  frameworks/**/.scenarios.yml: read-write
   templates/*: read-write
 
 # ---------------------------------------------------------------------------
@@ -78,7 +80,11 @@ repo_map:
   rules/registry.yml: universal rules for .registry.yml
   rules/sync.yml: universal cross-repo sync patterns
   rules/log.yml: universal immutability and logging rules
-  frameworks/dojo/: spec and validation rules for the dojo framework
+  frameworks/dojo/.agent.yml: dojo framework AI manifest
+  frameworks/dojo/.scenarios.yml: dojo framework scenario catalog
+  frameworks/dojo/overview.yml: dojo framework overview and vocabulary
+  frameworks/dojo/structure.yml: dojo framework directory structure spec
+  frameworks/dojo/checklist.yml: dojo framework giskard validation checklist
   frameworks/tensho/: spec and validation rules for the tensho framework
   frameworks/sudo-hire-me/: spec and validation rules for the sudo-hire-me framework
   templates/.agent.yml: base template for new framework agent files
