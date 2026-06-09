@@ -17,11 +17,33 @@ connector_check:
 # ---------------------------------------------------------------------------
 global:
   language: Italian
-  replies_in: Italian
   pr_strategy: batch_per_session
   merge_strategy: squash
   dedup_scope: current_session
   trigger_matching: pattern_first
+
+# ---------------------------------------------------------------------------
+# REPO MAP
+# ---------------------------------------------------------------------------
+repo_map:
+  rules/agent.yml: universal rules for .agent.yml structure
+  rules/scenarios.yml: universal rules for writing scenarios and handlers
+  rules/structure.yml: universal rules for repo structure
+  rules/naming.yml: universal naming rules + language rule
+  rules/registry.yml: universal rules for .registry.yml
+  rules/sync.yml: universal cross-repo sync patterns
+  rules/log.yml: universal immutability and logging rules
+  frameworks/dojo/.agent.yml: dojo framework AI manifest
+  frameworks/dojo/.scenarios.yml: dojo framework scenario catalog
+  frameworks/dojo/overview.yml: dojo framework overview and vocabulary
+  frameworks/dojo/structure.yml: dojo framework directory structure spec
+  frameworks/dojo/checklist.yml: dojo framework giskard validation checklist
+  frameworks/tensho/: spec and validation rules for the tensho framework
+  frameworks/sudo-hire-me/: spec and validation rules for the sudo-hire-me framework
+  templates/.agent.yml: base template for new framework agent files
+  templates/.scenarios.yml: base template for new framework scenarios files
+  templates/.registry.yml: base template for new framework registry files
+  templates/overview.yml: base template for new framework overview files
 
 # ---------------------------------------------------------------------------
 # FILE ACCESS
@@ -60,44 +82,23 @@ write_ahead:
     Types: feat, fix, docs, test, chore
 
 # ---------------------------------------------------------------------------
+# SCENARIOS
+# ---------------------------------------------------------------------------
+scenarios:
+  scenarios_file: .scenarios.yml
+
+# ---------------------------------------------------------------------------
 # POST-ACTION HOOK
 # ---------------------------------------------------------------------------
 post_action_hook:
   after_every_state_change:
     - read: .registry.yml
-    - execute: matching sync triggers
-    - approval_required: false
+    - if:
+        condition: matching_sync_triggers_exist
+        then:
+          - call_handlers: matching
   conflict_check:
     if_open_pr_on_same_file: stop and notify Igor
-
-# ---------------------------------------------------------------------------
-# REPO MAP
-# ---------------------------------------------------------------------------
-repo_map:
-  rules/agent.yml: universal rules for .agent.yml structure
-  rules/scenarios.yml: universal rules for writing scenarios and handlers
-  rules/structure.yml: universal rules for repo structure
-  rules/naming.yml: universal naming rules + language rule
-  rules/registry.yml: universal rules for .registry.yml
-  rules/sync.yml: universal cross-repo sync patterns
-  rules/log.yml: universal immutability and logging rules
-  frameworks/dojo/.agent.yml: dojo framework AI manifest
-  frameworks/dojo/.scenarios.yml: dojo framework scenario catalog
-  frameworks/dojo/overview.yml: dojo framework overview and vocabulary
-  frameworks/dojo/structure.yml: dojo framework directory structure spec
-  frameworks/dojo/checklist.yml: dojo framework giskard validation checklist
-  frameworks/tensho/: spec and validation rules for the tensho framework
-  frameworks/sudo-hire-me/: spec and validation rules for the sudo-hire-me framework
-  templates/.agent.yml: base template for new framework agent files
-  templates/.scenarios.yml: base template for new framework scenarios files
-  templates/.registry.yml: base template for new framework registry files
-  templates/overview.yml: base template for new framework overview files
-
-# ---------------------------------------------------------------------------
-# SCENARIOS
-# ---------------------------------------------------------------------------
-scenarios:
-  scenarios_file: .scenarios.yml
 
 # ---------------------------------------------------------------------------
 # HANDLERS
@@ -110,19 +111,18 @@ handlers:
       - giskard-updated
     dedup: once per session
     actions:
-      - read: Malstrom/giskard giskard.py
       - if:
           condition: event == framework-added
           then:
             - update:
-                file: Malstrom/giskard giskard.py
+                file: Malstrom/giskard:giskard.py
                 fields: [ZEROTH_CHECKLISTS]
                 via: PR
       - if:
           condition: event == giskard-updated
           then:
             - update:
-                file: Malstrom/giskard giskard.py
+                file: Malstrom/giskard:giskard.py
                 fields: [REQUIRED_TEMPLATES]
                 via: PR
     state_changes: []
