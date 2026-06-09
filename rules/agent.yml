@@ -11,10 +11,10 @@ structure:
     - write_ahead
     - scenarios
   optional_blocks:
-    description: present only when the framework needs them
-    blocks:
-      - handlers
+    description: present only when the framework needs them; when present follow this order
+    order:
       - post_action_hook
+      - handlers
       - template_rule
 
   scenarios_pattern:
@@ -70,8 +70,11 @@ rules:
       Does NOT use scenario/handler modules. Has its own fixed-field syntax.
     syntax:
       after_every_state_change:
-        description: actions to run after any state_change; use shared_modules
-        allowed_modules: [read, if, call_handlers]
+        description: actions to run after any state_change
+        allowed_modules:
+          - read
+          - if
+          - call_handlers
       conflict_check:
         description: safety rules for concurrent PR operations
         fields:
