@@ -15,15 +15,23 @@ structure:
     - write_ahead
     - post_action_hook
 
-  scenarios_pattern:
-    rule: scenarios always live in .scenarios.yml — never inline in .agent.yml
-    rationale: structural separation, not a size threshold
-    agent_yml_declares: scenarios_file pointing to .scenarios.yml
-    agent_yml_scenarios_block: reference only — no inline scenario definitions
+  scenarios_split_pattern:
+    description: |
+      When the scenario catalog grows beyond 150 lines, scenarios must be extracted
+      into a hidden YAML file (dot-prefixed, for example .scenarios.yml).
+      When this pattern is used:
+        - .agent.yml must declare scenarios_file pointing to the hidden file
+        - the scenarios block in .agent.yml becomes a reference, not a full definition
+        - the external file is validated with the same rules as inline scenarios
+        - giskard checks the external file for required scenarios, not .agent.yml
+    required_when: scenarios block would exceed max_lines_per_file
     example_agent_yml: |
       scenarios:
         scenarios_file: .scenarios.yml
-    validation: giskard reads and validates .scenarios.yml directly
+    example_scenarios_file: |
+      required_scenarios:
+        session_start: ...
+        unknown_scenario: ...
 
 rules:
 
