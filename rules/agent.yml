@@ -52,5 +52,20 @@ rules:
     - every file must have its permission declared explicitly
 
   tool_approval:
-    - destructive_ops: true — always require approval for destructive operations
-    - merge_to_main: declare explicitly whether allowed or not
+    # false = execute without asking the user
+    # true  = ask the user before executing
+    mapping:
+      feature_branch: false
+      file_edit: false
+      push_files: false
+      create_pr: false
+      merge_to_main: false
+      delete_file: true  # irreversible outside git history
+      destructive_ops: true  # any operation that cannot be undone via PR
+    definition:
+      destructive_ops: |
+        delete_file, overwrite without branch, clear directory, any operation
+        that cannot be reverted by reverting a PR
+    note: |
+      This mapping applies to the _requires_user_approval flag on every tool call.
+      The AI must follow this mapping and never ask approval for false entries.
