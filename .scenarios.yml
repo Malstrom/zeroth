@@ -36,10 +36,53 @@ required_scenarios:
       - propose: "What would you like to work on?"
     state_changes: []
 
+  create_framework:
+    trigger_patterns:
+      - user wants to create a new repo based on a framework
+      - user wants to scaffold a dojo, tensho, or any other framework repo
+      - user mentions "crea dojo", "crea repo", "nuovo dojo", "scaffold"
+    read:
+      - frameworks/{name}/structure.yml   # manifesto — defines scaffold_strategy
+      - frameworks/{name}/overview.yml    # framework description — used to generate README
+      - frameworks/{name}/onboarding.yml  # onboarding logic — guides .gakusei.yml generation
+    actions:
+      - ask: "repo name? (e.g. dojo-framework, dojo-demo, {name}-{variant})"
+      - ask: "public or private?"
+      - create_repo:
+          name: "{{repo_name}}"
+          visibility: "{{visibility}}"
+          is_template: true
+      - for_each: copy in structure.yml scaffold_strategy.copy
+        do:
+          - copy:
+              from: zeroth/{{item.source}}
+              to: "{{repo_name}}/{{item.dest}}"
+              via: direct_commit
+      - for_each: copy_framework in structure.yml scaffold_strategy.copy_framework
+        do:
+          - copy:
+              from: zeroth/{{item.source}}
+              to: "{{repo_name}}/{{item.dest}}"
+              via: direct_commit
+      - for_each: generate in structure.yml scaffold_strategy.generate
+        do:
+          - generate:
+              dest: "{{repo_name}}/{{item.dest}}"
+              guided_by: "{{item.guided_by}}"
+              via: direct_commit
+      - open_issue:
+          repo: zeroth
+          title: "chore: scaffold {{repo_name}} created"
+          body: "Repo {{repo_name}} scaffolded from framework {{name}}. Verify and close."
+          approval_required: false
+      - emit: framework-repo-created
+    state_changes:
+      - framework-repo-created
+
   add_framework:
     trigger_patterns:
-      - user wants to add a new framework to zeroth
-      - user wants to create rules for a new framework
+      - user wants to add a new framework definition to zeroth
+      - user wants to create rules for a new framework type
     read:
       - templates/overview.yml
       - templates/.agent.yml
@@ -61,6 +104,10 @@ required_scenarios:
           file: "frameworks/{name}/.scenarios.yml"
           from: templates/.scenarios.yml
           via: PR
+      - create:
+          file: "frameworks/{name}/structure.yml"
+          via: PR
+          note: define required_layout and scaffold_strategy
       - update:
           file: README.md
           fields: [registered_frameworks]
