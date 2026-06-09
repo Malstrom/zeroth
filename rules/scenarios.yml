@@ -1,7 +1,7 @@
 # zeroth — scenario writing rules
 # Applies to: every .scenarios.yml in every Malstrom framework
 #
-# Goal: scenarios must be unambiguous and machine-readable.
+# Goal: scenarios and handlers must be unambiguous and machine-readable.
 # Every action must declare WHAT happens, not describe it in prose.
 
 # ---------------------------------------------------------------------------
@@ -62,13 +62,30 @@ read:
       read: [.gakusei.yml]
 
 # ---------------------------------------------------------------------------
-# ACTION MODULES
+# ACTION MODULES (scenarios + handlers)
 # ---------------------------------------------------------------------------
 actions:
   rule: |
     Every action must use one of the declared modules below.
     Free-form prose is not allowed.
     One module per list item.
+
+  scenario_modules:
+    description: available in scenarios only
+    modules:
+      - say
+      - ask
+      - propose
+
+  shared_modules:
+    description: available in both scenarios and handlers
+    modules:
+      - read
+      - call
+      - update
+      - create
+      - emit
+      - if
 
   modules:
 
@@ -82,6 +99,7 @@ actions:
 
     say:
       description: emit a fixed or templated message to the user
+      scenario_only: true
       syntax:
         - say: "message text"
       example:
@@ -89,6 +107,7 @@ actions:
 
     ask:
       description: ask the user a question and wait for their answer before continuing
+      scenario_only: true
       syntax:
         - ask: "question text"
       example:
@@ -109,17 +128,13 @@ actions:
       syntax:
         - update:
             file: path/to/file.yml
-            fields: [field1, field2]     # optional: list of fields to update
-            via: PR                       # always PR unless explicitly: via: direct
-            mode: append | overwrite      # optional: default is overwrite
+            fields: [field1, field2]
+            via: PR
+            mode: append | overwrite
       example:
         - update:
             file: .gakusei.yml
             fields: [last_session, book_progress]
-            via: PR
-        - update:
-            file: "kiroku/{subject}/{date}.md"
-            mode: append
             via: PR
 
     create:
@@ -127,7 +142,7 @@ actions:
       syntax:
         - create:
             file: path/to/new_file.yml
-            from: path/to/template.yml   # optional
+            from: path/to/template.yml
             via: PR
       example:
         - create:
@@ -162,6 +177,7 @@ actions:
 
     propose:
       description: present an option to the user and wait for confirmation before acting
+      scenario_only: true
       syntax:
         - propose: action description
           on_confirm:
@@ -170,6 +186,49 @@ actions:
         - propose: "Move to advanced level for this subject?"
           on_confirm:
             - call: level_up
+
+# ---------------------------------------------------------------------------
+# HANDLERS
+# ---------------------------------------------------------------------------
+handlers:
+  rule: |
+    Handlers are reactive — they fire automatically on state_change events.
+    They are never triggered by the user.
+    Actions must use shared_modules only: read, update, create, emit, if, call.
+    say, ask, and propose are not allowed in handlers.
+  required_fields:
+    - listen
+    - dedup
+    - actions
+    - state_changes
+  field_rules:
+    listen: block sequence of event names the handler reacts to
+    dedup: once per session | once per {variable} per session
+    actions: shared_modules only
+    state_changes: block sequence or []
+  example:
+    giskard_sync:
+      listen:
+        - framework-added
+        - giskard-updated
+      dedup: once per session
+      actions:
+        - read: Malstrom/giskard giskard.py
+        - if:
+            condition: event == framework-added
+            then:
+              - update:
+                  file: Malstrom/giskard giskard.py
+                  fields: [ZEROTH_CHECKLISTS]
+                  via: PR
+        - if:
+            condition: event == giskard-updated
+            then:
+              - update:
+                  file: Malstrom/giskard giskard.py
+                  fields: [REQUIRED_TEMPLATES]
+                  via: PR
+      state_changes: []
 
 # ---------------------------------------------------------------------------
 # STATE_CHANGES
@@ -185,8 +244,6 @@ state_changes:
         - study-completed
     also_correct:
       state_changes: []
-    incorrect:
-      state_changes: study_completed
 
 # ---------------------------------------------------------------------------
 # INPUT_SOURCES
@@ -198,24 +255,25 @@ input_sources:
     - attached_file
     - pasted_text
     - ai_knowledge
-  example:
-    input_sources:
-      - google_drive
-      - attached_file
-      - pasted_text
-      - ai_knowledge
 
 # ---------------------------------------------------------------------------
 # VALIDATION RULES (for giskard)
 # ---------------------------------------------------------------------------
 validation:
-  - root key must be required_scenarios
-  - session_start must be present
-  - unknown_scenario must be present and must be the last scenario
-  - every scenario must have all required fields
-  - state_changes must never be omitted
-  - read must never be omitted
-  - every action item must use a declared module
-  - free-form prose in actions is a validation failure
-  - trigger patterns must be intent descriptions in English — not phrases in any specific language
-  - placeholders in file paths must be quoted strings
+  scenarios:
+    - root key must be required_scenarios
+    - session_start must be present
+    - unknown_scenario must be present and must be the last scenario
+    - every scenario must have all required fields
+    - state_changes must never be omitted
+    - read must never be omitted
+    - every action item must use a declared module
+    - free-form prose in actions is a validation failure
+    - trigger patterns must be intent descriptions in English — not phrases in any specific language
+    - placeholders in file paths must be quoted strings
+    - say, ask, propose are not allowed in handler actions
+  handlers:
+    - every handler must have listen, dedup, actions, state_changes
+    - actions must use shared_modules only
+    - say, ask, propose are forbidden in handler actions
+    - dedup must be declared

@@ -1,92 +1,110 @@
 # .scenarios.yml
 # AI-only scenario catalog for zeroth.
 # Defines all user-triggered flows. Read by the AI at session start via .agent.yml.
+# Syntax: rules/scenarios.yml
 
 required_scenarios:
 
   session_start:
     trigger_patterns:
-      - session opens (automatic, no user message required)
+      - session opens automatically
     read:
       - .registry.yml
     actions:
-      - reply in Italian
-      - summarise current state of zeroth (frameworks registered, rules present, giskard status)
-      - propose next action based on context
+      - say: "Zeroth session started."
+      - say: "Frameworks registered: {{registry.connections | count}}. Rules: {{repo_map | count}}."
+      - propose: "What would you like to work on?"
     state_changes: []
 
   add_framework:
     trigger_patterns:
-      - "aggiungi framework {name}"
-      - "nuovo framework {name}"
-      - "crea le regole per {name}"
-      - "voglio aggiungere {name}"
+      - user wants to add a new framework to zeroth
+      - user wants to create rules for a new framework
     read:
       - templates/overview.yml
       - templates/.agent.yml
       - templates/.scenarios.yml
       - templates/.registry.yml
     actions:
-      - create frameworks/{name}/overview.yml from templates/overview.yml
-      - create frameworks/{name}/checklist.yml
-      - create frameworks/{name}/.agent.yml from templates/.agent.yml
-      - create frameworks/{name}/.scenarios.yml from templates/.scenarios.yml
-      - update README.md registered frameworks table
-      - add {name} to Malstrom/giskard ZEROTH_CHECKLISTS
-      - add {name} to .registry.yml connections
-      - feature branch → PR → squash merge
+      - create:
+          file: "frameworks/{name}/overview.yml"
+          from: templates/overview.yml
+          via: PR
+      - create:
+          file: "frameworks/{name}/checklist.yml"
+          via: PR
+      - create:
+          file: "frameworks/{name}/.agent.yml"
+          from: templates/.agent.yml
+          via: PR
+      - create:
+          file: "frameworks/{name}/.scenarios.yml"
+          from: templates/.scenarios.yml
+          via: PR
+      - update:
+          file: README.md
+          fields: [registered_frameworks]
+          via: PR
+      - update:
+          file: .registry.yml
+          fields: [connections]
+          via: PR
+      - emit: framework-added
     state_changes:
       - framework-added
 
   update_rule:
     trigger_patterns:
-      - "aggiorna la regola {rule}"
-      - "modifica {file}"
-      - "aggiungi regola"
-      - "cambia la regola su {topic}"
-      - "nuova regola in rules"
-      - "metti questa regola in zeroth"
+      - user wants to update or add a rule in zeroth
+      - user wants to change how something works in zeroth
     read:
       - "rules/{rule}.yml"
     actions:
-      - read current rule file (or determine correct file for new rule)
-      - apply change
-      - feature branch → PR → squash merge
-      - if rule impacts framework .agent.yml propagate to affected repos
+      - update:
+          file: "rules/{rule}.yml"
+          via: PR
+      - if:
+          condition: rule_impacts_framework_agent
+          then:
+            - emit: rule-updated
     state_changes:
       - rule-updated
 
   fix_giskard:
     trigger_patterns:
-      - "giskard fallisce su {framework}"
-      - "fix il check {name}"
-      - "giskard non passa"
-      - "il check {name} e sbagliato"
-      - "aggiorna giskard"
+      - user reports a giskard check is failing
+      - user wants to fix or update giskard
     read:
       - "frameworks/{framework}/checklist.yml"
       - Malstrom/giskard giskard.py
     actions:
-      - analyse failing check output
-      - determine root cause (checklist wrong vs giskard.py wrong vs repo wrong)
-      - apply fix to correct location
-      - feature branch → PR → squash merge
+      - if:
+          condition: root_cause == checklist
+          then:
+            - update:
+                file: "frameworks/{framework}/checklist.yml"
+                via: PR
+          else:
+            - if:
+                condition: root_cause == giskard
+                then:
+                  - update:
+                      file: Malstrom/giskard giskard.py
+                      via: PR
     state_changes:
       - giskard-updated
 
   validate_framework:
     trigger_patterns:
-      - "valida {name}"
-      - "il framework {name} e conforme?"
-      - "controlla {name}"
-      - "checklist {name}"
+      - user wants to validate a framework against its checklist
+      - user asks if a framework is compliant
     read:
       - "frameworks/{name}/checklist.yml"
     actions:
-      - read checklist
-      - read target repo structure if accessible
-      - report pass/fail per checklist item
-      - propose fixes for failed items
+      - say: "Validating {name} against checklist..."
+      - propose: "Fix failed items?"
+        on_confirm:
+          - call: update_rule
     state_changes: []
 
   unknown_scenario:
@@ -94,7 +112,11 @@ required_scenarios:
       - any message that does not match any other scenario
     read: []
     actions:
-      - attempt to map message to closest existing scenario and ask for confirmation
-      - if no match say "Scenario not defined. Want me to add it?"
-      - if user confirms draft new scenario block and update .scenarios.yml via feature branch → PR
+      - propose: "Did you mean: {{closest_scenario}}?"
+        on_confirm:
+          - call: "{{closest_scenario}}"
+      - if:
+          condition: no_match
+          then:
+            - say: "Scenario not defined. Want me to add it?"
     state_changes: []
