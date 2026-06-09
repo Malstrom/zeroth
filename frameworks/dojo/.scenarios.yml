@@ -1,16 +1,20 @@
-# dojo framework — scenario definitions
+# dojo framework — scenario catalog
+# Syntax: rules/scenarios.yml
 
 required_scenarios:
+
   session_start:
     trigger_patterns:
-      - session opens
+      - session opens (automatic, no user message required)
     read:
       - .gakusei.yml
       - kiroku/_index.md
     actions:
-      - greet student by name
-      - summarise last session and current level per subject
-      - propose next action: continue last book, start a new subject, or take final_exam if a book is complete
+      - say: "{{student_name}}!"
+      - say: "Last session: {{last_session.subject}} — {{last_session.topic}}. Next: {{last_session.next}}"
+      - propose: "Continue from where you left off?"
+        on_confirm:
+          - call: study_open
     state_changes: []
 
   study_open:
@@ -19,25 +23,38 @@ required_scenarios:
       - "study chapter {chapter} of {book}"
       - "teach me {topic}"
       - "let's study {subject}"
+      - "studiamo {topic}"
+      - "spiegami {topic}"
     read:
       - .gakusei.yml
       - kiroku/_index.md
       - "kata/{subject}/{topic}.md"
     input_sources:
-      - google_drive: download PDF from the library link stored in .gakusei.yml
-      - attached_file: read from the chat attachment
-      - pasted_text: read from the chat message
-      - ai_knowledge: use internal knowledge adapted to the student level in .gakusei.yml
+      - google_drive
+      - attached_file
+      - pasted_text
+      - ai_knowledge
     actions:
-      - identify subject and topic
-      - extract 5 to 7 key concepts from the source, or generate them from ai_knowledge
-      - explain concepts one at a time, adapted to the student level
-      - after each concept, trigger randori
-      - after all concepts, update "kata/{subject}/{topic}.md" via PR
-      - update "kiroku/{subject}/YYYY-MM-DD.md"
-      - update kiroku/_index.md
-      - update .gakusei.yml with last_session and book_progress
-      - update gakusei.md
+      - say: "Reading source and extracting key concepts..."
+      - call: randori
+        after: each_concept
+      - update:
+          file: "kata/{subject}/{topic}.md"
+          via: PR
+      - update:
+          file: "kiroku/{subject}/{date}.md"
+          mode: append
+          via: PR
+      - update:
+          file: kiroku/_index.md
+          via: PR
+      - update:
+          file: .gakusei.yml
+          fields: [last_session, book_progress]
+          via: PR
+      - update:
+          file: gakusei.md
+          via: PR
     state_changes:
       - study-completed
 
@@ -46,15 +63,25 @@ required_scenarios:
       - "quiz me on {topic}"
       - "let's do randori"
       - "check if I understood {topic}"
+      - "metti alla prova su {topic}"
+      - "randori su {topic}"
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
     actions:
-      - ask 1 to 2 open questions on the concept just explained or requested
-      - wait for the student's answer
-      - if correct, give brief positive feedback and move on
-      - if incorrect, explain the gap and ask a simpler follow-up question
-      - record weak spots in the current kiroku session file
+      - ask: "question on the concept just explained, adapted to student level"
+      - if:
+          condition: answer_correct
+          then:
+            - say: "Correct. Moving on."
+          else:
+            - say: "Not quite — here is the gap."
+            - ask: "simpler follow-up question on the same concept"
+      - update:
+          file: "kiroku/{subject}/{date}.md"
+          fields: [weak_spots]
+          mode: append
+          via: PR
     state_changes:
       - randori-completed
 
@@ -63,42 +90,63 @@ required_scenarios:
       - "test me on {book}"
       - "final exam for {subject}"
       - "I finished the book"
+      - "esame finale per {subject}"
+      - "ho finito il libro"
     read:
       - .gakusei.yml
       - kiroku/_index.md
     actions:
-      - confirm the student is ready
-      - ask 10 to 15 questions covering the full book, one at a time
-      - track score internally using the first answer only
-      - at the end, report score and pass/fail with an 80 percent threshold
-      - if passed, propose level_up and wait for confirmation
-      - if failed, identify weak chapters and propose targeted review before retry
-      - write immutable exam record to "kiroku/{subject}/YYYY-MM-DD.md"
+      - ask: "Are you ready to start the final exam for {subject}?"
+      - say: "Asking 10 to 15 questions one at a time. Only your first answer counts."
+      - if:
+          condition: score >= 80
+          then:
+            - update:
+                file: "kiroku/{subject}/{date}.md"
+                fields: [exam_result, score]
+                mode: append
+                via: PR
+            - propose: "You passed! Move to the next level for {subject}?"
+              on_confirm:
+                - call: level_up
+          else:
+            - update:
+                file: "kiroku/{subject}/{date}.md"
+                fields: [exam_result, score, weak_chapters]
+                mode: append
+                via: PR
+            - say: "Not passed. Weak chapters: {{weak_chapters}}. Review and retry."
     state_changes:
       - exam-passed
       - exam-failed
 
   level_up:
     trigger_patterns:
-      - "yes, update my level"
-      - "confirm level up"
-      - "I passed, update the profile"
+      - level up confirmed (called via propose — not triggered directly by user)
     read:
       - .gakusei.yml
       - gakusei.md
     actions:
-      - update .gakusei.yml subject level
-      - update gakusei.md
-      - move the completed book from active_books to completed_books in .gakusei.yml
-      - commit via PR
+      - update:
+          file: .gakusei.yml
+          fields: [subjects, active_books, completed_books]
+          via: PR
+      - update:
+          file: gakusei.md
+          via: PR
     state_changes:
       - level-up-completed
 
   unknown_scenario:
     trigger_patterns:
-      - any unmatched message
+      - any message that does not match any other scenario
     read: []
     actions:
-      - map the request to the closest scenario and ask for confirmation
-      - if no match exists, propose adding a new scenario
+      - propose: "Did you mean: {{closest_scenario}}?"
+        on_confirm:
+          - call: "{{closest_scenario}}"
+      - if:
+          condition: no_match
+          then:
+            - say: "Scenario not defined. Want me to add it?"
     state_changes: []
