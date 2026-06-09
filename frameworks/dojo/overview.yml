@@ -3,18 +3,23 @@
 framework: dojo
 purpose: AI-assisted learning framework — the repository is the source of truth, the AI is the sensei, the user is the student
 
-cycle: study -> randori -> final_exam -> level_up
+cycle:
+  - study
+  - randori
+  - quiz
+  - shinsa
+  - level_up
 
 vocabulary:
   kata: unit of knowledge — theory, explanations, examples, and snippets for one topic, organised by subject
   kiroku: immutable session record — what was studied, drilled, or examined
-  kiroku_index: human-readable study map — one line per learned topic across all subjects
-  randori: interactive drill during study — the AI asks one or two questions after each concept, no score
-  final_exam: end-of-book assessment — 10 to 15 questions covering the full book, scored, required before level_up
+  randori: interactive drill during study — the AI asks open questions after each concept, no score, feedback immediate
+  quiz: autonomous practice — multiple choice questions from kata, no state saved, lightweight (metro/break use)
+  shinsa: formal exam — 10+ open-ended questions covering the full subject, scored, no feedback during, required before level_up
   gakusei: the student profile
   .gakusei.yml: machine-readable student profile — the AI reads this at every session start
-  gakusei.md: human-readable student profile — shows current level and what has been learned
-  library: collection of books available for study, from Google Drive, attached files, pasted text, or AI knowledge fallback
+  gakusei.md: human-readable student profile — shows current level and what has been learned; created by AI on first session
+  library: conceptual term for the set of study sources (not a directory) — Google Drive, attached files, pasted text, or AI knowledge
 
 key_principles:
   - one repository per student instance
@@ -23,7 +28,7 @@ key_principles:
   - mastery state lives in .gakusei.yml — not in AI memory
   - files for the AI are hidden YAML files; files for the human are Markdown
   - kata/ and kiroku/ are organised by subject subfolder
-  - level progression requires completing a book and passing final_exam
+  - level progression requires completing a book and passing the shinsa
   - the AI proposes level_up, the student confirms
 
 levels:
