@@ -6,6 +6,7 @@ required_layout:
     - .scenarios.yml       # AI scenario catalog — detailed user-triggered flows
     - .registry.yml        # cross-repo connections — read-only
     - .gakusei.yml         # machine-readable student profile — AI reads and writes
+    - onboarding.yml       # atomic onboarding — read once at first session, self-contained
     - README.md            # human navigation hub
     # gakusei.md is NOT required at init — created by AI on first session
   kata/:
@@ -31,6 +32,7 @@ rules:
   - templates/ must be read before generating any document
   - densho/ does not exist — books are read from library sources, not stored in the repository
   - file permissions are declared in .agent.yml file_access — structure.yml is reference only
+  - onboarding.yml is read only once at first session — never again after setup is complete
 
 strict_root:
   allowed:
@@ -43,7 +45,7 @@ strict_root:
     - gakusei.md
     - README.md
     - LICENSE
-    - SETUP.md
+    - onboarding.yml
     - kata
     - kiroku
     - templates
