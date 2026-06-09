@@ -51,12 +51,13 @@ zeroth/
 5. All files read or written by the AI must be in **English** (README excluded)
 6. Small files per domain — never monoliths (~150 lines max)
 7. Never push directly to main — always feature branch → PR → squash merge
+8. `post_action_hook` and `handlers` are mandatory blocks in every `.agent.yml`, even when empty
 
 ## .agent.yml Block Order
 
-Required (in order): `connector_check` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `scenarios`
+Required (in order): `connector_check` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `scenarios` → `post_action_hook` → `handlers`
 
-Optional (when needed, in order): `post_action_hook` → `handlers` → `template_rule`
+Optional (template only): `template_rule`
 
 ## Registered Frameworks
 

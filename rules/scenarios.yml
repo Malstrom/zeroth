@@ -109,7 +109,7 @@ actions:
       description: ask the user a question and wait for their answer before continuing
       scenario_only: true
       syntax:
-        - ask: "question text"
+        - ask: "Are you ready to start the exam?"
       example:
         - ask: "Are you ready to start the exam?"
 
@@ -213,19 +213,18 @@ handlers:
         - giskard-updated
       dedup: once per session
       actions:
-        - read: Malstrom/giskard giskard.py
         - if:
             condition: event == framework-added
             then:
               - update:
-                  file: Malstrom/giskard giskard.py
+                  file: Malstrom/giskard:giskard.py
                   fields: [ZEROTH_CHECKLISTS]
                   via: PR
         - if:
             condition: event == giskard-updated
             then:
               - update:
-                  file: Malstrom/giskard giskard.py
+                  file: Malstrom/giskard:giskard.py
                   fields: [REQUIRED_TEMPLATES]
                   via: PR
       state_changes: []
