@@ -36,6 +36,7 @@ repo_map:
   overview.yml: dojo framework overview and vocabulary
   structure.yml: dojo framework directory structure spec
   checklist.yml: dojo framework giskard validation checklist
+  zeroth/rules/scenarios.yml: syntax reference for scenarios and handlers
 
 # ---------------------------------------------------------------------------
 # FILE ACCESS
