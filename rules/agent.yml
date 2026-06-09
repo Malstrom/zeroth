@@ -7,13 +7,21 @@ structure:
     - global
     - repo_map
     - scenarios
+  recommended_blocks:
+    description: |
+      These blocks are not technically mandatory but must be present in every
+      production .agent.yml. Absence is a giskard warning, not a hard failure.
+      Templates may omit them with placeholder comments.
+    blocks:
+      - file_access
+      - tool_approval
+      - write_ahead
   optional_blocks:
-    - handlers
-    - template_rule
-    - file_access
-    - tool_approval
-    - write_ahead
-    - post_action_hook
+    description: present only when the framework needs them
+    blocks:
+      - handlers
+      - template_rule
+      - post_action_hook
 
   scenarios_pattern:
     rule: scenarios always live in .scenarios.yml — never inline in .agent.yml
@@ -51,8 +59,13 @@ rules:
   handlers:
     - reactive to state_changes emitted by scenarios
     - never called directly by the user
-    - must declare dedup
-    - listen: list of events they react to
+    - syntax and allowed modules defined in rules/scenarios.yml handlers section
+    - required fields: listen, dedup, actions, state_changes
+    - listen: block sequence of event names
+    - dedup: once per session | once per {variable} per session
+    - state_changes: mandatory — use [] if no events are emitted
+    - actions: shared_modules only (read, update, create, emit, if, call)
+    - say, ask, propose are forbidden in handler actions
 
   write_ahead:
     - rule: commit before responding
