@@ -53,7 +53,8 @@ rules:
     - unknown_scenario is mandatory — no message may be left unhandled
     - triggers are natural language patterns, not technical commands
     - scenarios are user-triggered — handlers are not
-    - if scenarios_file is declared in .agent.yml, giskard validates that file instead of the inline block
+    - if scenario definitions are large, they should be moved to .scenarios.yml
+    - when .scenarios.yml exists, .agent.yml must reference it explicitly
 
   handlers:
     - reactive to state_changes emitted by scenarios
@@ -92,7 +93,7 @@ rules:
 
   yaml_validity:
     - all .agent.yml files must be parseable by yaml.safe_load without errors
-    - all dot-prefixed YAML files used by the AI must be parseable by yaml.safe_load without errors
+    - all .scenarios.yml files must be parseable by yaml.safe_load without errors
     - never use flow sequences [...] when values contain { } characters
     - use block sequences for read: lists in scenarios and handlers
     - correct:
