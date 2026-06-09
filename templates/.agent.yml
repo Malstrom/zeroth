@@ -4,7 +4,7 @@
 # Spec: github.com/Malstrom/zeroth
 
 # ---------------------------------------------------------------------------
-# CONNECTOR CHECK — obbligatorio, primo blocco
+# CONNECTOR CHECK — mandatory, must be first block
 # ---------------------------------------------------------------------------
 connector_check:
   on_fail: |
@@ -15,8 +15,9 @@ connector_check:
 # GLOBAL
 # ---------------------------------------------------------------------------
 global:
-  language: italiano
+  language: read from identity file
   pr_strategy: batch_per_session
+  merge_strategy: squash
   dedup_scope: current_session_log
   trigger_matching: pattern_first
 
@@ -24,26 +25,30 @@ global:
 # REPO MAP
 # ---------------------------------------------------------------------------
 repo_map:
-  # definire qui tutti i file con il loro ruolo
-  # esempio:
-  # sensei.md: identity and profile
-  # log/: immutable session records
+  # declare all files and their role
+  # example:
+  # .gakusei.yml: student identity and profile
+  # kiroku/: immutable session records
 
 # ---------------------------------------------------------------------------
 # FILE ACCESS
 # ---------------------------------------------------------------------------
 file_access:
-  agent_files: read-only
-  registry_files: read-only
-  # aggiungere tutti i file con permessi espliciti
+  .agent.yml: read-only
+  .registry.yml: read-only
+  .scenarios.yml: read-only
+  # add all files with explicit permissions
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
 # ---------------------------------------------------------------------------
 tool_approval:
+  feature_branch: false
   file_edit: false
+  push_files: false
   create_pr: false
   merge_to_main: false
+  delete_file: true
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
@@ -51,32 +56,29 @@ tool_approval:
 # ---------------------------------------------------------------------------
 write_ahead:
   rule: commit before responding
+  branch_strategy: |
+    NEVER push directly to main.
+    Always: feature branch → PR → squash merge.
+    Branch naming: {type}/{short-description}
+    Types: feat, fix, docs, test, chore
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
 scenarios:
-
-  session_start:
-    trigger_patterns:
-      - session opens (automatic)
-    read: []  # definire cosa leggere
-    actions:
-      - respond in declared language
-      - propose next action
-    state_changes: []
-
-  unknown_scenario:
-    trigger_patterns:
-      - any message that does not match any other scenario
-    actions:
-      - map to closest scenario and ask confirmation
-      - if no match: ask user if they want to add it
-    state_changes: []
+  scenarios_file: .scenarios.yml
 
 # ---------------------------------------------------------------------------
 # HANDLERS
 # ---------------------------------------------------------------------------
 handlers:
-  # definire handler reattivi agli state_changes degli scenari
-  # ogni handler DEVE avere dedup dichiarato
+  # declare reactive handlers for state_changes emitted by scenarios
+  # every handler MUST declare dedup
+  # example:
+  # my_handler:
+  #   listen:
+  #     - some-event
+  #   dedup: once per session
+  #   actions:
+  #     - do something
+  #   state_changes: []

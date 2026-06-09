@@ -1,0 +1,101 @@
+# .scenarios.yml
+# AI-only scenario catalog for zeroth.
+# Defines all user-triggered flows. Read by the AI at session start via .agent.yml.
+
+required_scenarios:
+
+  session_start:
+    trigger_patterns:
+      - session opens (automatic, no user message required)
+    read:
+      - .registry.yml
+      - rules/naming.yml
+    actions:
+      - reply in Italian
+      - summarise current state of zeroth (frameworks registered, rules present, giskard status)
+      - propose next action based on context
+    state_changes: []
+
+  add_framework:
+    trigger_patterns:
+      - "aggiungi framework {name}"
+      - "nuovo framework {name}"
+      - "crea le regole per {name}"
+      - "voglio aggiungere {name}"
+    read:
+      - templates/overview.yml
+      - templates/.agent.yml
+      - templates/.scenarios.yml
+      - templates/.registry.yml
+    actions:
+      - create frameworks/{name}/overview.yml from templates/overview.yml
+      - create frameworks/{name}/checklist.yml
+      - create frameworks/{name}/agent.yml from templates/.agent.yml
+      - create frameworks/{name}/.scenarios.yml from templates/.scenarios.yml
+      - update README.md registered frameworks table
+      - add {name} to Malstrom/giskard ZEROTH_CHECKLISTS
+      - add {name} to .registry.yml connections
+      - feature branch → PR → squash merge
+    state_changes:
+      - framework-added
+
+  update_rule:
+    trigger_patterns:
+      - "aggiorna la regola {rule}"
+      - "modifica {file}"
+      - "aggiungi regola"
+      - "cambia la regola su {topic}"
+      - "nuova regola in rules"
+      - "metti questa regola in zeroth"
+    read:
+      - "rules/{rule}.yml"
+    actions:
+      - read current rule file (or determine correct file for new rule)
+      - apply change
+      - feature branch → PR → squash merge
+      - if rule impacts framework .agent.yml propagate to affected repos
+    state_changes:
+      - rule-updated
+
+  fix_giskard:
+    trigger_patterns:
+      - "giskard fallisce su {framework}"
+      - "fix il check {name}"
+      - "giskard non passa"
+      - "il check {name} e sbagliato"
+      - "aggiorna giskard"
+    read:
+      - "frameworks/{framework}/checklist.yml"
+      - Malstrom/giskard giskard.py
+    actions:
+      - analyse failing check output
+      - determine root cause (checklist wrong vs giskard.py wrong vs repo wrong)
+      - apply fix to correct location
+      - feature branch → PR → squash merge
+    state_changes:
+      - giskard-updated
+
+  validate_framework:
+    trigger_patterns:
+      - "valida {name}"
+      - "il framework {name} e conforme?"
+      - "controlla {name}"
+      - "checklist {name}"
+    read:
+      - "frameworks/{name}/checklist.yml"
+    actions:
+      - read checklist
+      - read target repo structure if accessible
+      - report pass/fail per checklist item
+      - propose fixes for failed items
+    state_changes: []
+
+  unknown_scenario:
+    trigger_patterns:
+      - any message that does not match any other scenario
+    read: []
+    actions:
+      - attempt to map message to closest existing scenario and ask for confirmation
+      - if no match say "Scenario not defined. Want me to add it?"
+      - if user confirms draft new scenario block and update .scenarios.yml via feature branch → PR
+    state_changes: []

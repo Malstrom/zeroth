@@ -1,0 +1,20 @@
+# overview.yml
+# Framework overview — purpose, vocabulary, key principles.
+# Used as template when creating a new framework in zeroth.
+
+framework: {{FRAMEWORK_NAME}}
+purpose: {{PURPOSE}}
+
+cycle: {{CYCLE_STEPS}}
+
+vocabulary:
+  # define evocative names and their meaning
+  # example:
+  # kata: unit of knowledge for one topic
+
+key_principles:
+  - one repository per instance
+  - the AI reads the identity file at session start — no exceptions
+  - files for the AI are hidden YAML files
+  - files for the human are Markdown
+  - immutable logs are declared explicitly and never overwritten

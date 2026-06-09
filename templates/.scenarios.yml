@@ -1,0 +1,30 @@
+# .scenarios.yml
+# AI-only scenario catalog.
+# All user-triggered flows live here. Referenced by .agent.yml.
+# Spec: github.com/Malstrom/zeroth
+
+required_scenarios:
+
+  session_start:
+    trigger_patterns:
+      - session opens (automatic, no user message required)
+    read:
+      - # declare identity file (e.g. .gakusei.yml)
+    actions:
+      - respond in declared language
+      - summarise current state
+      - propose next action based on context
+    state_changes: []
+
+  unknown_scenario:
+    trigger_patterns:
+      - any message that does not match any other scenario
+    read: []
+    actions:
+      - map to closest scenario and ask for confirmation
+      - if no match say the scenario is not defined and ask if user wants to add it
+      - if confirmed draft new scenario in .scenarios.yml via feature branch → PR
+    state_changes: []
+
+  # add framework-specific scenarios below
+  # every scenario must have: trigger_patterns, read, actions, state_changes
