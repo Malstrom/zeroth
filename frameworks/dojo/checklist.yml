@@ -24,7 +24,7 @@ agent_yml:
     - tool_approval is present
     - write_ahead is present
     - scenarios is present and declares scenarios_file
-    - post_action_hook is present (may be empty)
+    - post_action_hook is present and declares after_every_state_change with read: .registry.yml
     - handlers is present (may be empty)
   global:
     - global.language reads from .gakusei.yml
@@ -54,7 +54,7 @@ gakusei_yml:
   - last_session field exists with subject, topic, next
   - active_books field exists as list
   - completed_books field exists as list
-  - exams field exists per subject with status and threshold
+  - exams field exists per subject with passed (boolean) and score
 
 behaviour:
   - the AI reads .gakusei.yml at every session start

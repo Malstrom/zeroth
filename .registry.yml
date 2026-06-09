@@ -12,7 +12,6 @@ connections:
     sync_trigger:
       - rule-updated
       - framework-added
-      - checklist-updated
     access: read-write
     note: |
       When a checklist in zeroth changes, giskard.py may need updating.

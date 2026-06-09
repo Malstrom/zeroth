@@ -30,7 +30,7 @@ required_scenarios:
       - pasted_text
       - ai_knowledge
     actions:
-      - say: "Reading source and extracting key concepts..."
+      - say: "{{source_loading_message}}"
       - call: randori
         after: each_concept
       - update:
@@ -90,7 +90,7 @@ required_scenarios:
       - ask: "{{mc_question_3_with_4_options_from_kata}}"
       - ask: "{{mc_question_4_with_4_options_from_kata}}"
       - ask: "{{mc_question_5_with_4_options_from_kata}}"
-      - say: "Score: {{score}}/5. {{weak_topics_summary}}"
+      - say: "Score: {{score}}/5. {{weak_spots_summary}}"
     state_changes: []
 
   shinsa:
@@ -127,6 +127,7 @@ required_scenarios:
                 fields: [exams]
                 via: PR
             - say: "Shinsa passed. Score: {{score}}%."
+            - emit: shinsa-passed
             - propose: "Move to the next level for {subject}?"
               on_confirm:
                 - call: level_up
@@ -141,9 +142,8 @@ required_scenarios:
                 fields: [exams]
                 via: PR
             - say: "Shinsa not passed. Score: {{score}}%. Weak chapters: {{weak_chapters}}. Review and retry."
-    state_changes:
-      - shinsa-passed
-      - shinsa-failed
+            - emit: shinsa-failed
+    state_changes: []
 
   level_up:
     trigger_patterns:
