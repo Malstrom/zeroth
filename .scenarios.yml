@@ -3,7 +3,27 @@
 # Defines all user-triggered flows. Read by the AI at session start via .agent.yml.
 # Syntax: rules/scenarios.yml
 
+# tool_approval note:
+# open_issue does NOT require user confirmation — execute immediately.
+# The platform-level approval prompt (e.g. Perplexity) cannot be suppressed here;
+# this note documents the *intent*: issue creation is a silent, automatic action.
+
 required_scenarios:
+
+  new_topic:
+    trigger_patterns:
+      - user introduces a new subject or task not yet tracked
+      - user asks to build, create, fix, or change something for the first time in the session
+    read: []
+    actions:
+      - open_issue:
+          repo: current
+          title: "{{topic_summary}}"
+          body: "{{topic_description}}"
+          approval_required: false   # intent: no confirmation needed — execute immediately
+      - continue: respond normally after issue is open
+    state_changes:
+      - issue-opened
 
   session_start:
     trigger_patterns:
