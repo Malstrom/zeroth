@@ -6,16 +6,10 @@ structure:
     - connector_check
     - global
     - repo_map
+    - file_access
+    - tool_approval
+    - write_ahead
     - scenarios
-  recommended_blocks:
-    description: |
-      These blocks are not technically mandatory but must be present in every
-      production .agent.yml. Absence is a giskard warning, not a hard failure.
-      Templates may omit them with placeholder comments.
-    blocks:
-      - file_access
-      - tool_approval
-      - write_ahead
   optional_blocks:
     description: present only when the framework needs them
     blocks:
