@@ -1,6 +1,7 @@
-# dojo framework — .agent.yml rules
+# .agent.yml
+# AI-only operational manifest for the dojo framework.
 # Inherits: zeroth/rules/agent.yml
-# The following are dojo-specific additions
+# The following are dojo-specific additions.
 
 scenarios:
   scenarios_file: .scenarios.yml
