@@ -1,231 +1,241 @@
 # frameworks/aurora/scenarios.yml
-# Aurora scenario catalog.
-# Each scenario: trigger, required_input, steps (atomic), output.
-# No vague steps (L2-15). Template must be read before file generation (L2-14).
-# Write-ahead declared explicitly on every step that writes an immutable file (L2-6).
-# Status: DRAFT (issue #55)
+# Aurora framework scenario catalog.
+# Canonical definition of aurora scenarios — used as reference for aurora instances.
+# Syntax: rules/scenarios.yml
 
-scenarios:
+required_scenarios:
 
-  - id: ingest_task
-    trigger: "user shares a new task, email, or request"
-    required_input:
-      - raw task content (email body, message, description)
-      - client name or slug
-    steps:
-      - step: 1
-        action: identify client slug from input
-      - step: 2
-        action: read clients/{slug}/context.yml
-      - step: 3
-        action: read log/_index/YYYY.yml for current year if exists
-      - step: 4
-        action: identify relevant monthly indexes from annual index
-      - step: 5
-        action: read identified monthly indexes
-      - step: 6
-        action: search indexes for entries with matching topics or work_types
-      - step: 7
-        action: read relevant log files found in step 6 (max 5)
-      - step: 8
-        action: read templates/inbox.yml
-      - step: 9
-        action: "write-ahead (L2-6): create clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml with extracted data BEFORE responding"
-      - step: 10
-        action: open GitHub issue with task summary and history context
-      - step: 11
-        action: respond in chat with summary, history found, and proposed next step
-    output:
-      - clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml
-      - GitHub issue
+  session_start:
+    trigger_patterns:
+      - session opens automatically
+    read:
+      - .aurora.yml
+      - "clients/"
+    actions:
+      - say: "Aurora ready."
+      - say: "Clients: {{aurora.clients | join}}. Open inbox tasks: {{open_inbox_count}}."
+      - say: "Available actions:"
+      - say: "1. ingest_task — register a new task or email"
+      - say: "2. delegate_task — assign an open task to a team member"
+      - say: "3. rate_work — evaluate completed work"
+      - say: "4. work_session — start working on a task yourself"
+      - say: "5. log_work — record what you did"
+      - say: "6. recall — look up past work for a client"
+      - say: "7. summarize_client — get a full client overview"
+      - say: "8. draft_reply — draft a message to a contact"
+      - if:
+          condition: open_inbox_count > 0
+          then:
+            - propose: "You have {{open_inbox_count}} open task(s). Work on one now?"
+              on_confirm:
+                - call: work_session
+    state_changes: []
 
-  - id: delegate_task
-    trigger: "user wants to assign a task to a team member"
-    required_input:
-      - inbox file path or task slug
-    steps:
-      - step: 1
-        action: read inbox file to extract work_type and task description
-      - step: 2
-        action: list all files in contacts/ matching pattern internal_*.yml
-      - step: 3
-        action: read each internal contact file
-      - step: 4
-        action: filter contacts where skills contains work_type matching the task
-      - step: 5
-        action: for each matching contact compute average score from performance_log (null if empty)
-      - step: 6
-        action: rank candidates by level (expert first) then by average score descending
-      - step: 7
-        action: present ranked candidates in chat with skills match and score rationale
-      - step: 8
-        action: wait for user to choose a candidate in chat
-      - step: 9
-        action: read communication fields from chosen contact file
-      - step: 10
-        action: run draft_reply scenario to generate assignment message using contact communication preferences
-      - step: 11
-        action: "write-ahead (L2-6): append status_log entry to inbox file with status in_progress and assigned_to set BEFORE responding"
-      - step: 12
-        action: write log entry for this client with type delegation, assigned_to, task_ref
-    output:
-      - inbox file updated (assigned_to + status_log append)
-      - log entry written
-      - assignment message draft in chat
+  propose_action:
+    trigger_patterns:
+      - user sends a message that does not clearly match any specific scenario
+      - user asks what they can do
+      - user greets or sends a short message without a clear intent
+      - user seems unsure what to do next
+    read:
+      - .aurora.yml
+      - "clients/"
+    actions:
+      - say: "Current state: {{open_inbox_count}} open task(s), clients: {{aurora.clients | join}}."
+      - say: "What would you like to do?"
+      - say: "1. ingest_task — register a new task or email"
+      - say: "2. delegate_task — assign an open task"
+      - say: "3. rate_work — evaluate completed work"
+      - say: "4. work_session — start working on a task"
+      - say: "5. log_work — record what you did"
+      - say: "6. recall — look up history for a client"
+      - say: "7. summarize_client — full client overview"
+      - say: "8. draft_reply — draft a message"
+    state_changes: []
 
-  - id: rate_work
-    trigger: "user wants to evaluate completed work by a team member"
-    required_input:
-      - contact slug (internal team member)
-      - inbox file path or task slug
-    steps:
-      - step: 1
-        action: read inbox file to confirm task context and assigned_to
-      - step: 2
-        action: read contacts/{client}_{firstname}_{lastname}.yml for the assigned contact
-      - step: 3
-        action: ask user in chat for score (1-5), strengths (list), weaknesses (list), notes
-      - step: 4
-        action: "write-ahead (L2-6): append performance_log entry to contact file with date, task_ref, score, strengths, weaknesses, notes BEFORE responding"
-      - step: 5
-        action: append status_log entry to inbox file with status done
-      - step: 6
-        action: write log entry with type task_completed, assigned_to, score, task_ref
-      - step: 7
-        action: respond in chat confirming rating saved and show updated performance summary for this contact
-    output:
-      - contact file updated (performance_log append)
-      - inbox file updated (status done)
-      - log entry written
+  ingest_task:
+    trigger_patterns:
+      - user shares a new task, email, or request
+      - user pastes an email or message they received
+      - user describes a new incoming request from a client
+    read:
+      - "clients/{slug}/context.yml"
+      - "log/_index/{{current_year}}.yml"
+      - templates/inbox.yml
+    actions:
+      - say: "Loading client context and history..."
+      - say: "Relevant past entries found: {{history_matches | count}}."
+      - create:
+          file: "clients/{slug}/inbox/{{date}}_{slug}.yml"
+          from: templates/inbox.yml
+          via: direct_commit
+      - create:
+          file: issue
+          via: issue
+      - say: "Task ingested. Issue opened. Proposed next step: {{next_step}}."
+    state_changes:
+      - task-ingested
 
-  - id: work_session
-    trigger: "user starts working on a task themselves"
-    required_input:
-      - client slug
-      - task reference (inbox file or issue number)
-    steps:
-      - step: 1
-        action: read inbox file for this task
-      - step: 2
-        action: identify work_type from task.work_type field in inbox file
-      - step: 3
-        action: read playbooks/{work_type}.yml
-      - step: 4
-        action: read clients/{slug}/context.yml
-      - step: 5
-        action: present playbook name, description and full steps list to user in chat
-      - step: 6
-        action: for each step in playbook.steps in order, read the step action and execute it, then report result in chat before moving to next step
-    output: depends on playbook
+  delegate_task:
+    trigger_patterns:
+      - user wants to assign a task to a team member
+      - user asks who is the best person for a task
+      - user wants to delegate work
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "contacts/"
+    actions:
+      - say: "Candidates ranked by skill match and performance score: {{ranked_candidates}}."
+      - ask: "Which candidate do you want to assign this to?"
+      - call: draft_reply
+      - update:
+          file: "clients/{slug}/inbox/{{task_file}}"
+          fields: [assigned_to, status_log]
+          mode: append
+          via: direct_commit
+      - update:
+          file: "log/{slug}/{{date}}.yml"
+          fields: [entries]
+          mode: append
+          via: direct_commit
+    state_changes:
+      - task-delegated
 
-  - id: log_work
-    trigger: "user asks to log work done or session ends"
-    required_input:
-      - client slug
-      - what was done (summary)
-    steps:
-      - step: 1
-        action: read templates/log.yml
-      - step: 2
-        action: check if log/{slug}/YYYY-MM-DD.yml exists for today
-      - step: 3
-        action: "if exists: append new entry to file. If not: create file from template."
-      - step: 4
-        action: write log file BEFORE responding to user (write-ahead L2-6)
-      - step: 5
-        action: count files in log/{slug}/ without a monthly index
-      - step: 6
-        action: "if count > 30: run reindex scenario for this client"
-      - step: 7
-        action: respond in chat confirming log written
-    output:
-      - log/{slug}/YYYY-MM-DD.yml (appended or created)
+  rate_work:
+    trigger_patterns:
+      - user wants to evaluate completed work by a team member
+      - user wants to give feedback on a completed task
+      - user wants to rate a team member's work
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "contacts/{{contact_file}}"
+    actions:
+      - ask: "Score (1-5)?"
+      - ask: "Strengths?"
+      - ask: "Weaknesses?"
+      - ask: "Notes?"
+      - update:
+          file: "contacts/{{contact_file}}"
+          fields: [performance_log]
+          mode: append
+          via: direct_commit
+      - update:
+          file: "clients/{slug}/inbox/{{task_file}}"
+          fields: [status_log]
+          mode: append
+          via: direct_commit
+      - update:
+          file: "log/{slug}/{{date}}.yml"
+          fields: [entries]
+          mode: append
+          via: direct_commit
+      - say: "Rating saved. Updated performance summary: {{performance_summary}}."
+    state_changes:
+      - work-rated
 
-  - id: recall
-    trigger: "user asks about past work for a client or topic"
-    required_input:
-      - client slug or topic keyword
-    steps:
-      - step: 1
-        action: read log/_index/YYYY.yml for current and previous year
-      - step: 2
-        action: identify relevant monthly indexes from annual index
-      - step: 3
-        action: read identified monthly indexes
-      - step: 4
-        action: identify relevant daily log files from monthly indexes (max 10)
-      - step: 5
-        action: read identified daily log files
-      - step: 6
-        action: synthesize findings and respond in chat
-    output: chat response with history summary
+  work_session:
+    trigger_patterns:
+      - user starts working on a task themselves
+      - user wants to open a work session on a task
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "clients/{slug}/context.yml"
+      - "playbooks/{{work_type}}.yml"
+    actions:
+      - say: "Playbook: {{playbook.name}} — {{playbook.description}}."
+      - say: "Steps: {{playbook.steps}}."
+      - propose: "Start playbook execution step by step?"
+        on_confirm:
+          - call: log_work
+    state_changes: []
 
-  - id: reindex
-    trigger: "user asks to reindex, or automatic trigger fires from log_work step 6"
-    required_input:
-      - client slug (or _all for full reindex)
-      - period (month YYYY-MM or year YYYY)
-    steps:
-      - step: 1
-        action: read templates/log_index.yml
-      - step: 2
-        action: list all daily log files for client in the given period
-      - step: 3
-        action: read each daily log file
-      - step: 4
-        action: extract per entry: date, topics, jira_refs, issue_refs, work_types
-      - step: 5
-        action: write log/{slug}/YYYY-MM.index.yml from template with extracted refs
-      - step: 6
-        action: read log/_index/YYYY.yml
-      - step: 7
-        action: append or update reference to new monthly index in annual index
-      - step: 8
-        action: respond in chat confirming index updated with file count
-    output:
-      - log/{slug}/YYYY-MM.index.yml
-      - log/_index/YYYY.yml (updated)
+  log_work:
+    trigger_patterns:
+      - user asks to log work done
+      - user says a session is ending and wants to record what was done
+    read:
+      - templates/log.yml
+    actions:
+      - update:
+          file: "log/{slug}/{{date}}.yml"
+          fields: [entries]
+          mode: append
+          via: direct_commit
+      - if:
+          condition: unindexed_log_count > 30
+          then:
+            - call: reindex
+      - say: "Work logged."
+    state_changes:
+      - work-logged
 
-  - id: summarize_client
-    trigger: "user asks for a client summary"
-    required_input:
-      - client slug
-    steps:
-      - step: 1
-        action: read clients/{slug}/context.yml
-      - step: 2
-        action: run recall scenario for this client covering last 12 months
-      - step: 3
-        action: read existing clients/{slug}/summary.md if present
-      - step: 4
-        action: generate updated summary covering context and recent history
-      - step: 5
-        action: write clients/{slug}/summary.md
-      - step: 6
-        action: respond in chat with link to summary.md
-    output:
-      - clients/{slug}/summary.md
+  recall:
+    trigger_patterns:
+      - user asks about past work for a client or topic
+      - user wants to know the history of a client or project
+    read:
+      - "log/_index/{{current_year}}.yml"
+      - "log/_index/{{previous_year}}.yml"
+    actions:
+      - say: "History for {{slug}}: {{history_summary}}."
+    state_changes: []
 
-  - id: draft_reply
-    trigger: "user asks to draft a reply or message to a contact"
-    required_input:
-      - contact name or slug
-      - message intent or original message to reply to
-    steps:
-      - step: 1
-        action: identify contact file from name or slug
-      - step: 2
-        action: read contacts/{client}_{firstname}_{lastname}.yml
-      - step: 3
-        action: extract communication fields (language, formality, salutation, format, avoid)
-      - step: 4
-        action: read clients/{slug}/context.yml for relevant background
-      - step: 5
-        action: draft message applying all communication preferences
-      - step: 6
-        action: present draft in chat
-      - step: 7
-        action: "if user confirms in chat: write to clients/{slug}/output/YYYY-MM-DD_{slug}.md"
-    output:
-      - draft in chat
-      - clients/{slug}/output/YYYY-MM-DD_{slug}.md (only if user confirmed in step 6)
+  reindex:
+    trigger_patterns:
+      - user asks to reindex logs
+      - user wants to update the log index for a client or period
+    read:
+      - templates/log_index.yml
+      - "log/{slug}/"
+    actions:
+      - create:
+          file: "log/{slug}/{{year}}-{{month}}.index.yml"
+          from: templates/log_index.yml
+          via: direct_commit
+      - update:
+          file: "log/_index/{{year}}.yml"
+          fields: [monthly_refs]
+          mode: append
+          via: direct_commit
+      - say: "Index updated. Files indexed: {{file_count}}."
+    state_changes:
+      - reindex-completed
+
+  summarize_client:
+    trigger_patterns:
+      - user asks for a client summary
+      - user wants an overview of a client relationship
+    read:
+      - "clients/{slug}/context.yml"
+      - "clients/{slug}/summary.md"
+    actions:
+      - call: recall
+      - update:
+          file: "clients/{slug}/summary.md"
+          via: direct_commit
+      - say: "Summary updated: clients/{slug}/summary.md."
+    state_changes: []
+
+  draft_reply:
+    trigger_patterns:
+      - user asks to draft a reply or message to a contact
+      - user wants to write a message to a client or team member
+    read:
+      - "contacts/{{contact_file}}"
+      - "clients/{slug}/context.yml"
+    actions:
+      - say: "Draft: {{message_draft}}."
+      - propose: "Save draft to output?"
+        on_confirm:
+          - create:
+              file: "clients/{slug}/output/{{date}}_{slug}.md"
+              via: direct_commit
+    state_changes: []
+
+  unknown_scenario:
+    trigger_patterns:
+      - any message that does not match any other scenario
+    read: []
+    actions:
+      - call: propose_action
+    state_changes: []
