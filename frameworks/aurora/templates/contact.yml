@@ -1,0 +1,21 @@
+# templates/contact.yml
+# Template for contact profile files.
+# Path: contacts/{client}_{firstname}_{lastname}.yml
+
+client: "{{client_slug}}"
+first_name: "{{firstname}}"
+last_name: "{{lastname}}"
+role: "{{job title}}"
+email: "{{email}}"
+
+communication:
+  language: "{{ru|en|it|other}}"
+  formality: "{{formal|neutral|informal}}"
+  salutation: "{{how to address them, e.g. Юлия or Dr. Smith}}"
+  format: "{{bullet_points|prose|table}}"
+  avoid: []                     # e.g. [humor, idioms, long_paragraphs]
+  notes: "{{free text about communication style or preferences}}"
+
+history:
+  first_contact: "{{YYYY-MM-DD}}"
+  notes: "{{any relevant background}}"

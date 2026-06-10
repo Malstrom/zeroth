@@ -1,0 +1,16 @@
+# templates/log_index.yml
+# Template for monthly index files.
+# Path: log/{client_slug}/YYYY-MM.index.yml
+# AI-generated. Contains references only — no content copies (L2-10).
+
+client: "{{client_slug}}"
+period: "{{YYYY-MM}}"
+generated: "{{YYYY-MM-DD}}"
+
+entries:
+  - date: "{{YYYY-MM-DD}}"
+    file: "log/{{client_slug}}/{{YYYY-MM-DD}}.yml"
+    work_types: ["{{work_type}}"]
+    topics: ["{{topic}}"]
+    jira: ["{{JIRA-XXX}}"]
+    issues: ["{{github_issue_number}}"]

@@ -1,0 +1,146 @@
+# frameworks/aurora/structure.yml
+# Canonical directory layout for any aurora_{instance} repo.
+# All names: snake_case (L2-13)
+# AI files: .yml | Human files: .md (L2-1)
+# Status: DRAFT (issue #55)
+
+root: aurora_{instance}
+
+files:
+  - path: .aurora.yml
+    type: yml
+    role: user profile — owner, roles, domains, language, timezone
+    access: read-only
+    required: true
+
+  - path: .agent.yml
+    type: yml
+    role: AI manifest and entry point
+    access: read-only
+    required: true
+
+  - path: .scenarios.yml
+    type: yml
+    role: scenario catalog
+    access: read-only
+    required: true
+
+  - path: .registry.yml
+    type: yml
+    role: cross-repo connection map
+    access: read-only
+    required: true
+
+  - path: README.md
+    type: md
+    role: human navigation hub
+    access: write-only (AI does not read)
+    required: true
+
+folders:
+
+  clients:
+    path: clients/{slug}/
+    description: everything related to a single client
+    subfolders:
+      - path: clients/{slug}/context.yml
+        type: yml
+        role: static client info (name, sector, tools, jira, notes)
+        immutable: false
+
+      - path: clients/{slug}/summary.md
+        type: md
+        role: human-facing client summary, AI-generated
+        immutable: false
+
+      - path: clients/{slug}/inbox/
+        description: raw incoming tasks before processing
+        files:
+          - pattern: YYYY-MM-DD_{slug}.yml
+            type: yml
+            role: raw task data
+            immutable: true
+            status_field: true
+
+      - path: clients/{slug}/output/
+        description: AI-generated output for human delivery
+        files:
+          - pattern: YYYY-MM-DD_{slug}.md
+            type: md
+            role: email drafts, code, tables, analysis
+            immutable: false
+
+  contacts:
+    path: contacts/
+    files:
+      - pattern: "{client}_{firstname}_{lastname}.yml"
+        type: yml
+        role: person profile with communication preferences
+        immutable: false
+
+  log:
+    path: log/
+    description: >  
+      Daily work records, fragmented by client slug.
+      Same slug as clients/. Connection is by name, not by folder position.
+    subfolders:
+      - path: log/{client_slug}/
+        files:
+          - pattern: YYYY-MM-DD.yml
+            type: yml
+            role: daily work log
+            immutable: true
+            write_ahead: true
+
+          - pattern: YYYY-MM.index.yml
+            type: yml
+            role: monthly index, AI-generated
+            immutable: false
+            contains: [file_refs, topics, jira_refs, issue_refs, work_types]
+            does_not_contain: [full_note_text]
+
+      - path: log/_self/
+        description: personal work, study, admin — no external client
+        files:
+          - pattern: YYYY-MM-DD.yml
+            type: yml
+            role: personal daily log
+            immutable: true
+
+      - path: log/_index/
+        files:
+          - pattern: YYYY.yml
+            type: yml
+            role: annual index — map of monthly indexes only, not content aggregate
+            immutable: false
+
+  playbooks:
+    path: playbooks/
+    files:
+      - pattern: "{slug}.yml"
+        type: yml
+        role: step-by-step instructions for a recurring work type
+        note: one file per work type, not per tool
+
+  templates:
+    path: templates/
+    files:
+      - log.yml
+      - log_index.yml
+      - inbox.yml
+      - contact.yml
+      - client_context.yml
+      - playbook.yml
+      - aurora.yml
+
+immutable_files:
+  - pattern: log/{client_slug}/YYYY-MM-DD.yml
+  - pattern: log/_self/YYYY-MM-DD.yml
+  - pattern: clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml
+  note: must be declared in .agent.yml file_access
+
+reindex_trigger:
+  manual: true
+  automatic:
+    condition: log/{client}/ has more than 30 files without a monthly index
+    action: run reindex scenario for that client

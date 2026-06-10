@@ -1,0 +1,20 @@
+# templates/client_context.yml
+# Template for client context files.
+# Path: clients/{slug}/context.yml
+
+slug: "{{client_slug}}"
+name: "{{full client name}}"
+sector: "{{industry or sector}}"
+country: "{{country}}"
+language: "{{primary language}}"
+
+tools:
+  jira: "{{base url or null}}"
+  jira_project: "{{PROJECT_KEY or null}}"
+  repo: "{{github org/repo or null}}"
+  other: []
+
+notes: "{{any relevant context about this client}}"
+
+work_types_used: []             # populated over time by AI
+first_work: "{{YYYY-MM-DD}}"
