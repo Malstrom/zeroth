@@ -1,0 +1,69 @@
+# frameworks/aurora/onboarding.yml
+# Step-by-step guide for setting up a new aurora_{instance} repo.
+# The AI reads this file when a user says "setup aurora" or starts onboarding.
+# All steps are atomic and verifiable (L2-15).
+
+framework: aurora
+version: 1
+
+pre_requisites:
+  - GitHub account
+  - Perplexity Space with GitHub connector active
+  - Access to zeroth repo (public: github.com/Malstrom/zeroth)
+
+steps:
+
+  - step: 1
+    action: create a new private GitHub repo named aurora_{your_name}
+    example: aurora_igor
+    note: snake_case, all lowercase
+
+  - step: 2
+    action: copy templates/agent.yml from zeroth to root of new repo, rename to .agent.yml
+    source: zeroth/frameworks/aurora/templates/agent.yml
+
+  - step: 3
+    action: copy templates/scenarios.yml from zeroth to root, rename to .scenarios.yml
+    source: zeroth/frameworks/aurora/templates/scenarios.yml
+
+  - step: 4
+    action: copy templates/aurora.yml from zeroth to root, rename to .aurora.yml
+    source: zeroth/frameworks/aurora/templates/aurora.yml
+    then: fill in all {{TOKEN}} fields (owner, language, timezone, roles, domains, work_types)
+
+  - step: 5
+    action: create .registry.yml in root
+    content: |
+      repos:
+        zeroth:
+          url: https://github.com/Malstrom/zeroth
+          access: read
+
+  - step: 6
+    action: create README.md in root
+    content: minimal human-readable description of the instance
+    note: AI does not read README.md
+
+  - step: 7
+    action: for each active client, create clients/{slug}/context.yml from template
+    source: zeroth/frameworks/aurora/templates/client_context.yml
+
+  - step: 8
+    action: for each known contact, create contacts/{client}_{firstname}_{lastname}.yml from template
+    source: zeroth/frameworks/aurora/templates/contact.yml
+    note: for internal team members use client _internal
+
+  - step: 9
+    action: create at least one playbook in playbooks/ for your most common work type
+    source: zeroth/frameworks/aurora/templates/playbook.yml
+
+  - step: 10
+    action: in Perplexity Space settings, add aurora_{instance} to connected repos
+
+  - step: 11
+    action: say "read .agent.yml" to the AI to verify the setup is complete
+    expected_response: AI confirms repo map loaded and .aurora.yml read
+
+post_setup:
+  - run ingest_task with your first real task to verify the full flow
+  - run recall after a week to verify log and index are working
