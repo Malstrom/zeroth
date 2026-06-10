@@ -66,6 +66,7 @@ tool_approval:
   file_edit: false
   push_files: false
   create_pr: false
+  create_issue: false
   merge_to_main: false
   delete_file: true
   destructive_ops: true
@@ -96,7 +97,7 @@ work_style:
     always:
       - every decision or constraint agreed in chat → update current issue before moving on
       - every new topic that emerges → open a new issue immediately, even mid-conversation
-      - never let a decision live only in chat — if it’s not in the issue, it doesn’t exist
+      - never let a decision live only in chat — if it's not in the issue, it doesn't exist
     update_trigger: after every decision, clarification, or constraint agreed with Igor
     open_trigger: when topic shifts or a new workstream is identified
     applies_to: all_repos
