@@ -12,6 +12,10 @@ structure:
   required_scenarios:
     - session_start
     - unknown_scenario
+  companion_files:
+    - .agent.yml
+    - .scenarios.yml
+    - space-instructions.md
   scenario_fields:
     required:
       - trigger_patterns
@@ -69,6 +73,16 @@ actions:
     Every action must use one of the declared modules below.
     Free-form prose is not allowed.
     One module per list item.
+    Scenarios must be written as flat, explicit steps in dojo style.
+    Do not encode loops, iterators, or scaffold programs inside .scenarios.yml.
+
+  forbidden_patterns:
+    - for_each
+    - while
+    - loop
+    - pseudo-code
+    - nested scaffold strategy execution
+    - inline workflow engine logic
 
   scenario_modules:
     description: available in scenarios only
@@ -222,28 +236,6 @@ handlers:
     dedup: once per session | once per {variable} per session
     actions: shared_modules only
     state_changes: block sequence or [] — mandatory, never omit
-  example:
-    giskard_sync:
-      listen:
-        - framework-added
-        - giskard-updated
-      dedup: once per session
-      actions:
-        - if:
-            condition: event == framework-added
-            then:
-              - update:
-                  file: Malstrom/giskard:giskard.py
-                  fields: [ZEROTH_CHECKLISTS]
-                  via: PR
-        - if:
-            condition: event == giskard-updated
-            then:
-              - update:
-                  file: Malstrom/giskard:giskard.py
-                  fields: [REQUIRED_TEMPLATES]
-                  via: PR
-      state_changes: []
 
 # ---------------------------------------------------------------------------
 # STATE_CHANGES
@@ -253,12 +245,6 @@ state_changes:
   format: block sequence or empty list []
   naming: kebab-case
   empty: use state_changes: [] when no events are emitted — never omit the field
-  example:
-    correct:
-      state_changes:
-        - study-completed
-    also_correct:
-      state_changes: []
 
 # ---------------------------------------------------------------------------
 # INPUT_SOURCES
@@ -279,6 +265,7 @@ validation:
     - root key must be required_scenarios
     - session_start must be present
     - unknown_scenario must be present and must be the last scenario
+    - every framework must have .agent.yml, .scenarios.yml, and space-instructions.md
     - every scenario must have all required fields
     - state_changes must never be omitted
     - read must never be omitted
@@ -286,6 +273,7 @@ validation:
     - free-form prose in actions is a validation failure
     - trigger patterns must be intent descriptions in English — not phrases in any specific language
     - placeholders in file paths must be quoted strings
+    - for_each, loop, while, and pseudo-code are forbidden in scenarios
     - say, ask, propose are not allowed in handler actions
     - emit and state_changes must not declare the same event (duplicate)
   handlers:
