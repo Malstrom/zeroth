@@ -67,6 +67,7 @@ tool_approval:
   push_files: false
   create_pr: false
   create_issue: false
+  update_issue: false
   merge_to_main: false
   delete_file: true
   destructive_ops: true
