@@ -17,25 +17,88 @@ scenarios:
       - step: 2
         action: read clients/{slug}/context.yml
       - step: 3
-        action: read log/{slug}/_index or latest monthly index if exists
+        action: read log/_index/YYYY.yml for current year if exists
       - step: 4
-        action: search index for entries with matching topics or work_types
+        action: identify relevant monthly indexes from annual index
       - step: 5
-        action: read relevant log files found in step 4 (max 5)
+        action: read identified monthly indexes
       - step: 6
-        action: read templates/inbox.yml
+        action: search indexes for entries with matching topics or work_types
       - step: 7
-        action: create clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml with extracted data
+        action: read relevant log files found in step 6 (max 5)
       - step: 8
-        action: open GitHub issue with task summary and history context
+        action: read templates/inbox.yml
       - step: 9
-        action: respond to user in chat with summary, history found, and proposed next step
+        action: create clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml with extracted data
+      - step: 10
+        action: open GitHub issue with task summary and history context
+      - step: 11
+        action: respond in chat with summary, history found, and proposed next step
     output:
       - clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml
       - GitHub issue
 
+  - id: delegate_task
+    trigger: "user wants to assign a task to a team member"
+    required_input:
+      - inbox file path or task slug
+    steps:
+      - step: 1
+        action: read inbox file to extract work_type and task description
+      - step: 2
+        action: list all files in contacts/ matching pattern internal_*.yml
+      - step: 3
+        action: read each internal contact file
+      - step: 4
+        action: filter contacts where skills contains work_type matching the task
+      - step: 5
+        action: for each matching contact compute average score from performance_log (null if empty)
+      - step: 6
+        action: rank candidates by level (expert first) then by average score descending
+      - step: 7
+        action: present ranked candidates in chat with skills match and score rationale
+      - step: 8
+        action: wait for user to choose a candidate in chat
+      - step: 9
+        action: read communication fields from chosen contact file
+      - step: 10
+        action: run draft_reply scenario to generate assignment message using contact communication preferences
+      - step: 11
+        action: append status_log entry to inbox file with status in_progress and assigned_to set
+      - step: 12
+        action: write log entry for this client with type delegation, assigned_to, task_ref
+    output:
+      - inbox file updated (assigned_to + status_log append)
+      - log entry written
+      - assignment message draft in chat
+
+  - id: rate_work
+    trigger: "user wants to evaluate completed work by a team member"
+    required_input:
+      - contact slug (internal team member)
+      - inbox file path or task slug
+    steps:
+      - step: 1
+        action: read inbox file to confirm task context and assigned_to
+      - step: 2
+        action: read contacts/{client}_{firstname}_{lastname}.yml for the assigned contact
+      - step: 3
+        action: ask user in chat for score (1-5), strengths (list), weaknesses (list), notes
+      - step: 4
+        action: append performance_log entry to contact file with date, task_ref, score, strengths, weaknesses, notes
+      - step: 5
+        action: append status_log entry to inbox file with status done
+      - step: 6
+        action: write log entry with type task_completed, assigned_to, score, task_ref
+      - step: 7
+        action: respond in chat confirming rating saved and show updated performance summary for this contact
+    output:
+      - contact file updated (performance_log append)
+      - inbox file updated (status done)
+      - log entry written
+
   - id: work_session
-    trigger: "user starts working on a task"
+    trigger: "user starts working on a task themselves"
     required_input:
       - client slug
       - task reference (inbox file or issue number)
@@ -49,9 +112,9 @@ scenarios:
       - step: 4
         action: read clients/{slug}/context.yml
       - step: 5
-        action: present playbook steps to user and ask for confirmation to start
+        action: present playbook steps to user in chat
       - step: 6
-        action: execute playbook steps one by one, reporting progress in chat
+        action: execute playbook steps one by one reporting progress in chat
     output: depends on playbook
 
   - id: log_work
@@ -65,15 +128,17 @@ scenarios:
       - step: 2
         action: check if log/{slug}/YYYY-MM-DD.yml exists for today
       - step: 3
-        action: "if exists: append new entry. If not: create file from template."
+        action: "if exists: append new entry to file. If not: create file from template."
       - step: 4
-        action: write log file BEFORE responding to user (write-ahead, L2-6)
+        action: write log file BEFORE responding to user (write-ahead L2-6)
       - step: 5
-        action: check if reindex trigger condition is met for this client
+        action: count files in log/{slug}/ without a monthly index
       - step: 6
-        action: respond to user in chat confirming log written
+        action: "if count > 30: run reindex scenario for this client"
+      - step: 7
+        action: respond in chat confirming log written
     output:
-      - log/{slug}/YYYY-MM-DD.yml (append)
+      - log/{slug}/YYYY-MM-DD.yml (appended or created)
 
   - id: recall
     trigger: "user asks about past work for a client or topic"
@@ -95,9 +160,9 @@ scenarios:
     output: chat response with history summary
 
   - id: reindex
-    trigger: "user asks to reindex, or automatic trigger fires"
+    trigger: "user asks to reindex, or automatic trigger fires from log_work step 6"
     required_input:
-      - client slug (or 'all' for full reindex)
+      - client slug (or _all for full reindex)
       - period (month YYYY-MM or year YYYY)
     steps:
       - step: 1
@@ -107,13 +172,15 @@ scenarios:
       - step: 3
         action: read each daily log file
       - step: 4
-        action: extract fields per log entry: date, topics, jira_refs, issue_refs, work_types
+        action: extract per entry: date, topics, jira_refs, issue_refs, work_types
       - step: 5
         action: write log/{slug}/YYYY-MM.index.yml from template with extracted refs
       - step: 6
-        action: update log/_index/YYYY.yml with reference to new monthly index
+        action: read log/_index/YYYY.yml
       - step: 7
-        action: respond in chat confirming index updated
+        action: append or update reference to new monthly index in annual index
+      - step: 8
+        action: respond in chat confirming index updated with file count
     output:
       - log/{slug}/YYYY-MM.index.yml
       - log/_index/YYYY.yml (updated)
@@ -126,15 +193,15 @@ scenarios:
       - step: 1
         action: read clients/{slug}/context.yml
       - step: 2
-        action: run recall scenario for this client (last 12 months)
+        action: run recall scenario for this client covering last 12 months
       - step: 3
         action: read existing clients/{slug}/summary.md if present
       - step: 4
-        action: generate updated summary covering context + recent history
+        action: generate updated summary covering context and recent history
       - step: 5
         action: write clients/{slug}/summary.md
       - step: 6
-        action: share link to summary.md in chat
+        action: respond in chat with link to summary.md
     output:
       - clients/{slug}/summary.md
 
@@ -149,15 +216,15 @@ scenarios:
       - step: 2
         action: read contacts/{client}_{firstname}_{lastname}.yml
       - step: 3
-        action: read communication fields (language, formality, salutation, format, avoid)
+        action: extract communication fields (language, formality, salutation, format, avoid)
       - step: 4
-        action: read relevant context from clients/{slug}/context.yml
+        action: read clients/{slug}/context.yml for relevant background
       - step: 5
-        action: draft reply applying communication preferences exactly
+        action: draft message applying all communication preferences
       - step: 6
-        action: present draft in chat, ask for approval before saving
+        action: present draft in chat
       - step: 7
-        action: "if approved: write to clients/{slug}/output/YYYY-MM-DD_{slug}.md"
+        action: "if user confirms in chat: write to clients/{slug}/output/YYYY-MM-DD_{slug}.md"
     output:
-      - chat draft
-      - clients/{slug}/output/YYYY-MM-DD_{slug}.md (if approved)
+      - draft in chat
+      - clients/{slug}/output/YYYY-MM-DD_{slug}.md (only if user confirms)
