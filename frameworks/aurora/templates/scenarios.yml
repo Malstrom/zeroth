@@ -1,0 +1,93 @@
+# templates/scenarios.yml
+# Template for .scenarios.yml in an aurora_{instance} repo.
+# Copy to root as .scenarios.yml.
+# Triggers are matched in order — first match wins.
+# Full scenario steps: see frameworks/aurora/scenarios.yml in zeroth.
+
+version: 1
+framework: aurora
+ref: zeroth/frameworks/aurora/scenarios.yml
+
+# ---------------------------------------------------------------------------
+# TRIGGER MAP
+# Maps user input patterns to scenario IDs.
+# The AI reads this file to identify which scenario to run.
+# ---------------------------------------------------------------------------
+
+triggers:
+
+  - pattern:
+      - "nuova task"
+      - "ho ricevuto"
+      - "zadanie"
+      - "new task"
+      - "ingest"
+    scenario: ingest_task
+    description: user shares a new task, email or request
+
+  - pattern:
+      - "delega"
+      - "chi assegno"
+      - "chi è il migliore per"
+      - "assign"
+      - "delegate"
+    scenario: delegate_task
+    description: user wants to assign a task to a team member
+
+  - pattern:
+      - "valuta il lavoro"
+      - "feedback su"
+      - "rate"
+      - "voto"
+      - "come è andata"
+    scenario: rate_work
+    description: user evaluates completed work by a team member
+
+  - pattern:
+      - "inizia sessione"
+      - "lavoriamo su"
+      - "start session"
+      - "work on"
+    scenario: work_session
+    description: user starts working on a task
+
+  - pattern:
+      - "logga"
+      - "ho fatto"
+      - "log work"
+      - "registra"
+    scenario: log_work
+    description: user logs work done
+
+  - pattern:
+      - "cosa ho fatto"
+      - "storia di"
+      - "recall"
+      - "ricordami"
+      - "hai memoria di"
+    scenario: recall
+    description: user asks about past work for a client or topic
+
+  - pattern:
+      - "reindex"
+      - "aggiorna indice"
+      - "indicizza"
+    scenario: reindex
+    description: user or handler triggers index update
+
+  - pattern:
+      - "summary cliente"
+      - "riassumi"
+      - "summarize"
+      - "panoramica di"
+    scenario: summarize_client
+    description: user asks for a client summary
+
+  - pattern:
+      - "scrivi risposta"
+      - "bozza messaggio"
+      - "draft"
+      - "rispondi a"
+      - "scrivi a"
+    scenario: draft_reply
+    description: user asks to draft a reply or message

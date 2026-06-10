@@ -1,0 +1,106 @@
+# templates/agent.yml
+# Template for .agent.yml in an aurora_{instance} repo.
+# Copy to root as .agent.yml and replace all {{TOKEN}} placeholders.
+# Inherits global rules from: zeroth/rules/agent.yml
+# Laws: zeroth/rules/laws.yml
+
+connector_check:
+  on_fail: |
+    Say: "GitHub connector not active. Click + → GitHub → new chat."
+    Stop immediately. Do not fall back to web or browser.
+
+# ---------------------------------------------------------------------------
+# REPO MAP
+# ---------------------------------------------------------------------------
+repo_map:
+  .aurora.yml: user profile — read at session start
+  .scenarios.yml: scenario catalog
+  .registry.yml: cross-repo connections
+  clients/: client context, inbox, output
+  contacts/: contact profiles with communication preferences
+  log/: immutable daily work records
+  log/_index/: annual index — read first for recall
+  playbooks/: step-by-step work type instructions
+  templates/: file templates — read before generating any file
+
+# ---------------------------------------------------------------------------
+# FILE ACCESS
+# ---------------------------------------------------------------------------
+file_access:
+  read_only:
+    - .aurora.yml
+    - .agent.yml
+    - .scenarios.yml
+    - .registry.yml
+  read_write:
+    - "clients/**"
+    - "contacts/**"
+    - "log/**/*.index.yml"
+    - "log/_index/**"
+    - "playbooks/**"
+    - "templates/**"
+  immutable:
+    - "log/*/YYYY-MM-DD.yml"
+    - "log/_self/YYYY-MM-DD.yml"
+    - "clients/*/inbox/**.yml"
+
+# ---------------------------------------------------------------------------
+# TOOL APPROVAL
+# ---------------------------------------------------------------------------
+tool_approval:
+  feature_branch: false
+  file_edit: false
+  push_files: false
+  create_pr: false
+  create_issue: false
+  update_issue: false
+  merge_to_main: false
+  delete_file: true
+  destructive_ops: true
+
+# ---------------------------------------------------------------------------
+# WRITE-AHEAD
+# ---------------------------------------------------------------------------
+write_ahead:
+  rule: commit before responding
+  branch_strategy: |
+    NEVER push directly to main.
+    Always: feature branch → PR → squash merge.
+    Branch naming: {type}/{short-description}
+    Types: feat, fix, chore
+
+# ---------------------------------------------------------------------------
+# GLOBAL
+# ---------------------------------------------------------------------------
+global:
+  language: read from .aurora.yml
+  pr_strategy: batch_per_session
+  merge_strategy: squash
+  dedup_scope: current_session
+  trigger_matching: pattern_first
+  templates: templates/
+  laws: zeroth/rules/laws.yml
+
+# ---------------------------------------------------------------------------
+# SCENARIOS
+# ---------------------------------------------------------------------------
+scenarios:
+  scenarios_file: .scenarios.yml
+
+# ---------------------------------------------------------------------------
+# HANDLERS
+# ---------------------------------------------------------------------------
+handlers:
+
+  reindex_check:
+    listen:
+      - log_written
+    dedup: once_per_client_per_session
+    actions:
+      - if:
+          condition: log/{client}/ has more than 30 files without monthly index
+          then:
+            - run_scenario: reindex
+              params:
+                client: "{{client_slug}}"
+                period: "{{current_month}}"
