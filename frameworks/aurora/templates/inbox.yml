@@ -11,15 +11,17 @@ subject: "{{task title or subject line}}"
 
 task:
   description: "{{raw task description}}"
-  deadline: "{{YYYY-MM-DD}}"   # null if not specified
-  documents_required: []        # list of required documents if applicable
-  documents_received: []        # list of received documents
+  deadline: "{{YYYY-MM-DD}}"     # null if not specified
+  work_type: "{{work_type}}"     # used for delegation matching
+  documents_required: []         # list of required documents if applicable
+  documents_received: []         # list of received documents
 
-status: open                    # open | in_progress | done
+assigned_to: null                # internal contact slug if delegated, null if self
+status: open                     # open | in_progress | done
 status_log:
   - date: "{{YYYY-MM-DD}}"
     status: open
     note: "created"
 
-issue_ref: null                 # GitHub issue number once opened
-playbook: null                  # playbook slug used for this task
+issue_ref: null                  # GitHub issue number once opened
+playbook: null                   # playbook slug used for this task

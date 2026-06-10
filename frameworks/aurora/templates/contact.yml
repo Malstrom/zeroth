@@ -1,8 +1,9 @@
 # templates/contact.yml
 # Template for contact profile files.
 # Path: contacts/{client}_{firstname}_{lastname}.yml
+# Use client: _internal for team members (no external client).
 
-client: "{{client_slug}}"
+client: "{{client_slug}}"       # use _internal for team members
 first_name: "{{firstname}}"
 last_name: "{{lastname}}"
 role: "{{job title}}"
@@ -15,6 +16,24 @@ communication:
   format: "{{bullet_points|prose|table}}"
   avoid: []                     # e.g. [humor, idioms, long_paragraphs]
   notes: "{{free text about communication style or preferences}}"
+
+# skills: only for internal contacts (client: _internal)
+# omit entirely for external contacts
+skills:
+  - work_type: "{{work_type}}"
+    level: "{{expert|good|learning}}"
+    notes: "{{optional: specific strengths or weaknesses for this work type}}"
+
+# performance_log: only for internal contacts
+# append new entries after each rated task — never overwrite
+performance_log: []
+# entry format:
+#   - date: YYYY-MM-DD
+#     task_ref: "clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml"
+#     score: 1-5
+#     strengths: []
+#     weaknesses: []
+#     notes: ""
 
 history:
   first_contact: "{{YYYY-MM-DD}}"
