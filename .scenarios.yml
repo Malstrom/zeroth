@@ -3,11 +3,6 @@
 # Defines all user-triggered flows. Read by the AI at session start via .agent.yml.
 # Syntax: rules/scenarios.yml
 
-# tool_approval note:
-# open_issue does NOT require user confirmation — execute immediately.
-# The platform-level approval prompt (e.g. Perplexity) cannot be suppressed here;
-# this note documents the *intent*: issue creation is a silent, automatic action.
-
 required_scenarios:
 
   new_topic:
@@ -16,12 +11,10 @@ required_scenarios:
       - user asks to build, create, fix, or change something for the first time in the session
     read: []
     actions:
-      - open_issue:
-          repo: current
-          title: "{{topic_summary}}"
-          body: "{{topic_description}}"
-          approval_required: false   # intent: no confirmation needed — execute immediately
-      - continue: respond normally after issue is open
+      - create:
+          file: issue
+          via: issue
+      - say: "New topic registered."
     state_changes:
       - issue-opened
 
@@ -30,6 +23,7 @@ required_scenarios:
       - session opens automatically
     read:
       - .registry.yml
+      - space-instructions.md
     actions:
       - say: "Zeroth session started."
       - say: "Frameworks registered: {{registry.connections | count}}. Rules: {{repo_map | count}}."
@@ -40,44 +34,20 @@ required_scenarios:
     trigger_patterns:
       - user wants to create a new repo based on a framework
       - user wants to scaffold a dojo, tensho, or any other framework repo
-      - user mentions "crea dojo", "crea repo", "nuovo dojo", "scaffold"
+      - user wants to create a new framework repository
     read:
-      - frameworks/{name}/structure.yml   # manifesto — defines scaffold_strategy
-      - frameworks/{name}/overview.yml    # framework description — used to generate README
-      - frameworks/{name}/onboarding.yml  # onboarding logic — guides .gakusei.yml generation
+      - "frameworks/{name}/structure.yml"
+      - "frameworks/{name}/overview.yml"
+      - "frameworks/{name}/onboarding.yml"
     actions:
-      - ask: "repo name? (e.g. dojo-framework, dojo-demo, {name}-{variant})"
-      - ask: "public or private?"
-      - create_repo:
-          name: "{{repo_name}}"
-          visibility: "{{visibility}}"
-          is_template: true
-      - for_each: copy in structure.yml scaffold_strategy.copy
-        do:
-          - copy:
-              from: zeroth/{{item.source}}
-              to: "{{repo_name}}/{{item.dest}}"
-              via: direct_commit
-      - for_each: copy_framework in structure.yml scaffold_strategy.copy_framework
-        do:
-          - copy:
-              from: zeroth/{{item.source}}
-              to: "{{repo_name}}/{{item.dest}}"
-              via: direct_commit
-      - for_each: generate in structure.yml scaffold_strategy.generate
-        do:
-          - generate:
-              dest: "{{repo_name}}/{{item.dest}}"
-              guided_by: "{{item.guided_by}}"
-              via: direct_commit
-      - open_issue:
-          repo: zeroth
-          title: "chore: scaffold {{repo_name}} created"
-          body: "Repo {{repo_name}} scaffolded from framework {{name}}. Verify and close."
-          approval_required: false
+      - ask: "Repo name?"
+      - ask: "Public or private?"
+      - say: "Scaffolding plan loaded from framework structure."
+      - create:
+          file: repo
+          via: PR
       - emit: framework-repo-created
-    state_changes:
-      - framework-repo-created
+    state_changes: []
 
   add_framework:
     trigger_patterns:
@@ -107,7 +77,9 @@ required_scenarios:
       - create:
           file: "frameworks/{name}/structure.yml"
           via: PR
-          note: define required_layout and scaffold_strategy
+      - create:
+          file: "frameworks/{name}/space-instructions.md"
+          via: PR
       - update:
           file: README.md
           fields: [registered_frameworks]
@@ -116,7 +88,6 @@ required_scenarios:
           file: .registry.yml
           fields: [connections]
           via: PR
-      - emit: framework-added
     state_changes:
       - framework-added
 
@@ -130,10 +101,6 @@ required_scenarios:
       - update:
           file: "rules/{rule}.yml"
           via: PR
-      - if:
-          condition: rule_impacts_framework_agent
-          then:
-            - emit: rule-updated
     state_changes:
       - rule-updated
 
@@ -174,7 +141,7 @@ required_scenarios:
             - say: "Failed checks: {{failed_checks}}"
             - propose: "Fix each failed item now?"
               on_confirm:
-                - emit: rule-updated
+                - call: update_rule
           else:
             - say: "{name} is fully compliant."
     state_changes: []
