@@ -2,6 +2,7 @@
 # Canonical directory layout for any aurora_{instance} repo.
 # All names: snake_case (L2-13)
 # AI files: .yml | Human files: .md (L2-1)
+# Immutable files declared in .agent.yml file_access.immutable (L2-7, L2-8)
 # Status: DRAFT (issue #55)
 
 root: aurora_{instance}
@@ -75,12 +76,16 @@ folders:
     files:
       - pattern: "{client}_{firstname}_{lastname}.yml"
         type: yml
-        role: person profile with communication preferences
+        role: external contact profile with communication preferences
+        immutable: false
+      - pattern: "internal_{firstname}_{lastname}.yml"
+        type: yml
+        role: internal team member profile with skills and performance_log
         immutable: false
 
   log:
     path: log/
-    description: >  
+    description: >
       Daily work records, fragmented by client slug.
       Same slug as clients/. Connection is by name, not by folder position.
     subfolders:
@@ -125,19 +130,15 @@ folders:
   templates:
     path: templates/
     files:
+      - aurora.yml
+      - agent.yml
+      - scenarios.yml
       - log.yml
       - log_index.yml
       - inbox.yml
       - contact.yml
       - client_context.yml
       - playbook.yml
-      - aurora.yml
-
-immutable_files:
-  - pattern: log/{client_slug}/YYYY-MM-DD.yml
-  - pattern: log/_self/YYYY-MM-DD.yml
-  - pattern: clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml
-  note: must be declared in .agent.yml file_access
 
 reindex_trigger:
   manual: true

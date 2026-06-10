@@ -2,6 +2,7 @@
 # Aurora scenario catalog.
 # Each scenario: trigger, required_input, steps (atomic), output.
 # No vague steps (L2-15). Template must be read before file generation (L2-14).
+# Write-ahead declared explicitly on every step that writes an immutable file (L2-6).
 # Status: DRAFT (issue #55)
 
 scenarios:
@@ -29,7 +30,7 @@ scenarios:
       - step: 8
         action: read templates/inbox.yml
       - step: 9
-        action: create clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml with extracted data
+        action: "write-ahead (L2-6): create clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml with extracted data BEFORE responding"
       - step: 10
         action: open GitHub issue with task summary and history context
       - step: 11
@@ -64,7 +65,7 @@ scenarios:
       - step: 10
         action: run draft_reply scenario to generate assignment message using contact communication preferences
       - step: 11
-        action: append status_log entry to inbox file with status in_progress and assigned_to set
+        action: "write-ahead (L2-6): append status_log entry to inbox file with status in_progress and assigned_to set BEFORE responding"
       - step: 12
         action: write log entry for this client with type delegation, assigned_to, task_ref
     output:
@@ -85,7 +86,7 @@ scenarios:
       - step: 3
         action: ask user in chat for score (1-5), strengths (list), weaknesses (list), notes
       - step: 4
-        action: append performance_log entry to contact file with date, task_ref, score, strengths, weaknesses, notes
+        action: "write-ahead (L2-6): append performance_log entry to contact file with date, task_ref, score, strengths, weaknesses, notes BEFORE responding"
       - step: 5
         action: append status_log entry to inbox file with status done
       - step: 6
@@ -106,15 +107,15 @@ scenarios:
       - step: 1
         action: read inbox file for this task
       - step: 2
-        action: identify work_type from task description
+        action: identify work_type from task.work_type field in inbox file
       - step: 3
         action: read playbooks/{work_type}.yml
       - step: 4
         action: read clients/{slug}/context.yml
       - step: 5
-        action: present playbook steps to user in chat
+        action: present playbook name, description and full steps list to user in chat
       - step: 6
-        action: execute playbook steps one by one reporting progress in chat
+        action: for each step in playbook.steps in order, read the step action and execute it, then report result in chat before moving to next step
     output: depends on playbook
 
   - id: log_work
@@ -227,4 +228,4 @@ scenarios:
         action: "if user confirms in chat: write to clients/{slug}/output/YYYY-MM-DD_{slug}.md"
     output:
       - draft in chat
-      - clients/{slug}/output/YYYY-MM-DD_{slug}.md (only if user confirms)
+      - clients/{slug}/output/YYYY-MM-DD_{slug}.md (only if user confirmed in step 6)
