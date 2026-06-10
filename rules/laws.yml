@@ -1,0 +1,208 @@
+# zeroth — laws
+# Source of truth for all rules in the Malstrom ecosystem.
+# L1: universal laws — apply to every repo, framework, session, user.
+# L2: operative rules — derive from L1, cover specific categories.
+# L3: framework rules — live in frameworks/{name}/structure.yml
+#
+# Hierarchy: L1 > L2 > L3. More specific rule prevails at equal level.
+# Status: DRAFT — open for refinement (issue #59)
+
+# ---------------------------------------------------------------------------
+# L1 — UNIVERSAL LAWS
+# These are axioms. No how/fail. They derive nothing — everything derives from them.
+# Also hardcoded in Space instructions for users who cannot access this file.
+# ---------------------------------------------------------------------------
+
+L1:
+
+  - id: L1-1
+    name: repo-is-for-ai
+    law: >
+      The repo is the AI's mind. The human uses chat — not GitHub.
+      The AI acts on GitHub without interruptions or mid-execution approval requests.
+      Doubts are resolved in chat BEFORE starting, never during execution.
+      The repo is not documentation — it is executable code for the AI.
+
+  - id: L1-2
+    name: immutability
+    law: >
+      What has happened cannot be deleted. Logs are immutable.
+      Corrections are appended only — never overwrite.
+
+  - id: L1-3
+    name: single-source-of-truth
+    law: >
+      Every piece of information exists in exactly one place. No duplication.
+      If two files conflict, the more specific one prevails.
+      The Space holds L1+L2 as a runtime cache — zeroth is the authoritative source.
+
+  - id: L1-4
+    name: explicit-over-implicit
+    law: >
+      No assumptions. Every rule, step, and enum value is declared explicitly.
+      Vague does not exist. If it is not written, it does not apply.
+
+  - id: L1-5
+    name: zeroth-first
+    law: >
+      In case of conflict: L1 > L2 > L3.
+      zeroth prevails over everything.
+      At equal level, the more specific rule prevails.
+
+# ---------------------------------------------------------------------------
+# L2 — OPERATIVE RULES
+# Derive from L1. Verifiable — each has how: and fail:.
+# Also hardcoded in Space instructions + given to users during onboarding.
+# ---------------------------------------------------------------------------
+
+L2:
+
+  # --- FILE AND STRUCTURE (derives from L1-1) ---
+
+  - id: L2-1
+    name: yml-for-machine-md-for-human
+    derives-from: L1-1
+    source: rules/structure.yml
+    rule: >
+      Files read by the AI must be .yml.
+      Files read by humans must be .md.
+      No mixed formats. No markdown frontmatter.
+    exceptions: [README.md, LICENSE]
+    how:
+      - list all non-hidden files in the repo
+      - for each file read by the AI in any scenario: assert extension is .yml
+      - files in output/ or named summary.md: .md is correct
+      - any other .md not in output/ is a violation
+    fail: list violating files with path and the scenario that reads them
+
+  - id: L2-2
+    name: single-file-single-responsibility
+    derives-from: L1-1
+    source: rules/structure.yml
+    rule: Every file has one responsibility. No monoliths.
+    how: verify no file contains sections from different domains
+    fail: suggest split with proposed file names
+
+  - id: L2-3
+    name: max-400-lines
+    derives-from: L1-1
+    source: rules/structure.yml
+    rule: No file exceeds 400 lines. If exceeded, split is mandatory.
+    how: count lines in every .yml file
+    fail: list files over limit with line count
+
+  - id: L2-4
+    name: folders-group-by-function
+    derives-from: L1-1
+    source: rules/structure.yml
+    rule: Folders group by function, not by file type.
+    how: verify folders with mixed .yml and .md have a single declared function
+    fail: flag folders with mixed functions
+
+  # --- IMMUTABILITY (derives from L1-2) ---
+
+  - id: L2-5
+    name: append-only-logs
+    derives-from: L1-2
+    source: rules/log.yml
+    rule: Log files are never overwritten. Append only.
+    how: verify no scenario uses write/update on files declared immutable in .agent.yml
+    fail: block operation immediately, notify Igor in chat
+
+  - id: L2-6
+    name: write-ahead-log
+    derives-from: L1-2
+    source: rules/log.yml
+    rule: The log is written BEFORE the AI responds. Never after.
+    how: verify step order in every scenario containing log_work — log step must be first
+    fail: reorder steps, log must precede response
+
+  - id: L2-7
+    name: immutable-files-declared
+    derives-from: L1-2
+    source: rules/log.yml
+    rule: Every immutable file is explicitly declared in .agent.yml file_access.
+    how: for every append-only file in the repo, find its declaration in .agent.yml
+    fail: list undeclared immutable files
+
+  # --- SINGLE SOURCE OF TRUTH (derives from L1-3) ---
+
+  - id: L2-8
+    name: no-duplication
+    derives-from: L1-3
+    source: rules/structure.yml
+    rule: No information is duplicated across files. One file references the other.
+    how: AI-assisted manual audit on request
+    fail: flag duplications with merge proposal
+
+  - id: L2-9
+    name: profile-is-single-source
+    derives-from: L1-3
+    rule: >
+      The profile file (.gakusei.yml, .aurora.yml, etc.) is the only source of truth
+      for user state. No copies exist elsewhere.
+    how: verify no other file contains state fields already present in the profile
+    fail: remove duplication, update only the profile
+
+  # --- EXPLICIT OVER IMPLICIT (derives from L1-4) ---
+
+  - id: L2-10
+    name: explicit-enum-values
+    derives-from: L1-4
+    rule: Every field with a fixed set of values has its enum declared in the template.
+    how: verify templates have enums declared for every fixed-value field
+    fail: add missing enums to the template
+
+  - id: L2-11
+    name: template-before-generate
+    derives-from: L1-4
+    source: rules/structure.yml
+    rule: The AI reads the template BEFORE generating any file. No deviation from template structure.
+    how: verify every scenario with file generation has step "read template" before generate
+    fail: add missing step
+
+  - id: L2-12
+    name: scenarios-no-vague-steps
+    derives-from: L1-4
+    source: rules/scenarios.yml
+    rule: >
+      Every step in a scenario is an atomic verifiable action.
+      Forbidden: 'consider', 'evaluate', 'do what seems right', 'handle appropriately'.
+    how: analyze text of every step in .scenarios.yml for vague language
+    fail: list vague steps with proposed atomic rewrite
+
+  # --- NAMING (derives from L1-4) ---
+
+  - id: L2-13
+    name: kebab-case-slugs
+    derives-from: L1-4
+    source: rules/naming.yml
+    rule: All file and folder names are lowercase kebab-case. No snake_case, no camelCase.
+    how: regex check on all file/folder names — pattern ^[a-z0-9]+(-[a-z0-9]+)*$
+    fail: list violations with correct name
+
+  - id: L2-14
+    name: english-for-ai-files
+    derives-from: L1-4
+    source: rules/naming.yml
+    rule: All files read by the AI are in English. Human-facing files may use any language.
+    how: verify language of content in .yml files declared in repo_map
+    fail: list non-English AI files
+
+  - id: L2-15
+    name: evocative-not-descriptive
+    derives-from: L1-4
+    source: rules/naming.yml
+    rule: Repo and folder names are evocative, not descriptive. Max 2 words.
+    how: verify length and style of names
+    fail: suggest evocative alternative
+
+  # --- HIERARCHY (derives from L1-5) ---
+
+  - id: L2-16
+    name: zeroth-agent-read-only
+    derives-from: L1-5
+    source: .agent.yml
+    rule: zeroth .agent.yml is read-only for the AI. Never modified directly. All changes via PR.
+    how: verify no scenario uses write on .agent.yml
+    fail: block operation immediately
