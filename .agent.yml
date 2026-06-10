@@ -26,6 +26,7 @@ global:
 # REPO MAP
 # ---------------------------------------------------------------------------
 repo_map:
+  rules/laws.yml: L1 + L2 hierarchy — read this first for all rules
   rules/agent.yml: universal rules for .agent.yml structure
   rules/scenarios.yml: universal rules for writing scenarios and handlers
   rules/structure.yml: universal rules for repo structure
@@ -52,6 +53,7 @@ file_access:
   .agent.yml: read-only
   .registry.yml: read-only
   .scenarios.yml: read-only
+  rules/laws.yml: read-only
   rules/*.yml: read-write
   frameworks/**/*.yml: read-write
   frameworks/**/.agent.yml: read-write
@@ -89,8 +91,8 @@ write_ahead:
 work_style:
   new_topic_in_chat:
     rule: open issue immediately
-    precision: low_ok         # solution does not need to be known yet
-    update_before_pr: true    # crystallize decisions in issue body before opening PR
+    precision: low_ok
+    update_before_pr: true
   applies_to: all_repos
 
   issue_discipline:
