@@ -36,35 +36,6 @@ global:
   trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
 
 # ---------------------------------------------------------------------------
-# SPACE INSTRUCTIONS
-# ---------------------------------------------------------------------------
-space_instructions:
-  rule: every framework instance must have a space-instructions.md at repo root
-  template: templates/space-instructions.md
-  generated_by: add_framework scenario
-  required_sections:
-    - browser_policy
-    - entry_point
-    - connector_failure
-    - tool_approval
-    - user_preferences
-    - hard_rules
-  browser_policy:
-    rule: must include an explicit forbidden_tools list — ambiguous "no browser" phrasing is forbidden
-    forbidden_tools:
-      - search_web
-      - get_full_page_content
-      - search_browser
-      - list_files
-      - search_files_v2
-      - search_user_memories
-      - search_email
-      - search_calendar
-      - email_calendar_agent
-      - open_page
-    open_page_exception: only when Igor explicitly asks to view a page
-
-# ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
 scenarios:
@@ -161,4 +132,3 @@ validation:
   - scenarios declares scenarios_file
   - handlers is present
   - post_action_hook declares after_every_state_change with read: .registry.yml
-  - space_instructions.md exists at repo root for every framework instance

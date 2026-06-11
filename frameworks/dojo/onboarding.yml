@@ -93,12 +93,22 @@ onboarding:
 
     generate_space_prompt:
       say: |
-        Copy this into your Perplexity Space instructions:
+        Copy this into your Perplexity Space instructions
+        (full template with all rules: https://github.com/Malstrom/zeroth/blob/main/templates/space-instructions.md):
 
         ---
         ## Browser policy
-        - Never use web search or browser in this Space
-        - Open a page only if the user explicitly asks
+        Forbidden tools — never call these, no exceptions:
+        - search_web
+        - get_full_page_content
+        - search_browser
+        - list_files
+        - search_files_v2
+        - search_user_memories
+        - search_email
+        - search_calendar
+        - email_calendar_agent
+        - open_page (exception: only when the user explicitly asks to view a page)
 
         ## Entry point
         Read {{github_username}}/{{repo_name}}/.agent.yml at the start of every session.

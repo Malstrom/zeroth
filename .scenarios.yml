@@ -23,7 +23,6 @@ required_scenarios:
       - session opens automatically
     read:
       - .registry.yml
-      - space-instructions.md
     actions:
       - say: "Zeroth session started."
       - say: "Frameworks registered: {{registry.connections | count}}. Rules: {{repo_map | count}}."
@@ -39,17 +38,12 @@ required_scenarios:
       - "frameworks/{name}/structure.yml"
       - "frameworks/{name}/overview.yml"
       - "frameworks/{name}/onboarding.yml"
-      - "frameworks/{name}/space-instructions.md"
     actions:
       - ask: "Repo name?"
       - ask: "Public or private?"
       - say: "Scaffolding plan loaded from framework structure."
       - create:
           file: repo
-          via: PR
-      - create:
-          file: space-instructions.md
-          from: "frameworks/{name}/space-instructions.md"
           via: PR
       - emit: framework-repo-created
     state_changes: []
@@ -63,7 +57,6 @@ required_scenarios:
       - templates/.agent.yml
       - templates/.scenarios.yml
       - templates/.registry.yml
-      - templates/space-instructions.md
     actions:
       - create:
           file: "frameworks/{name}/overview.yml"
@@ -82,10 +75,6 @@ required_scenarios:
           via: PR
       - create:
           file: "frameworks/{name}/structure.yml"
-          via: PR
-      - create:
-          file: "frameworks/{name}/space-instructions.md"
-          from: templates/space-instructions.md
           via: PR
       - update:
           file: README.md
