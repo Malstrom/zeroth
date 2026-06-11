@@ -15,7 +15,8 @@ connector_check:
 # GLOBAL
 # ---------------------------------------------------------------------------
 global:
-  language: read from identity file
+  chat_language: read from identity file   # language used in AI ↔ user conversation
+  file_language: english                   # ALL files, commits, PRs, issue bodies must be in English
   pr_strategy: batch_per_session
   merge_strategy: squash
   dedup_scope: current_session

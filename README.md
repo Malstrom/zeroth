@@ -22,6 +22,20 @@ Every framework built on zeroth can be validated by [giskard](https://github.com
 giskard enforces the zeroth law — if a repo violates the rules defined here, giskard catches it.
 No zeroth, no giskard. The law comes first.
 
+## Language Rule (immutable)
+
+This rule applies to every framework in the ecosystem, without exception:
+
+| Scope | Language |
+|---|---|
+| AI ↔ user conversation (`chat_language`) | framework-defined (e.g. Italian, English) |
+| Files, commits, PRs, issue bodies (`file_language`) | **English only** |
+
+- Every `.agent.yml` must declare both `chat_language` and `file_language` explicitly.
+- `file_language: english` is the only valid value — no exceptions.
+- Commit messages are files. Issue bodies are files. PR descriptions are files.
+- If you write in the wrong language in a file or commit: it is a bug, not a preference.
+
 ## Structure
 
 ```
@@ -65,11 +79,11 @@ zeroth/
 2. Every `.agent.yml` declares a `scenarios_file` pointing to `.scenarios.yml`
 3. All agent files are hidden (`.agent.yml`, not `agent.yml`)
 4. `.registry.yml` mandatory in root, even if empty
-5. All files read or written by the AI must be in **English** (README excluded)
+5. Every `.agent.yml` declares `chat_language` AND `file_language` — see Language Rule above
 6. Small files per domain — never monoliths (~150 lines max)
 7. Never push directly to main — always feature branch → PR → squash merge
 8. `post_action_hook` and `handlers` are mandatory blocks in every `.agent.yml`, even when empty
-9. **Commit messages must always be in English** — regardless of the language used in chat
+9. **Commit messages, file contents, issue bodies, PR descriptions: English only** — regardless of `chat_language`
 
 ## .agent.yml Block Order
 
