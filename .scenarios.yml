@@ -23,7 +23,6 @@ required_scenarios:
       - session opens automatically
     read:
       - .registry.yml
-      - space-instructions.md
     actions:
       - say: "Zeroth session started."
       - say: "Frameworks registered: {{registry.connections | count}}. Rules: {{repo_map | count}}."
@@ -76,9 +75,6 @@ required_scenarios:
           via: PR
       - create:
           file: "frameworks/{name}/structure.yml"
-          via: PR
-      - create:
-          file: "frameworks/{name}/space-instructions.md"
           via: PR
       - update:
           file: README.md
