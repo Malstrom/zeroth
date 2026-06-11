@@ -69,6 +69,7 @@ zeroth/
 6. Small files per domain — never monoliths (~150 lines max)
 7. Never push directly to main — always feature branch → PR → squash merge
 8. `post_action_hook` and `handlers` are mandatory blocks in every `.agent.yml`, even when empty
+9. **Commit messages must always be in English** — regardless of the language used in chat
 
 ## .agent.yml Block Order
 
@@ -98,4 +99,5 @@ PR discipline:
 - Never push directly to main — always: feature branch → PR → squash merge
 - Branch naming: {type}/{short-description} where type = feat | fix | docs | test | chore
 - Every PR must reference its issue (closing keyword or explicit link)
+- Commit messages must always be in English
 ```
