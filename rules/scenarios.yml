@@ -1,284 +1,141 @@
-# zeroth — scenario writing rules
-# Applies to: every .scenarios.yml in every Malstrom framework
-#
-# Goal: scenarios and handlers must be unambiguous and machine-readable.
-# Every action must declare WHAT happens, not describe it in prose.
+# rules/scenarios.yml
+# Question: "How do I write scenarios and handlers?"
 
 # ---------------------------------------------------------------------------
-# FILE STRUCTURE
+# STRUCTURE
 # ---------------------------------------------------------------------------
 structure:
   root_key: required_scenarios
-  required_scenarios:
-    - session_start
-    - unknown_scenario
-  companion_files:
-    - .agent.yml
-    - .scenarios.yml
-    - space-instructions.md
+  required_scenarios: [session_start, unknown_scenario]
   scenario_fields:
-    required:
-      - trigger_patterns
-      - read
-      - actions
-      - state_changes
-    optional:
-      - input_sources
-      - when
+    required: [trigger_patterns, read, actions, state_changes]
+    optional: [input_sources, when]
 
 # ---------------------------------------------------------------------------
 # TRIGGER PATTERNS
 # ---------------------------------------------------------------------------
 trigger_patterns:
-  rule: describe the user intent in plain English — never list phrases in a specific language
-  language_rule: |
-    Trigger patterns are intent descriptions, not literal phrases.
-    The AI resolves the user's language from global.language or the identity file (e.g. .gakusei.yml).
-    Matching is semantic: the AI maps the user's message to the closest intent regardless of language.
-    Never hardcode phrases in Italian, Russian, Japanese, or any other specific language.
-  wildcard: use {placeholder} for variable parts when an example phrase is needed
+  rule: describe user intent in plain English — semantic matching, not literal phrases
+  note: the AI resolves language from global.language or the identity file
   unknown_scenario: must always be the last fallthrough
-  example:
-    correct:
-      trigger_patterns:
-        - user wants to study a specific topic or chapter
-        - user asks to be taught something
-    incorrect:
-      trigger_patterns:
-        - "study {topic}"
-        - "studiamo {topic}"
-        - "!study"
 
 # ---------------------------------------------------------------------------
 # READ
 # ---------------------------------------------------------------------------
 read:
-  rule: list all files the AI must read BEFORE executing actions
+  rule: list all files to read BEFORE executing actions
   format: block sequence — never flow sequence
-  placeholders: template placeholders like {topic} must be quoted
-  empty: use read: [] when no files are needed — never omit the field
-  example:
-    correct:
-      read:
-        - .gakusei.yml
-        - "kata/{subject}/{topic}.md"
-    incorrect:
-      read: [.gakusei.yml]
+  empty: use read: [] — never omit the field
 
 # ---------------------------------------------------------------------------
-# ACTION MODULES (scenarios + handlers)
+# ACTIONS
 # ---------------------------------------------------------------------------
 actions:
-  rule: |
-    Every action must use one of the declared modules below.
-    Free-form prose is not allowed.
-    One module per list item.
-    Scenarios must be written as flat, explicit steps in dojo style.
-    Do not encode loops, iterators, or scaffold programs inside .scenarios.yml.
+  rule: every action uses exactly one declared module — no prose, no loops
 
-  forbidden_patterns:
-    - for_each
-    - while
-    - loop
-    - pseudo-code
-    - nested scaffold strategy execution
-    - inline workflow engine logic
-
-  scenario_modules:
-    description: available in scenarios only
-    modules:
-      - say
-      - ask
-      - propose
-
-  shared_modules:
-    description: available in both scenarios and handlers
-    modules:
-      - read
-      - call
-      - update
-      - create
-      - emit
-      - if
-
-  post_action_hook_modules:
-    description: available in post_action_hook only — not in scenarios or handlers
-    modules:
-      - call_handlers
-    note: call_handlers invokes all handlers whose listen list matches the current state_change
+  scenario_modules: [say, ask, propose]
+  shared_modules: [read, call, update, create, emit, if]
+  post_action_hook_only: [call_handlers]
 
   modules:
-
-    read:
-      description: read a file into context (use in actions only for conditional reads)
-      note: prefer the top-level read field for unconditional reads
-      syntax:
-        - read: path/to/file.yml
-      example:
-        - read: "kata/{subject}/{topic}.md"
-
     say:
       description: emit a fixed or templated message to the user
-      scenario_only: true
-      syntax:
-        - say: "message text or {{token}}"
-      example:
-        - say: "Session complete. Good work!"
+      syntax: "- say: \"message text\""
 
     ask:
       description: ask the user a question and wait for their answer before continuing
-      scenario_only: true
-      syntax:
-        - ask: "question text"
-      example:
-        - ask: "Are you ready to start the shinsa?"
+      syntax: "- ask: \"question text\""
+
+    propose:
+      description: present an option, wait for confirmation, then execute on_confirm
+      syntax: |
+        - propose: "action description"
+          on_confirm:
+            - module: ...
 
     call:
       description: invoke another scenario by name
-      syntax:
-        - call: scenario_name
-        - call: scenario_name
-          after: each_item | once | condition_expression
-      example:
-        - call: randori
-          after: each_concept
+      syntax: "- call: scenario_name"
 
     update:
-      description: write or modify a file; always goes through a PR unless stated otherwise
-      syntax:
+      description: write or modify a file — always via PR unless stated otherwise
+      syntax: |
         - update:
             file: path/to/file.yml
             fields: [field1, field2]
             via: PR
             mode: append | overwrite
-      example:
-        - update:
-            file: .gakusei.yml
-            fields: [last_session, book_progress]
-            via: PR
 
     create:
-      description: create a new file from scratch or from a template
-      syntax:
+      description: create a new file from a template
+      syntax: |
         - create:
             file: path/to/new_file.yml
             from: path/to/template.yml
             via: PR
-      example:
-        - create:
-            file: "frameworks/{name}/overview.yml"
-            from: templates/overview.yml
-            via: PR
 
     emit:
-      description: emit a state_change event that handlers can react to
-      note: |
-        Prefer declaring state_changes at scenario level for unconditional events.
-        Use emit inside an if block for conditional events only.
-        Do not declare the same event in both emit and state_changes — that is a duplicate.
-      syntax:
-        - emit: event-name
-      example:
-        - emit: level-up-completed
+      description: emit a state_change event — use inside if only, not unconditionally
+      syntax: "- emit: event-name"
+      note: do not declare the same event in both emit and state_changes
 
     if:
       description: conditional branch
-      syntax:
+      syntax: |
         - if:
             condition: expression
             then:
               - module: ...
             else:
               - module: ...
-      example:
-        - if:
-            condition: score >= 80
-            then:
-              - call: level_up
-            else:
-              - say: "Not passed. Review chapters and retry."
 
-    propose:
-      description: present an option to the user and wait for confirmation before acting
-      scenario_only: true
-      syntax:
-        - propose: action description
-          on_confirm:
-            - module: ...
-      example:
-        - propose: "Move to advanced level for this subject?"
-          on_confirm:
-            - call: level_up
+    read:
+      description: conditional file read inside actions
+      note: prefer the top-level read field for unconditional reads
 
     call_handlers:
-      description: invoke all handlers whose listen list matches the current state_change event
+      description: invoke all handlers matching the current state_change
       post_action_hook_only: true
-      syntax:
-        - call_handlers: matching
-      note: only valid inside post_action_hook.after_every_state_change — forbidden in scenarios and handlers
+      syntax: "- call_handlers: matching"
 
 # ---------------------------------------------------------------------------
 # HANDLERS
 # ---------------------------------------------------------------------------
 handlers:
-  rule: |
-    Handlers are reactive — they fire automatically on state_change events.
-    They are never triggered by the user.
-    Actions must use shared_modules only: read, update, create, emit, if, call.
-    say, ask, and propose are not allowed in handlers.
-  required_fields:
-    - listen
-    - dedup
-    - actions
-    - state_changes
-  field_rules:
-    listen: block sequence of event names the handler reacts to
-    dedup: once per session | once per {variable} per session
-    actions: shared_modules only
-    state_changes: block sequence or [] — mandatory, never omit
+  rule: reactive to state_changes — never user-triggered
+  forbidden_in_actions: [say, ask, propose]
+  required_fields: [listen, dedup, actions, state_changes]
+  dedup_values:
+    - once per session
+    - once per {variable} per session
 
 # ---------------------------------------------------------------------------
 # STATE_CHANGES
 # ---------------------------------------------------------------------------
 state_changes:
   rule: list of event names emitted when the scenario completes
-  format: block sequence or empty list []
+  format: block sequence or []
   naming: kebab-case
-  empty: use state_changes: [] when no events are emitted — never omit the field
+  empty: use state_changes: [] — never omit
 
 # ---------------------------------------------------------------------------
 # INPUT_SOURCES
 # ---------------------------------------------------------------------------
 input_sources:
   rule: optional field for scenarios that accept multiple input types
-  allowed_values:
-    - google_drive
-    - attached_file
-    - pasted_text
-    - ai_knowledge
+  allowed_values: [google_drive, attached_file, pasted_text, ai_knowledge]
 
 # ---------------------------------------------------------------------------
-# VALIDATION RULES (for giskard)
+# VALIDATION
 # ---------------------------------------------------------------------------
 validation:
-  scenarios:
-    - root key must be required_scenarios
-    - session_start must be present
-    - unknown_scenario must be present and must be the last scenario
-    - every framework must have .agent.yml, .scenarios.yml, and space-instructions.md
-    - every scenario must have all required fields
-    - state_changes must never be omitted
-    - read must never be omitted
-    - every action item must use a declared module
-    - free-form prose in actions is a validation failure
-    - trigger patterns must be intent descriptions in English — not phrases in any specific language
-    - placeholders in file paths must be quoted strings
-    - for_each, loop, while, and pseudo-code are forbidden in scenarios
-    - say, ask, propose are not allowed in handler actions
-    - emit and state_changes must not declare the same event (duplicate)
-  handlers:
-    - every handler must have listen, dedup, actions, state_changes
-    - actions must use shared_modules only
-    - say, ask, propose are forbidden in handler actions
-    - dedup must be declared
-    - state_changes must be present — use [] when empty
+  - root key must be required_scenarios
+  - session_start and unknown_scenario must be present
+  - unknown_scenario must be last
+  - every action item must use a declared module
+  - say/ask/propose forbidden in handler actions
+  - emit and state_changes must not declare the same event
+  - trigger patterns must be intent descriptions in English — not phrases in any language
+  - placeholders in file paths must be quoted strings
+  - read must never be omitted
+  - state_changes must never be omitted
