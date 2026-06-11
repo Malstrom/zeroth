@@ -26,14 +26,10 @@ global:
 # REPO MAP
 # ---------------------------------------------------------------------------
 repo_map:
-  rules/laws.yml: L1 + L2 hierarchy — read this first for all rules
-  rules/agent.yml: universal rules for .agent.yml structure
-  rules/scenarios.yml: universal rules for writing scenarios and handlers
-  rules/structure.yml: universal rules for repo structure
-  rules/naming.yml: universal naming rules + language rule
-  rules/registry.yml: universal rules for .registry.yml
-  rules/sync.yml: universal cross-repo sync patterns
-  rules/log.yml: universal immutability and logging rules
+  rules/agent.yml: "How do I structure .agent.yml?"
+  rules/scenarios.yml: "How do I write scenarios and handlers?"
+  rules/files.yml: "How do I name, organize and handle files?"
+  rules/connections.yml: "How do I declare cross-repo connections?"
   frameworks/dojo/.agent.yml: dojo framework AI manifest
   frameworks/dojo/.scenarios.yml: dojo framework scenario catalog
   frameworks/dojo/overview.yml: dojo framework overview and vocabulary
@@ -45,6 +41,7 @@ repo_map:
   templates/.scenarios.yml: base template for new framework scenarios files
   templates/.registry.yml: base template for new framework registry files
   templates/overview.yml: base template for new framework overview files
+  templates/rule.yml: template for writing rules/ files
 
 # ---------------------------------------------------------------------------
 # FILE ACCESS
@@ -53,7 +50,6 @@ file_access:
   .agent.yml: read-only
   .registry.yml: read-only
   .scenarios.yml: read-only
-  rules/laws.yml: read-only
   rules/*.yml: read-write
   frameworks/**/*.yml: read-write
   frameworks/**/.agent.yml: read-write
