@@ -1,0 +1,51 @@
+# rules/connections.yml
+# Question: "How do I declare cross-repo connections?"
+
+# ---------------------------------------------------------------------------
+# REGISTRY
+# ---------------------------------------------------------------------------
+registry:
+  rule: all cross-repo dependencies must be declared in .registry.yml — never implicit
+  required: true
+  note: mandatory in every repo root, even if empty
+
+  structure:
+    required_fields: [framework, version, connections]
+    optional_fields: [description]
+
+  connection_fields:
+    required: [repo, role, sync_trigger, access]
+    access_values:
+      read: AI reads from this repo but never writes
+      read-write: AI may read and open PRs on this repo
+    forbidden: write-only is not a valid access value
+
+  rules:
+    - .registry.yml is read-only for the AI
+    - the AI never writes to .registry.yml proactively
+    - all cross-repo dependencies declared here — no implicit connections
+
+# ---------------------------------------------------------------------------
+# SYNC
+# ---------------------------------------------------------------------------
+sync:
+  rule: all cross-repo sync is declared in .registry.yml — never implicit
+
+  patterns:
+    state_driven:
+      description: a state_change in repo A triggers an action in repo B
+      how: post_action_hook reads .registry.yml and executes matching sync_triggers
+
+    batch_per_session:
+      description: all PRs in a session are batched into one PR per affected file group
+      exception: immutable logs — immediate PR, not batched
+
+    conflict_check:
+      rule: if an open PR already exists on the same file, stop and notify the user
+      forbidden: force-push or silent overwrite
+
+  rules:
+    - sync is always unidirectional per connection declaration
+    - circular sync must be explicitly documented and justified
+    - a repo must never modify files in another repo outside declared connections
+    - post_action_hook MUST read .registry.yml after every state_change — mandatory
