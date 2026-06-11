@@ -1,0 +1,12 @@
+# templates/rule.yml
+# Template for files in rules/
+# Question: "{the single question this file answers}"
+
+{domain_section}:        # name reflects the domain
+  rule: >                # one sentence — the core constraint
+  format:                # optional — declared format when relevant
+  empty:                 # optional — what to do when the field is empty
+  forbidden:             # optional — only if not already implied by rule
+
+validation:              # optional — only if giskard validates this domain
+  - {check}

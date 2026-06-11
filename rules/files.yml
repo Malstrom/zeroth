@@ -1,0 +1,80 @@
+# rules/files.yml
+# Question: "How do I name, organize and handle files?"
+
+# ---------------------------------------------------------------------------
+# REPOS AND FOLDERS
+# ---------------------------------------------------------------------------
+repos:
+  rule: names must be evocative, not descriptive — suggest the essence, not the function
+  max_words: 2
+  case: lowercase
+  separator: hyphen
+  valid_examples: [dojo, tensho, zeroth, sudo-hire-me]
+  invalid_examples: [ai-learning-framework, skill-tracker-v2, my-repo]
+
+folders:
+  rule: evocative of content, not technical — max 2 words, lowercase
+  separator: none if possible
+  valid_examples: [kata, kiroku, templates]
+  invalid_examples: [training-data, session-logs, user-profiles]
+
+# ---------------------------------------------------------------------------
+# FILES
+# ---------------------------------------------------------------------------
+files:
+  rule: all files read or written by an AI agent must be in English
+  case: lowercase
+  separator: hyphen or underscore (consistent per repo)
+
+  ai_operational:
+    rule: always dot-prefixed YAML
+    examples: [.agent.yml, .registry.yml, .gakusei.yml, .scenarios.yml]
+
+  human_facing:
+    rule: readable Markdown, language defined by framework
+    examples: [README.md, gakusei.md]
+
+  reserved:
+    .agent.yml:     AI manifest, entry point — read-only for AI
+    .registry.yml:  cross-repo connection map — read-only for AI
+    .scenarios.yml: AI scenario catalog — read-only for AI
+    README.md:      human navigation hub — AI writes, never reads
+
+# ---------------------------------------------------------------------------
+# REPO STRUCTURE
+# ---------------------------------------------------------------------------
+structure:
+  required_files:
+    - .agent.yml
+    - .scenarios.yml
+    - .registry.yml
+    - README.md
+  principles:
+    - one file = one responsibility
+    - max_lines_per_file: 400 — if exceeded, split the file
+    - folders group by function, not by file type
+    - AI navigation files are hidden YAML when possible
+
+# ---------------------------------------------------------------------------
+# TEMPLATES
+# ---------------------------------------------------------------------------
+templates:
+  rule: every generatable document has a template in templates/ — read it before generating
+  placeholder_format: "{{TOKEN}}"
+  forbidden: deviate from template structure — update template first, then use it
+
+# ---------------------------------------------------------------------------
+# IMMUTABILITY AND LOGS
+# ---------------------------------------------------------------------------
+immutability:
+  rule: critical event logs are immutable once written — append only, never overwrite
+  critical_events: [shinsa, decision, hire, milestone]
+  declaration: immutable files must be listed explicitly in .agent.yml file_access
+
+logs:
+  naming_format: YYYY-MM-DD_{type}_{topic}.yml
+  examples:
+    - 2026-06-09_shinsa_ruby-blocks.yml
+    - 2026-06-09_study_activerecord.yml
+  required_fields: [date, type, topic, summary]
+  optional_fields: [score, weak_chapters, weak_spots]
