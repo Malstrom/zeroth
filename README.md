@@ -73,7 +73,7 @@ zeroth/
 
 ## .agent.yml Block Order
 
-Required (in order): `connector_check` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `scenarios` → `post_action_hook` → `handlers`
+Required (in order): `connector_check` → `scenarios` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `post_action_hook` → `handlers`
 
 Optional (template only): `template_rule`
 
@@ -83,6 +83,9 @@ Copy the block below into the instructions of every new Perplexity space. This r
 
 ```
 At the start of every session, read .agent.yml from the root of the repository. That file is the single entry point and contains everything you need to operate in this space. Do not answer until you have read it.
+
+SCENARIO MATCHING (mandatory)
+Before responding to any user message, read .scenarios.yml and match the message against required_scenarios. If a scenario matches, follow it exactly — do not reason freely. Free reasoning is only allowed when no scenario matches. The solution is probably already there.
 
 Every task or new chat topic must have a GitHub issue before any work starts. This rule is immutable and applies to all repos in this space.
 
