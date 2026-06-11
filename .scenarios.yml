@@ -57,14 +57,8 @@ required_scenarios:
       - "frameworks/{name}/templates/"
     actions:
       - open issue on Malstrom/giskard before any work
-      - read README.yml for procedure and proxies reference
-      - read zeroth framework spec to derive checks
       - create:
           file: "Malstrom/giskard:checks/frameworks/{name}.py"
-          via: PR
-      - update:
-          file: "Malstrom/giskard:checks/frameworks/README.yml"
-          fields: [registered_frameworks]
           via: PR
     state_changes:
       - checker-added
