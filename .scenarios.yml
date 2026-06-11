@@ -14,9 +14,43 @@ required_scenarios:
       - create:
           file: issue
           via: issue
-      - say: "New topic registered."
+      - say: "Issue aperta: {{issue.url}}"
+      - say: "{{issue.body}}"
+      - propose: "Aggiorno il body dell'issue ogni volta che raggiungiamo un consensus. Procedo con questo flusso?"
+        on_confirm:
+          - say: "Ok. Aggiornerò il body a ogni consensus e aggiungerò commenti solo per milestone o inversioni di rotta."
     state_changes:
       - issue-opened
+
+  issue_consensus:
+    trigger_patterns:
+      - user and AI have reached agreement on a decision or constraint
+      - user confirms a proposal or approach
+      - a decision is finalized in chat
+    read: []
+    actions:
+      - update:
+          file: issue
+          fields: [body]
+          mode: overwrite
+          via: issue
+      - say: "Body issue aggiornato con il consensus raggiunto."
+    state_changes: []
+
+  issue_milestone:
+    trigger_patterns:
+      - a major deliverable is reached
+      - a previously agreed decision is reversed or abandoned
+      - a point of no return is reached in the current workstream
+    read: []
+    actions:
+      - update:
+          file: issue
+          fields: [comment]
+          mode: append
+          via: issue
+      - say: "Commento aggiunto all'issue per questa milestone."
+    state_changes: []
 
   session_start:
     trigger_patterns:
