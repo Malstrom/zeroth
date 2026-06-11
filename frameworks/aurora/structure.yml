@@ -46,7 +46,7 @@ folders:
     subfolders:
       - path: clients/{slug}/context.yml
         type: yml
-        role: static client info (name, sector, tools, jira, notes)
+        role: static client info (name, sector, tools, notes)
         immutable: false
 
       - path: clients/{slug}/summary.md
@@ -71,25 +71,16 @@ folders:
             role: email drafts, code, tables, analysis
             immutable: false
 
-  contacts:
-    path: contacts/
-    files:
-      - pattern: "{client}_{firstname}_{lastname}.yml"
-        type: yml
-        role: external contact profile with communication preferences
-        immutable: false
-      - pattern: "internal_{firstname}_{lastname}.yml"
-        type: yml
-        role: internal team member profile with skills and performance_log
-        immutable: false
+      - path: clients/{slug}/playbooks/
+        description: client-specific playbook overrides
+        files:
+          - pattern: "{playbook_slug}.yml"
+            type: yml
+            role: client override of a general playbook
+            immutable: false
 
-  log:
-    path: log/
-    description: >
-      Daily work records, fragmented by client slug.
-      Same slug as clients/. Connection is by name, not by folder position.
-    subfolders:
-      - path: log/{client_slug}/
+      - path: clients/{slug}/log/
+        description: immutable daily work records for this client
         files:
           - pattern: YYYY-MM-DD.yml
             type: yml
@@ -101,23 +92,20 @@ folders:
             type: yml
             role: monthly index, AI-generated
             immutable: false
-            contains: [file_refs, topics, jira_refs, issue_refs, work_types]
+            contains: [file_refs, topics, external_refs, issue_refs, work_types]
             does_not_contain: [full_note_text]
 
-      - path: log/_self/
-        description: personal work, study, admin — no external client
-        files:
-          - pattern: YYYY-MM-DD.yml
-            type: yml
-            role: personal daily log
-            immutable: true
-
-      - path: log/_index/
-        files:
-          - pattern: YYYY.yml
-            type: yml
-            role: annual index — map of monthly indexes only, not content aggregate
-            immutable: false
+  contacts:
+    path: contacts/
+    files:
+      - pattern: "{client}_{firstname}_{lastname}.yml"
+        type: yml
+        role: external contact profile with communication preferences
+        immutable: false
+      - pattern: "internal_{firstname}_{lastname}.yml"
+        type: yml
+        role: internal team member profile with skills and performance_log
+        immutable: false
 
   playbooks:
     path: playbooks/
@@ -143,5 +131,5 @@ folders:
 reindex_trigger:
   manual: true
   automatic:
-    condition: log/{client}/ has more than 30 files without a monthly index
+    condition: clients/{client}/log/ has more than 30 files without a monthly index
     action: run reindex scenario for that client
