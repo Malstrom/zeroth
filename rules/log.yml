@@ -7,10 +7,6 @@ immutability:
   correction_policy: append only — never overwrite
   declaration: immutable files must be listed explicitly in .agent.yml
 
-write_ahead:
-  rule: commit the log BEFORE the AI responds to the user
-  rationale: if session ends unexpectedly, the log must already exist
-
 naming:
   format: YYYY-MM-DD_{type}_{topic}.yml
   examples:
