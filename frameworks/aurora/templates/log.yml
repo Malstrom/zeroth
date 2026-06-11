@@ -1,6 +1,6 @@
 # templates/log.yml
 # Template for daily work log files.
-# Path: log/{client_slug}/YYYY-MM-DD.yml
+# Path: clients/{client_slug}/log/YYYY-MM-DD.yml
 # IMMUTABLE once written — append only.
 
 date: "{{YYYY-MM-DD}}"
@@ -8,10 +8,10 @@ client: "{{client_slug}}"
 
 entries:
   - time: "{{HH:MM}}"
-    type: "{{work_type}}"          # values: code_review | protocol_validation | meeting | research | admin | other
-    jira: "{{JIRA-XXX}}"           # null if not applicable
-    issue: "{{github_issue_number}}" # null if not applicable
-    inbox_ref: "{{inbox_file_slug}}" # null if not originated from inbox
+    type: "{{work_type}}"              # values: code_review | protocol_validation | meeting | research | admin | other
+    external_ref: null                 # JIRA-XXX | LINEAR-XXX | NOTION-XXX | null
+    issue: "{{github_issue_number}}"   # null if not applicable
+    inbox_ref: "{{inbox_file_slug}}"   # null if not originated from inbox
     tags: ["{{tag1}}", "{{tag2}}"]
     notes: "{{free text, one paragraph max}}"
     status: "{{done|in_progress|blocked}}"
