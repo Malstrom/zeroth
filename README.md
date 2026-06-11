@@ -81,6 +81,8 @@ Optional (template only): `template_rule`
 Copy the block below into the instructions of every new Perplexity space. This rule is immutable — never change it, only propagate it.
 
 ```
+At the start of every session, read .agent.yml from the root of the repository. That file is the single entry point and contains everything you need to operate in this space. Do not answer until you have read it.
+
 Every task or new chat topic must have a GitHub issue before any work starts. This rule is immutable and applies to all repos in this space.
 
 Issue discipline:
