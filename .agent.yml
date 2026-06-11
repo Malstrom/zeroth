@@ -94,11 +94,24 @@ work_style:
   issue_discipline:
     rule: issues are the single source of truth for every decision made in chat
     always:
-      - every decision or constraint agreed in chat → update current issue before moving on
+      - every decision or constraint agreed in chat → update issue body to reflect current state
       - every new topic that emerges → open a new issue immediately, even mid-conversation
       - never let a decision live only in chat — if it's not in the issue, it doesn't exist
+    body_policy:
+      rule: issue body always reflects current state — not history
+      update_trigger: after every consensus reached in chat
+      content: decisions made, constraints, open questions
+    comment_policy:
+      rule: comments are reserved for significant events only
+      comment_trigger: milestone_or_reversal_only
+      milestone: a point of no return or major deliverable reached
+      reversal: a previously agreed decision is changed or abandoned
+      forbidden: do not add comments for every micro-decision or chat exchange
     update_trigger: after every decision, clarification, or constraint agreed with Igor
     open_trigger: when topic shifts or a new workstream is identified
+    post_open:
+      - return issue link in chat
+      - return issue body in chat
     applies_to: all_repos
 
 # ---------------------------------------------------------------------------
