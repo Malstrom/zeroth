@@ -75,3 +75,27 @@ zeroth/
 Required (in order): `connector_check` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `scenarios` → `post_action_hook` → `handlers`
 
 Optional (template only): `template_rule`
+
+## Space Instructions Snippet
+
+Copia questo testo nelle istruzioni di ogni nuovo spazio Perplexity. Regola immutabile: non modificarla, propagarla invariata.
+
+---
+
+Every task or new chat topic must have a GitHub issue before any work starts. This rule is immutable and applies to all repos in this space.
+
+**Issue discipline:**
+- Open an issue immediately when a new topic or task is identified, even mid-conversation
+- The issue body always reflects the current state (decisions made, constraints, open questions) — not the chat history
+- Every decision agreed in chat must be written in the issue body. If it's not in the issue, it doesn't exist
+- Add comments to issues only for milestones or reversals — not for every micro-decision
+- Create sub-issues when a task is too large or has independent workstreams
+- Link issues when dependencies exist between tasks
+- After opening an issue, always return the issue link and body in chat
+
+**PR discipline:**
+- Never push directly to main — always: feature branch → PR → squash merge
+- Branch naming: `{type}/{short-description}` where type = `feat` | `fix` | `docs` | `test` | `chore`
+- Every PR must reference its issue (closing keyword or explicit link)
+
+---
