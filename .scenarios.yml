@@ -1,86 +1,10 @@
 # .scenarios.yml
 # AI-only scenario catalog for zeroth.
-# Defines all user-triggered flows. Read by the AI at session start via .agent.yml.
+# Defines all user-triggered flows.
+# Read by the AI at session start via .agent.yml.
 # Syntax: rules/scenarios.yml
 
 required_scenarios:
-
-  new_topic:
-    trigger_patterns:
-      - user introduces a new subject or task not yet tracked
-      - user asks to build, create, fix, or change something for the first time in the session
-    read: []
-    actions:
-      - create:
-          file: issue
-          via: issue
-      - say: "Issue aperta: {{issue.url}}"
-      - say: "{{issue.body}}"
-      - propose: "Aggiorno il body dell'issue ogni volta che raggiungiamo un consensus. Procedo con questo flusso?"
-        on_confirm:
-          - say: "Ok. Aggiornerò il body a ogni consensus e aggiungerò commenti solo per milestone o inversioni di rotta."
-    state_changes:
-      - issue-opened
-
-  issue_consensus:
-    trigger_patterns:
-      - user and AI have reached agreement on a decision or constraint
-      - user confirms a proposal or approach
-      - a decision is finalized in chat
-    read: []
-    actions:
-      - update:
-          file: issue
-          fields: [body]
-          mode: overwrite
-          via: issue
-      - say: "Body issue aggiornato con il consensus raggiunto."
-    state_changes: []
-
-  issue_milestone:
-    trigger_patterns:
-      - a major deliverable is reached
-      - a previously agreed decision is reversed or abandoned
-      - a point of no return is reached in the current workstream
-    read: []
-    actions:
-      - update:
-          file: issue
-          fields: [comment]
-          mode: append
-          via: issue
-      - say: "Commento aggiunto all'issue per questa milestone."
-    state_changes: []
-
-  session_start:
-    trigger_patterns:
-      - session opens automatically
-    read:
-      - .registry.yml
-    actions:
-      - say: "Zeroth session started."
-      - say: "Frameworks registered: {{registry.connections | count}}. Rules: {{repo_map | count}}."
-      - propose: "What would you like to work on?"
-    state_changes: []
-
-  create_framework:
-    trigger_patterns:
-      - user wants to create a new repo based on a framework
-      - user wants to scaffold a dojo, tensho, or any other framework repo
-      - user wants to create a new framework repository
-    read:
-      - "frameworks/{name}/structure.yml"
-      - "frameworks/{name}/overview.yml"
-      - "frameworks/{name}/onboarding.yml"
-    actions:
-      - ask: "Repo name?"
-      - ask: "Public or private?"
-      - say: "Scaffolding plan loaded from framework structure."
-      - create:
-          file: repo
-          via: PR
-      - emit: framework-repo-created
-    state_changes: []
 
   add_framework:
     trigger_patterns:
@@ -121,71 +45,20 @@ required_scenarios:
     state_changes:
       - framework-added
 
-  update_rule:
+  add_checker:
     trigger_patterns:
-      - user wants to update or add a rule in zeroth
-      - user wants to change how something works in zeroth
+      - user wants to add a giskard checker for a framework
+      - user wants to validate a framework with giskard
+      - user wants to create checks/frameworks/{name}.py in giskard
     read:
-      - "rules/{rule}.yml"
+      - "Malstrom/giskard:checks/frameworks/README.yml"
+      - "frameworks/{name}/structure.yml"
+      - "frameworks/{name}/.scenarios.yml"
+      - "frameworks/{name}/templates/"
     actions:
-      - update:
-          file: "rules/{rule}.yml"
+      - open issue on Malstrom/giskard before any work
+      - create:
+          file: "Malstrom/giskard:checks/frameworks/{name}.py"
           via: PR
     state_changes:
-      - rule-updated
-
-  fix_giskard:
-    trigger_patterns:
-      - user reports a giskard check is failing
-      - user wants to fix or update giskard
-    read:
-      - "frameworks/{framework}/checklist.yml"
-    actions:
-      - if:
-          condition: root_cause == checklist
-          then:
-            - update:
-                file: "frameworks/{framework}/checklist.yml"
-                via: PR
-          else:
-            - if:
-                condition: root_cause == giskard
-                then:
-                  - update:
-                      file: Malstrom/giskard:giskard.py
-                      via: PR
-    state_changes:
-      - giskard-updated
-
-  validate_framework:
-    trigger_patterns:
-      - user wants to validate a framework against its checklist
-      - user asks if a framework is compliant
-    read:
-      - "frameworks/{name}/checklist.yml"
-    actions:
-      - say: "Validating {name} against checklist..."
-      - if:
-          condition: failed_checks_exist
-          then:
-            - say: "Failed checks: {{failed_checks}}"
-            - propose: "Fix each failed item now?"
-              on_confirm:
-                - call: update_rule
-          else:
-            - say: "{name} is fully compliant."
-    state_changes: []
-
-  unknown_scenario:
-    trigger_patterns:
-      - any message that does not match any other scenario
-    read: []
-    actions:
-      - propose: "Did you mean: {{closest_scenario}}?"
-        on_confirm:
-          - call: "{{closest_scenario}}"
-      - if:
-          condition: no_match
-          then:
-            - say: "Scenario not defined. Want me to add it?"
-    state_changes: []
+      - checker-added
