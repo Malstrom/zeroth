@@ -1,7 +1,8 @@
 # .agent.yml
 # AI-only operational manifest for the dojo framework.
-# Inherits global rules from: zeroth/rules/agent.yml
-# Syntax for scenarios and handlers: zeroth/rules/scenarios.yml
+# Rules: https://github.com/Malstrom/zeroth/tree/main/rules
+# Framework: https://github.com/Malstrom/zeroth/tree/main/frameworks/dojo
+# On doubt, read the relevant rules file in zeroth/rules/ — see zeroth repo_map for navigation.
 
 connector_check:
   on_fail: |
@@ -75,3 +76,5 @@ global:
   level_up: AI proposes, student confirms — never automatic
   densho: does not exist — books consumed live from library sources
   templates: templates/
+  rules: https://github.com/Malstrom/zeroth/tree/main/rules
+  framework: https://github.com/Malstrom/zeroth/tree/main/frameworks/dojo
