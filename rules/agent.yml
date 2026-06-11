@@ -1,6 +1,9 @@
-# zeroth — agent rules
-# Applies to: every .agent.yml in every Malstrom framework
+# rules/agent.yml
+# Question: "How do I structure .agent.yml?"
 
+# ---------------------------------------------------------------------------
+# STRUCTURE
+# ---------------------------------------------------------------------------
 structure:
   required_blocks_in_order:
     - connector_check
@@ -12,127 +15,120 @@ structure:
     - scenarios
     - post_action_hook
     - handlers
-  optional_blocks:
-    description: present only when the framework is a template
-    order:
-      - template_rule
 
-  scenarios_pattern:
-    rule: scenarios always live in .scenarios.yml — never inline in .agent.yml
-    rationale: structural separation, not a size threshold
-    agent_yml_declares: scenarios_file pointing to .scenarios.yml
-    agent_yml_scenarios_block: reference only — no inline scenario definitions
-    example_agent_yml: |
-      scenarios:
-        scenarios_file: .scenarios.yml
-    validation: giskard reads and validates .scenarios.yml directly
+# ---------------------------------------------------------------------------
+# CONNECTOR CHECK
+# ---------------------------------------------------------------------------
+connector_check:
+  rule: must be the first block — if connector not active, show clear message and stop
+  forbidden: fall back to web or browser
 
-rules:
+# ---------------------------------------------------------------------------
+# GLOBAL
+# ---------------------------------------------------------------------------
+global:
+  language:
+    rule: always declared or read from an identity file (e.g. .gakusei.yml) — single source
+    forbidden: extra language fields (e.g. replies_in)
+  pr_strategy: batch_per_session — exception only for immutable logs
+  merge_strategy: squash — always squash merge PRs into main
+  dedup_scope: current_session — each handler runs at most once per topic per session
+  trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
 
-  connector_check:
-    - must be the first block
-    - if connector not active: show clear message and stop immediately
-    - never fall back to web or browser
+# ---------------------------------------------------------------------------
+# SCENARIOS
+# ---------------------------------------------------------------------------
+scenarios:
+  rule: scenarios live in .scenarios.yml — never inline in .agent.yml
+  required: [session_start, unknown_scenario]
+  note: giskard validates .scenarios.yml directly — see rules/scenarios.yml
 
-  global:
-    - language: always declared or read from an identity file (e.g. .gakusei.yml)
-    - do not add extra language fields (e.g. replies_in) — language is the single source
-    - pr_strategy: batch_per_session is default — exception only for immutable logs
-    - merge_strategy: squash — always squash merge PRs into main
-    - dedup_scope: current_session — each handler runs at most once per topic per session
-    - trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
+# ---------------------------------------------------------------------------
+# HANDLERS
+# ---------------------------------------------------------------------------
+handlers:
+  rule: reactive to state_changes — never called directly by the user
+  empty: use handlers: {} — never omit the block
+  required_fields: [listen, dedup, actions, state_changes]
+  dedup_values:
+    - once per session
+    - once per {variable} per session
+  forbidden_in_actions: [say, ask, propose]
+  cross_repo_refs: use owner/repo:path format in actions — never in the read field
 
-  scenarios:
-    - scenarios live in .scenarios.yml — never inline in .agent.yml
-    - every scenario must follow the syntax defined in rules/scenarios.yml
-    - session_start is mandatory
-    - unknown_scenario is mandatory — no message may be left unhandled
-    - triggers are natural language patterns, not technical commands
-    - scenarios are user-triggered — handlers are not
-    - giskard validates .scenarios.yml, not the scenarios block in .agent.yml
-
-  handlers:
-    - mandatory in every .agent.yml, even when empty (use handlers: {})
-    - reactive to state_changes emitted by scenarios
-    - never called directly by the user
-    - syntax and allowed modules defined in rules/scenarios.yml handlers section
-    - required fields for each handler: listen, dedup, actions, state_changes
-    - listen: block sequence of event names
-    - dedup: once per session | once per {variable} per session
-    - state_changes: mandatory — use [] when the handler emits no events
-    - actions: shared_modules only (read, update, create, emit, if, call)
-    - say, ask, propose are forbidden in handler actions
-    - cross-repo file references in actions must use owner/repo:path format — never in read field
-
-  post_action_hook:
-    - mandatory in every .agent.yml
-    - must always read .registry.yml after every state_change — no exceptions
-    - if no sync triggers match, the hook reads .registry.yml and does nothing
-    - post_action_hook: {} is NOT valid — always declare after_every_state_change with read: .registry.yml
-    - runs automatically after every state_change, before the AI replies
-    - operates at the orchestration level — not tied to a specific event
-    syntax:
+# ---------------------------------------------------------------------------
+# POST ACTION HOOK
+# ---------------------------------------------------------------------------
+post_action_hook:
+  rule: mandatory — must read .registry.yml after every state_change
+  empty: post_action_hook: {} is NOT valid
+  structure:
+    after_every_state_change:
+      allowed_modules: [read, if, call_handlers]
+      note: call_handlers is post_action_hook-exclusive — forbidden in scenarios and handlers
+    conflict_check:
+      if_open_pr_on_same_file: stop | warn | proceed
+  minimal_valid_example: |
+    post_action_hook:
       after_every_state_change:
-        description: actions to run after any state_change
-        allowed_modules:
-          - read
-          - if
-          - call_handlers
-        note: call_handlers is post_action_hook-exclusive — not a scenario or handler module
+        - read: .registry.yml
+        - if:
+            condition: matching_sync_triggers_exist
+            then:
+              - call_handlers: matching
       conflict_check:
-        description: safety rules for concurrent PR operations
-        fields:
-          if_open_pr_on_same_file: stop | warn | proceed
-    minimal_valid_example: |
-      post_action_hook:
-        after_every_state_change:
-          - read: .registry.yml
-          - if:
-              condition: matching_sync_triggers_exist
-              then:
-                - call_handlers: matching
-        conflict_check:
-          if_open_pr_on_same_file: stop and notify user
-    note: giskard validates field presence only — not action syntax inside post_action_hook
+        if_open_pr_on_same_file: stop and notify user
 
-  write_ahead:
-    - rule: commit before responding
-    - NEVER push directly to main — always feature branch → PR → squash merge
-    - branch naming: {type}/{short-description} where type is feat/fix/docs/test/chore
-    - critical logs (shinsa): immediate PR → squash merge, immutable
-    - everything else: batch per session
+# ---------------------------------------------------------------------------
+# WRITE AHEAD
+# ---------------------------------------------------------------------------
+write_ahead:
+  rule: commit before responding — NEVER push directly to main
+  branch_strategy: feature branch → PR → squash merge
+  branch_naming: "{type}/{short-description} — types: feat, fix, docs, test, chore"
+  immutable_logs: immediate PR → squash merge, not batched
 
-  file_access:
-    - .agent.yml: read-only
-    - .registry.yml: read-only
-    - every file must have its permission declared explicitly
+# ---------------------------------------------------------------------------
+# FILE ACCESS
+# ---------------------------------------------------------------------------
+file_access:
+  rule: every file must have its permission declared explicitly
+  defaults:
+    .agent.yml: read-only
+    .registry.yml: read-only
 
-  tool_approval:
-    mapping:
-      feature_branch: false
-      file_edit: false
-      push_files: false
-      create_pr: false
-      merge_to_main: false
-      delete_file: true
-      destructive_ops: true
-    definition:
-      destructive_ops: |
-        delete_file, overwrite without branch, clear directory, any operation
-        that cannot be reverted by reverting a PR
-    note: |
-      This mapping applies to the _requires_user_approval flag on every tool call.
-      The AI must follow this mapping and never ask approval for false entries.
+# ---------------------------------------------------------------------------
+# TOOL APPROVAL
+# ---------------------------------------------------------------------------
+tool_approval:
+  rule: follow this mapping for _requires_user_approval on every tool call — never ask approval for false entries
+  mapping:
+    feature_branch: false
+    file_edit: false
+    push_files: false
+    create_pr: false
+    merge_to_main: false
+    delete_file: true
+    destructive_ops: true
+  destructive_ops: "delete_file, overwrite without branch, clear directory, any operation that cannot be reverted by reverting a PR"
 
-  yaml_validity:
-    - all .agent.yml files must be parseable by yaml.safe_load without errors
-    - all dot-prefixed YAML files used by the AI must be parseable by yaml.safe_load without errors
-    - never use flow sequences [...] when values contain { } characters
-    - use block sequences for read: lists in scenarios and handlers
-    - correct:
-        read:
-          - .gakusei.yml
-          - "kata/{topic}.md"
-    - incorrect:
-        read: [.gakusei.yml, kata/{topic}.md]
-    - template placeholders like {topic} or {course} must be quoted when inside sequences
+# ---------------------------------------------------------------------------
+# YAML VALIDITY
+# ---------------------------------------------------------------------------
+yaml_validity:
+  rule: all .agent.yml and dot-prefixed YAML files must be parseable by yaml.safe_load
+  forbidden: flow sequences [...] when values contain { } characters
+  placeholders: template placeholders like {topic} must be quoted inside sequences
+
+# ---------------------------------------------------------------------------
+# VALIDATION
+# ---------------------------------------------------------------------------
+validation:
+  - connector_check is the first block
+  - repo_map is present
+  - file_access is present
+  - tool_approval is present
+  - write_ahead is present
+  - scenarios declares scenarios_file
+  - handlers is present
+  - post_action_hook declares after_every_state_change with read: .registry.yml
