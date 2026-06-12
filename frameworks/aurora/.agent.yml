@@ -1,8 +1,9 @@
 # .agent.yml
-# AI-only operational manifest for the dojo framework.
+# AI-only operational manifest for the aurora framework.
 # Rules: https://github.com/Malstrom/zeroth/tree/main/rules
-# Framework: https://github.com/Malstrom/zeroth/tree/main/frameworks/dojo
+# Framework: https://github.com/Malstrom/zeroth/tree/main/frameworks/aurora
 # On doubt, read the relevant rules file in zeroth/rules/ — see zeroth repo_map for navigation.
+# Status: DRAFT (see overview.yml)
 
 connector_check:
   on_fail: |
@@ -10,34 +11,38 @@ connector_check:
     Stop immediately. Do not fall back to web or browser.
 
 repo_map:
-  # Each dojo instance defines its own repo_map.
+  # Each aurora instance defines its own repo_map.
   # This canonical version is a reference — not meant to be copied verbatim.
   root: .
-  kata: kata/
-  kiroku_nikki: kiroku/nikki/
-  kiroku_makimono: kiroku/makimono/
+  profile: .aurora.yml
+  clients: clients/
+  contacts: contacts/
+  playbooks: playbooks/
   templates: templates/
-  gakusei: .gakusei.yml
   scenarios: .scenarios.yml
   registry: .registry.yml
 
 file_access:
   _note: "Describes what the AI is allowed to modify — NOT how to deploy. PR rule always applies regardless of permission level."
   read:
-    - .gakusei.yml
+    - .aurora.yml
     - .scenarios.yml
     - .registry.yml
-    - "kata/**"
-    - "kiroku/nikki/**"
-    - "kiroku/makimono/**"
+    - "clients/**"
+    - "contacts/**"
+    - "playbooks/**"
     - "templates/**"
   append:
-    - "kiroku/nikki/**"
+    - "clients/*/log/*.yml"         # daily log files are immutable/append-only
+    - "clients/*/inbox/*.yml"       # inbox files are immutable once written
   write:
-    - .gakusei.yml
-    - gakusei.md
-    - "kata/**"
-    - "kiroku/makimono/**"
+    - "clients/*/context.yml"
+    - "clients/*/summary.md"
+    - "clients/*/output/**"
+    - "clients/*/playbooks/**"
+    - "clients/*/log/*.index.yml"
+    - "contacts/**"
+    - "playbooks/**"
 
 deployment:
   all_writes_via_pr: true
@@ -67,28 +72,33 @@ scenarios:
   spec: zeroth/rules/scenarios.yml  # canonical structure — read before writing any scenario
   on_no_match: propose new scenario to user before proceeding
 
+post_action_hook:
+  after_every_state_change:
+    - read: .registry.yml
+    - if:
+        condition: matching_sync_triggers_exist
+        then:
+          - call_handlers: matching
+  conflict_check:
+    if_open_pr_on_same_file: stop and notify user
+
 handlers:
-  session_end:
-    dedup: current_session
-    state_changes:
-      - update .gakusei.yml last_session
-      - append to kiroku/nikki/
-        format: yaml
-        filename: YYYY-MM-DD_{subject}_{type}.yml
-        allowed_types: [study, randori, shinsa]
-        template: templates/kiroku_nikki.yml
+  reindex_trigger:
+    listen:
+      - log-written
+    condition: clients/{client}/log/ has more than 30 files without a monthly index
+    actions:
+      - run: reindex scenario for that client
+    dedup: once per client per session
 
 global:
-  chat_language: read from .gakusei.yml   # language used when speaking with the student
+  chat_language: read from .aurora.yml    # language used when speaking with the user
   file_language: english                  # ALL files, commits, PR titles/bodies, issue bodies must be in English
   pr_strategy: batch_per_session
   merge_strategy: squash
   dedup_scope: current_session
   trigger_matching: pattern_first
-  exam_log: immediate PR — not batched
-  exam_immutability: commit before responding, append-only
-  level_up: AI proposes, student confirms — never automatic
-  densho: does not exist — books consumed live from library sources
-  templates: templates/
+  log_immutability: append-only, commit before responding
+  inbox_immutability: write-once, never edit after creation
   rules: https://github.com/Malstrom/zeroth/tree/main/rules
-  framework: https://github.com/Malstrom/zeroth/tree/main/frameworks/dojo
+  framework: https://github.com/Malstrom/zeroth/tree/main/frameworks/aurora

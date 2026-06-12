@@ -15,7 +15,8 @@ connector_check:
 # GLOBAL
 # ---------------------------------------------------------------------------
 global:
-  language: read from identity file
+  chat_language: read from identity file   # language used when speaking with the user
+  file_language: english                   # ALL files, commits, PR titles/bodies, issue bodies must be in English
   pr_strategy: batch_per_session
   merge_strategy: squash
   dedup_scope: current_session
@@ -27,22 +28,32 @@ global:
 repo_map:
   # declare all files and their role
   # example:
-  # .gakusei.yml: student identity and profile
-  # kiroku/: immutable session records
+  # identity: .identity.yml
+  # scenarios: .scenarios.yml
 
 # ---------------------------------------------------------------------------
 # FILE ACCESS
 # ---------------------------------------------------------------------------
 file_access:
+  _note: "Describes what the AI is allowed to modify — NOT how to deploy. PR rule always applies regardless of permission level."
   .agent.yml: read-only
   .registry.yml: read-only
   .scenarios.yml: read-only
   # add all files with explicit permissions
 
 # ---------------------------------------------------------------------------
+# DEPLOYMENT
+# ---------------------------------------------------------------------------
+deployment:
+  all_writes_via_pr: true
+  exceptions: []
+
+# ---------------------------------------------------------------------------
 # TOOL APPROVAL
 # ---------------------------------------------------------------------------
 tool_approval:
+  # false = proceed immediately without asking the user
+  # true  = always ask before executing
   feature_branch: false
   file_edit: false
   push_files: false
@@ -67,6 +78,8 @@ write_ahead:
 # ---------------------------------------------------------------------------
 scenarios:
   scenarios_file: .scenarios.yml
+  spec: zeroth/rules/scenarios.yml  # canonical structure — read before writing any scenario
+  on_no_match: propose new scenario to user before proceeding
 
 # ---------------------------------------------------------------------------
 # POST-ACTION HOOK
