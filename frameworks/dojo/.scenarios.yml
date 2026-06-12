@@ -117,8 +117,8 @@ required_scenarios:
       state_changes: [study-completed]
 
   randori:
-    # Called by study_open once per concept.
-    # Also callable standalone by the user.
+    # Called by study_open once per concept — context (subject, topic, concept) inherited.
+    # Also callable standalone by the user — context must be resolved via ask.
     on:
       - user wants to drill on the current topic
       - user asks to be quizzed on what was just explained
@@ -128,20 +128,27 @@ required_scenarios:
     creates_issue: false
     read:
       - .gakusei.yml
-      - "kata/{subject}/{topic}.md"
+      - "kata/{subject}/{topic}.md"   # resolved after context step below
     steps:
+      # ——— CONTEXT RESOLUTION ———
+      # When called from study_open, subject/topic/concept are inherited — skip.
+      # When called standalone, they are unknown — ask before doing anything.
+      - if:
+          condition: subject is missing
+          then:
+            - ask: "Which subject?"
+      - if:
+          condition: topic is missing
+          then:
+            - ask: "Which topic or chapter within {{subject}}?"
+      # ——— END CONTEXT RESOLUTION ———
+
       - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
 
       - if:
           condition: answer_correct OR answer_substantially_correct
           then:
             - say: "Correct. {{brief_positive_reinforcement}}"
-            - issue:
-                comment: |
-                  ✅ Randori — {{concept.title}}
-                  Q: {{question}}
-                  A: {{student_answer}}
-                  Outcome: correct
           else:
             - say: "Not quite — {{gap_explanation}}"
             - ask: "{{simpler_followup_on_same_concept_using_only_source_or_prior_kata}}"
@@ -149,14 +156,6 @@ required_scenarios:
                 condition: followup_correct
                 then:
                   - say: "Good. {{brief_explanation_of_gap}}"
-                  - issue:
-                      comment: |
-                        ⚠️ Randori — {{concept.title}}
-                        Q: {{question}}
-                        A: {{student_answer}}
-                        Followup: {{followup_question}}
-                        FA: {{followup_answer}}
-                        Outcome: partial — gap: {{gap_description}}
                   - write:
                       path: "kiroku/nikki/"
                       filename: "YYYY-MM-DD_{subject}_study.yml"
@@ -165,14 +164,6 @@ required_scenarios:
                       via: PR
                 else:
                   - say: "{{full_re_explanation_of_concept}}"
-                  - issue:
-                      comment: |
-                        ❌ Randori — {{concept.title}}
-                        Q: {{question}}
-                        A: {{student_answer}}
-                        Followup: {{followup_question}}
-                        FA: {{followup_answer}}
-                        Outcome: incorrect — gap: {{gap_description}}
                   - write:
                       path: "kiroku/nikki/"
                       filename: "YYYY-MM-DD_{subject}_study.yml"
@@ -229,6 +220,11 @@ required_scenarios:
       state_changes: []
 
   readiness_report:
+    # REPORTER — user-facing.
+    # Triggered by: readiness-ready, readiness-gap, readiness-loop.
+    # Reads result written by evaluate_readiness, proposes next action.
+    # Does NOT compute or write.
+    type: reporter
     on:
       events: [readiness-ready, readiness-gap, readiness-loop]
     creates_issue: false
@@ -341,9 +337,11 @@ required_scenarios:
       state_changes: []   # emits are conditional — see if/then/else above
 
   shinsa_report:
-    # EVENT-TRIGGERED — user-facing.
+    # REPORTER — user-facing.
     # Triggered by: shinsa-passed, shinsa-failed.
-    # Reads exam result from .gakusei.yml and proposes next action.
+    # Reads exam result written by shinsa, proposes next action.
+    # Does NOT compute or write.
+    type: reporter
     on:
       events: [shinsa-passed, shinsa-failed]
     creates_issue: false
