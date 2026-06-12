@@ -22,6 +22,7 @@ repo_map:
   registry: .registry.yml
 
 file_access:
+  _note: "Describes what the AI is allowed to modify — NOT how to deploy. PR rule always applies regardless of permission level."
   read:
     - .gakusei.yml
     - .scenarios.yml
@@ -38,7 +39,13 @@ file_access:
     - "kata/**"
     - "kiroku/makimono/**"
 
+deployment:
+  all_writes_via_pr: true
+  exceptions: []
+
 tool_approval:
+  # false = proceed immediately without asking the user
+  # true  = always ask before executing
   feature_branch: false
   file_edit: false
   push_files: false
@@ -57,6 +64,7 @@ write_ahead:
 
 scenarios:
   scenarios_file: .scenarios.yml
+  spec: zeroth/rules/scenarios.yml  # canonical structure — read before writing any scenario
 
 handlers:
   session_end:
@@ -64,9 +72,14 @@ handlers:
     state_changes:
       - update .gakusei.yml last_session
       - append to kiroku/nikki/
+        format: yaml
+        filename: YYYY-MM-DD_{subject}_{type}.yml
+        allowed_types: [study, randori, shinsa]
+        template: templates/kiroku_nikki.yml
 
 global:
-  language: read from .gakusei.yml
+  chat_language: read from .gakusei.yml   # language used when speaking with the student
+  file_language: english                  # ALL files, commits, PR titles/bodies, issue bodies must be in English
   pr_strategy: batch_per_session
   merge_strategy: squash
   dedup_scope: current_session
