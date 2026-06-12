@@ -1,0 +1,41 @@
+# checklist.yml
+# Validation: is this repo a valid dojo?
+# Run manually or via giskard.
+
+framework: dojo
+
+checks:
+  root_files:
+    - path: .agent.yml
+      required: true
+      note: AI manifest — must be present and valid
+    - path: .scenarios.yml
+      required: true
+      note: scenario catalog — must define at least session_start and unknown_scenario
+    - path: .registry.yml
+      required: true
+      note: connection map — can be empty but must exist
+    - path: .gakusei.yml
+      required: true
+      note: learner identity and current state
+
+  kata_files:
+    - path: "kata/*.yml"
+      required: true
+      min_count: 1
+      note: at least one kata must be defined
+
+  log_files:
+    - path: "log/*.yml"
+      required: false
+      note: append-only session logs — if present, must not be modified
+
+  agent_fields:
+    - .agent.yml must declare language.chat sourced from .gakusei.yml
+    - .agent.yml must declare scenarios.file pointing to .scenarios.yml
+    - .agent.yml tool_approval must set delete_file and destructive_ops to true
+
+  scenario_fields:
+    - .scenarios.yml must define session_start
+    - .scenarios.yml must define unknown_scenario
+    - .scenarios.yml should define study, test, and review scenarios

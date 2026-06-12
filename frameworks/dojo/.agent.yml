@@ -1,13 +1,15 @@
 # .agent.yml
-# AI-only operational manifest for the dojo framework.
+# AI-only operational manifest for a dojo instance.
+# Read this at the start of every session — no exceptions.
+# Spec: github.com/Malstrom/zeroth
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
 # ---------------------------------------------------------------------------
 language:
-  chat: read from .gakusei.yml    # language used when speaking with the student
-  files: english                  # all file content, commits, PR/issue bodies
-  filenames: english              # all file names AND folder names (snake_case, lowercase)
+  chat: read from .gakusei.yml   # language used in conversation with the learner
+  files: english                 # all file content, commits, PR/issue bodies
+  filenames: english             # all file names AND folder names (snake_case, lowercase)
 
 # ---------------------------------------------------------------------------
 # WORK RULES
@@ -17,8 +19,7 @@ work_rules:
   branch_naming: "{type}/{short-description}"
   all_writes_via_pr: true
   merge_strategy: squash
-  level_up: AI proposes, student confirms — never automatic
-  densho: does not exist — books consumed live from library sources
+  log_files_are_immutable: true  # never overwrite files under log/
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
@@ -38,8 +39,6 @@ tool_approval:
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
-# Read .scenarios.yml BEFORE any reasoning.
-# Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
 scenarios:
   file: .scenarios.yml
@@ -49,33 +48,24 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
-# Exact paths: named keys
-# Glob patterns: under patterns list
-# Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
 workspace:
-  .gakusei.yml:
-    role: student identity, progress, and language
-    access: read-write
+  .agent.yml:
+    role: AI manifest
+    access: read-only
   .scenarios.yml:
     role: scenario catalog
     access: read-only
   .registry.yml:
     role: cross-repo connections
     access: read-only
-  gakusei.md:
-    role: human-readable student profile
+  .gakusei.yml:
+    role: learner identity and current state
     access: read-write
-  templates/:
-    role: file templates for kata, nikki, makimono, shinsa
-    access: read-only
   patterns:
-    - path: "kata/**"
-      role: practice exercises
+    - path: "kata/*.yml"
+      role: individual kata definitions
       access: read-write
-    - path: "kiroku/nikki/**"
-      role: immutable session logs
+    - path: "log/*.yml"
+      role: session logs — append-only, never overwrite
       access: append-only
-    - path: "kiroku/makimono/**"
-      role: study scrolls
-      access: read-write

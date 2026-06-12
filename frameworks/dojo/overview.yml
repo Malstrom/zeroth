@@ -1,53 +1,31 @@
-# dojo framework — overview
+# overview.yml
+# Framework overview — purpose, vocabulary, key principles.
 
 framework: dojo
-purpose: AI-assisted learning framework — the repository is the source of truth, the AI is the sensei, the user is the student
+purpose: >
+  AI-assisted learning framework.
+  A dojo is a structured space where a learner and an AI trainer work together
+  through deliberate practice: study, test, review, repeat.
 
 cycle:
-  - study
-  - randori
-  - quiz
-  - shinsa
-  - level_up
+  - study: learner reads or is taught a topic (kata)
+  - test: AI quizzes the learner on the kata
+  - review: AI surfaces weak points and suggests next kata
+  - repeat: cycle restarts on the next kata or a failed one
 
 vocabulary:
-  kata: unit of knowledge — theory, explanations, examples, and snippets for one topic, organised by subject
-  kiroku: (記録) namespace for all session records — contains makimono/ and nikki/
-  makimono: (巻物) living document — the kata that evolves with the student; "maki" = to roll/wrap, "mono" = thing — the scroll the sensei writes knowledge on
-  nikki: (日記) immutable session diary — one file per session; "nichi" = day, "ki" = record — append-only, never overwritten
-  randori: interactive drill during study — the AI asks open questions after each concept, no score, feedback immediate
-  quiz: autonomous practice — multiple choice questions from kata, no state saved, lightweight (metro/break use)
-  shinsa: formal exam — 10 open-ended questions covering the full subject, scored, no feedback during, required before level_up
-  gakusei: the student profile
-  .gakusei.yml: machine-readable student profile — the AI reads this at every session start
-  gakusei.md: human-readable student profile — shows current level and what has been learned; created by AI on first session
-  library: conceptual term for the set of study sources (not a directory) — Google Drive, attached files, pasted text, or AI knowledge
+  dojo: a repository instance dedicated to learning one subject
+  kata: unit of knowledge for one topic
+  sensei: the AI acting as trainer/reviewer
+  gakusei: the learner (human)
+  belt: progression marker — tracks mastery level across kata
+  log: append-only record of completed sessions
 
 key_principles:
-  - one repository per student instance
-  - the AI reads .gakusei.yml at session start — no exceptions
-  - nikki files are immutable — append-only, never overwrite
-  - makimono files are living documents — updated via PR after each session
-  - mastery state lives in .gakusei.yml — not in AI memory
-  - files for the AI are hidden YAML files; files for the human are Markdown
-  - kata/ is organised by subject subfolder
-  - kiroku/ contains makimono/ (living docs) and nikki/ (session records)
-  - level progression requires completing a book and passing the shinsa
-  - the AI proposes level_up, the student confirms
-
-levels:
-  - not_started
-  - beginner
-  - intermediate
-  - advanced
-
-default_subjects:
-  github:
-    description: Git and GitHub — version control, branching, pull requests, Actions, collaboration workflows
-    note: included by default in every dojo instance — fundamental skill for all developers
-
-library_sources:
-  - google_drive: shared folder link — the AI downloads the PDF
-  - attached_file: PDF, DOCX, MD, TXT, or similar text-readable attachment from chat
-  - pasted_text: chapter text pasted inline in chat
-  - ai_knowledge: no book provided — the AI teaches from its own knowledge, adapted to the student level
+  - one repository per instance
+  - the AI reads the identity file at session start — no exceptions
+  - files for the AI are hidden YAML files
+  - files for the human are Markdown
+  - immutable logs are declared explicitly and never overwritten
+  - no kata is marked mastered until the learner passes a test without hints
+  - the sensei always proposes the next kata — the gakusei never chooses blindly

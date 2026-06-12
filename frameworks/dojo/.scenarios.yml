@@ -1,7 +1,5 @@
-# dojo framework — scenario catalog
-# Model: GitHub Actions workflows — on: for routing, steps: for logic
-# Each scenario = one workflow: trigger → read → steps → output
-# Syntax: rules/scenarios.yml
+# .scenarios.yml
+# AI-only scenario catalog for a dojo instance.
 # Spec: github.com/Malstrom/zeroth
 
 required_scenarios:
@@ -11,413 +9,107 @@ required_scenarios:
       - session opens automatically
     creates_issue: false
     read:
+      - .agent.yml
       - .gakusei.yml
     steps:
-      - if:
-          condition: gakusei_missing OR student_name == ""
-          then:
-            - read: frameworks/dojo/onboarding.yml
-            - call: onboarding
-            - stop
-      - say: "{{student_name}}!"
-      - say: "Last session: {{last_session.subject}} — {{last_session.topic}}. Next: {{last_session.next}}"
-      - propose: "Continue from where you left off?"
+      - say: "{{greeting_with_current_belt_and_last_kata}}"
+      - propose: "{{next_kata_or_resume_failed_kata}}"
         on_confirm:
-          - call: study_open
-        on_reject:
-          - say: "What would you like to do? study_open, shinsa, randori."
+          - call: study
     output:
       state_changes: []
 
-  study_open:
+  study:
     on:
-      - user wants to study a specific topic or chapter
-      - user asks to be taught something
-      - user wants to open a study session on a subject
-    creates_issue: true
-    issue:
-      title: "Study: {subject} — {topic}"
-      body: |
-        - [ ] source loaded
-        - [ ] concepts taught and randori completed
-        - [ ] kata updated
-        - [ ] nikki written
-        - [ ] .gakusei.yml updated
-        - [ ] readiness evaluated
-      on_complete: close
-      on_fail: comment
+      - user wants to study a kata
+      - user asks to learn a topic
+      - session_start confirms study
+    creates_issue: false
     read:
       - .gakusei.yml
-      - "kata/{subject}/{topic}.md"
-    input_sources:
-      - attached_file
-      - url
-      - pasted_text
-      - ai_knowledge
+      - "kata/{{kata_slug}}.yml"
     steps:
-      - say: "{{source_summary}}: {{concept_count}} concepts identified."
-      - issue:
-          check: "source loaded"
+      - say: "{{kata_explanation}}"
+      - propose: "Ready to test?"
+        on_confirm:
+          - call: test
+    output:
+      state_changes: []
 
-      # ——— CONCEPT LOOP ———
-      # Repeat for each concept in the source, in order.
-      # concept = one discrete unit: a heading block, a thematic paragraph,
-      #           or a logical chunk if the source is unstructured.
-      # Do NOT invent concepts outside the source.
-      # Prerequisites not in source: only if already in kata/ for this subject.
-      - for_each: concept in source.concepts
-        do:
-          - say: |
-              **{{concept.title}}**
-              {{concept.explanation}}
-              > Source: {{concept.citation}}
-          - issue:
-              comment: |
-                ### Concept: {{concept.title}}
-                {{concept.explanation}}
-                > {{concept.citation}}
-          - call: randori
-            with:
-              concept: "{{concept}}"
-              subject: "{{subject}}"
-              topic: "{{topic}}"
-      # ——— END CONCEPT LOOP ———
+  test:
+    on:
+      - user is ready to be tested
+      - user asks for a quiz
+      - study confirms test
+    creates_issue: false
+    read:
+      - "kata/{{kata_slug}}.yml"
+      - .gakusei.yml
+    steps:
+      - ask: "{{quiz_question_based_on_kata}}"
+      - evaluate: user answer
+      - call: review
+    output:
+      state_changes: []
 
-      - issue:
-          check: "concepts taught and randori completed"
-
+  review:
+    on:
+      - test completes
+      - user asks for feedback
+    creates_issue: false
+    read:
+      - .gakusei.yml
+      - "kata/{{kata_slug}}.yml"
+    steps:
+      - say: "{{feedback_with_correct_answer_if_wrong}}"
       - write:
-          path: "kata/{subject}/"
-          filename: "{topic}.md"
-          access: read-write
-          via: PR
-      - issue:
-          check: "kata updated"
-
-      - write:
-          path: "kiroku/nikki/"
-          filename: "YYYY-MM-DD_{subject}_study.yml"
-          from: templates/nikki.yml
+          path: "log/"
+          filename: "YYYY-MM-DD_{{kata_slug}}.yml"
           access: append-only
           via: PR
-      - issue:
-          check: "nikki written"
-
       - write:
           path: .gakusei.yml
-          fields: [last_session, book_progress]
+          fields: [belt, last_kata, weak_points]
           access: read-write
           via: PR
-      - issue:
-          check: ".gakusei.yml updated"
-
-      - issue:
-          check: "readiness evaluated"
+      - propose: "{{next_recommended_kata}}"
+        on_confirm:
+          - call: study
     output:
-      state_changes: [study-completed]
+      state_changes: [session-completed]
 
-  randori:
-    # Called by study_open once per concept — context (subject, topic, concept) inherited.
-    # Also callable standalone by the user — context must be resolved via ask.
+  add_kata:
     on:
-      - user wants to drill on the current topic
-      - user asks to be quizzed on what was just explained
-      - user wants to practice a concept
-      - user wants to review what they know
-      - user wants to practice on their own without studying
-    creates_issue: false
-    read:
-      - .gakusei.yml
-      - "kata/{subject}/{topic}.md"   # resolved after context step below
-    steps:
-      # ——— CONTEXT RESOLUTION ———
-      # When called from study_open, subject/topic/concept are inherited — skip.
-      # When called standalone, they are unknown — ask before doing anything.
-      - if:
-          condition: subject is missing
-          then:
-            - ask: "Which subject?"
-      - if:
-          condition: topic is missing
-          then:
-            - ask: "Which topic or chapter within {{subject}}?"
-      # ——— END CONTEXT RESOLUTION ———
-
-      - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
-
-      - if:
-          condition: answer_correct OR answer_substantially_correct
-          then:
-            - say: "Correct. {{brief_positive_reinforcement}}"
-          else:
-            - say: "Not quite — {{gap_explanation}}"
-            - ask: "{{simpler_followup_on_same_concept_using_only_source_or_prior_kata}}"
-            - if:
-                condition: followup_correct
-                then:
-                  - say: "Good. {{brief_explanation_of_gap}}"
-                  - write:
-                      path: "kiroku/nikki/"
-                      filename: "YYYY-MM-DD_{subject}_study.yml"
-                      fields: [weak_spots]
-                      access: append-only
-                      via: PR
-                else:
-                  - say: "{{full_re_explanation_of_concept}}"
-                  - write:
-                      path: "kiroku/nikki/"
-                      filename: "YYYY-MM-DD_{subject}_study.yml"
-                      fields: [weak_spots]
-                      access: append-only
-                      via: PR
-    output:
-      state_changes: [randori-completed]
-
-  evaluate_readiness:
-    # EVENT-TRIGGERED — silent.
-    # Triggered by: study-completed.
-    # Computes readiness score, writes result to .gakusei.yml, emits outcome event.
-    # User interaction delegated entirely to readiness_report.
-    on:
-      events: [study-completed]
-    dedup: once per session
-    creates_issue: false
-    read:
-      - .gakusei.yml
-      - "kiroku/nikki/"
-    steps:
-      - compute: randori_score
-      - compute: sessions_without_gaps
-      - compute: session_weak_spots
-      - if:
-          condition: randori_score >= readiness_thresholds.min_randori_score
-                     AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
-          then:
-            - write:
-                path: .gakusei.yml
-                fields: [readiness_status, readiness_score]
-                access: read-write
-                via: PR
-            - emit: readiness-ready
-          else:
-            - if:
-                condition: session_weak_spots | count > 0
-                then:
-                  - write:
-                      path: .gakusei.yml
-                      fields: [readiness_status, readiness_score, readiness_gaps]
-                      access: read-write
-                      via: PR
-                  - emit: readiness-gap
-                else:
-                  - write:
-                      path: .gakusei.yml
-                      fields: [readiness_status, readiness_score]
-                      access: read-write
-                      via: PR
-                  - emit: readiness-loop
-    output:
-      state_changes: []
-
-  readiness_report:
-    # REPORTER — user-facing.
-    # Triggered by: readiness-ready, readiness-gap, readiness-loop.
-    # Reads result written by evaluate_readiness, proposes next action.
-    # Does NOT compute or write.
-    type: reporter
-    on:
-      events: [readiness-ready, readiness-gap, readiness-loop]
-    creates_issue: false
-    read:
-      - .gakusei.yml
-    steps:
-      - if:
-          condition: readiness_status == "ready"
-          then:
-            - say: "Score: {{readiness_score.randori_pct}}% correct, {{readiness_score.clean_sessions}} clean sessions. You look ready for shinsa."
-            - propose: "Take the shinsa for {{subject}} now?"
-              on_confirm:
-                - call: shinsa
-              on_reject:
-                - say: "OK. Come back when you're ready."
-          else:
-            - if:
-                condition: readiness_status == "gap"
-                then:
-                  - say: "Gaps found: {{readiness_gaps | join}}. Let's work on them."
-                  - propose: "Study the weak spots now?"
-                    on_confirm:
-                      - call: study_open
-                        with:
-                          subject: "{{subject}}"
-                          topic: "{{readiness_gaps_as_topic}}"
-                          source: gaps_from_nikki
-                    on_reject:
-                      - say: "OK. Weak spots saved. We'll revisit them next session."
-                else:
-                  - say: "No gaps today, but not enough clean sessions yet ({{readiness_score.clean_sessions}}/{{readiness_thresholds.min_sessions_without_gaps}}). Keep going."
-                  - propose: "Study a new concept in {{subject}}?"
-                    on_confirm:
-                      - call: study_open
-                        with:
-                          subject: "{{subject}}"
-                          topic: "{{next_concept_not_yet_in_kata}}"
-                    on_reject:
-                      - say: "OK. See you next session."
-    output:
-      state_changes: []
-
-  shinsa:
-    on:
-      - user says they finished a book or subject
-      - user wants to take the formal exam for a subject
-      - user wants to test their overall knowledge of a subject
+      - user wants to add a new kata
+      - user wants to define a new topic
     creates_issue: true
     issue:
-      title: "Shinsa: {subject}"
+      title: "Add kata: {slug}"
       body: |
-        - [ ] exam conducted
-        - [ ] nikki written
+        - [ ] kata/{slug}.yml created
         - [ ] .gakusei.yml updated
-        - [ ] gakusei.md updated
       on_complete: close
       on_fail: comment
     read:
       - .gakusei.yml
-      - "kata/{subject}/"
     steps:
-      - ask: "Ready for shinsa on {{subject}}? No feedback during exam — only final score."
-
-      # ——— EXAM LOOP ———
-      # 10 open questions drawn from kata/{subject}/.
-      # No feedback between questions — score computed at end.
-      - for_each: question in exam.questions   # count: 10, source: kata/{subject}/
-        do:
-          - ask: "{{question.text}}"
-      # ——— END EXAM LOOP ———
-
-      - compute: score
-      - compute: weak_chapters
-      - issue:
-          check: "exam conducted"
-
+      - ask: "What topic should this kata cover?"
       - write:
-          path: "kiroku/nikki/"
-          filename: "YYYY-MM-DD_{subject}_shinsa.yml"
-          from: templates/nikki.yml
+          path: "kata/"
+          filename: "{{slug}}.yml"
           access: write-once
           via: PR
       - issue:
-          check: "nikki written"
-
+          check: "kata/{slug}.yml created"
       - write:
           path: .gakusei.yml
-          fields: [exams, readiness_status]
+          fields: [available_kata]
           access: read-write
           via: PR
       - issue:
           check: ".gakusei.yml updated"
-
-      - write:
-          path: gakusei.md
-          access: read-write
-          via: PR
-      - issue:
-          check: "gakusei.md updated"
-
-      - commit_before_reply
-
-      - if:
-          condition: score >= 80
-          then:
-            - emit: shinsa-passed
-          else:
-            - emit: shinsa-failed
     output:
-      state_changes: []   # emits are conditional — see if/then/else above
-
-  shinsa_report:
-    # REPORTER — user-facing.
-    # Triggered by: shinsa-passed, shinsa-failed.
-    # Reads exam result written by shinsa, proposes next action.
-    # Does NOT compute or write.
-    type: reporter
-    on:
-      events: [shinsa-passed, shinsa-failed]
-    creates_issue: false
-    read:
-      - .gakusei.yml
-    steps:
-      - if:
-          condition: shinsa_event == "shinsa-passed"
-          then:
-            - say: "Shinsa passed. Score: {{score}}%."
-            - propose: "Move to next level for {{subject}}?"
-              on_confirm:
-                - call: level_up
-              on_reject:
-                - say: "OK. Level up whenever you're ready."
-          else:
-            - say: "Shinsa not passed. Score: {{score}}%. Weak chapters: {{weak_chapters}}."
-            - propose: "Study the weak chapters now?"
-              on_confirm:
-                - call: study_open
-                  with:
-                    subject: "{{subject}}"
-                    topic: "{{weak_chapters_as_topic}}"
-                    source: gaps_from_nikki
-              on_reject:
-                - say: "OK. Review when you're ready and try again."
-    output:
-      state_changes: []
-
-  level_up:
-    on:
-      - user confirms level up after passing the shinsa
-      - user wants to manually advance their level on a subject
-    creates_issue: true
-    issue:
-      title: "Level up: {subject} → level {new_level}"
-      body: |
-        - [ ] .gakusei.yml updated (level, active_books, completed_books)
-        - [ ] gakusei.md updated
-        - [ ] kiroku/makimono updated
-      on_complete: close
-      on_fail: comment
-    read:
-      - .gakusei.yml
-      - gakusei.md
-      - "kiroku/makimono/"
-    steps:
-      - write:
-          path: .gakusei.yml
-          fields: [subjects.level, subjects.active_books, subjects.completed_books]
-          access: read-write
-          via: PR
-      - issue:
-          check: ".gakusei.yml updated (level, active_books, completed_books)"
-
-      - write:
-          path: gakusei.md
-          access: read-write
-          via: PR
-      - issue:
-          check: "gakusei.md updated"
-
-      - write:
-          path: "kiroku/makimono/"
-          filename: "YYYY-MM-DD_{subject}_level_{new_level}.yml"
-          from: templates/makimono.yml
-          access: write-once
-          via: PR
-      - issue:
-          check: "kiroku/makimono updated"
-
-      - commit_before_reply
-
-      - say: "Level up complete. {{subject}} is now level {{new_level}}."
-    output:
-      state_changes: [level-up-completed]
+      state_changes: [kata-added]
 
   unknown_scenario:
     on:
@@ -425,17 +117,12 @@ required_scenarios:
     creates_issue: false
     read: []
     steps:
+      - propose: "Did you mean: {{closest_scenario}}?"
+        on_confirm:
+          - call: "{{closest_scenario}}"
       - if:
-          condition: closest_scenario exists
+          condition: no_match
           then:
-            - propose: "Did you mean: {{closest_scenario}}?"
-              on_confirm:
-                - call: "{{closest_scenario}}"
-              on_reject:
-                - say: "OK. What would you like to do?"
-          else:
-            - say: "I don't recognize that as a defined scenario. Want me to open an issue to add it?"
-              # Note: the AI must NOT open the issue autonomously.
-              # It must wait for user confirmation before any action.
+            - say: "Scenario not defined. Want me to add it?"
     output:
       state_changes: []

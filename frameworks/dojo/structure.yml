@@ -1,110 +1,35 @@
-# dojo framework — directory structure
+# structure.yml
+# Required directory layout for a dojo instance.
 
-required_layout:
-  root:
-    - .agent.yml           # AI manifest — entry point, read-only
-    - .scenarios.yml       # AI scenario catalog — detailed user-triggered flows
-    - .registry.yml        # cross-repo connections — read-only
-    - .gakusei.yml         # machine-readable student profile — AI reads and writes
-    - onboarding.yml       # atomic onboarding — read once at first session, self-contained
-    - README.md            # human navigation hub
-    # gakusei.md is NOT required at init — created by AI on first session
-  kata/:
-    - "{subject}/"            # one subfolder per subject (e.g. github/, rails/, devops/)
-    - "{subject}/{topic}.md"  # one file per topic within the subject
-  kiroku/:
-    makimono/:              # living documents — evolve with the student, updated via PR
-      - "{subject}.md"      # one file per subject (e.g. github.md, python.md)
-    nikki/:                 # immutable session diary — append-only, never overwrite
-      - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session (e.g. 2026-06-09_python_study.md)
-  templates/:
-    - kata.yml
-    - kiroku_nikki.yml
-    - kiroku_makimono.yml
-    - shinsa.yml
+framework: dojo
 
-rules:
-  - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
-  - gakusei.md is created by the AI on first session and updated after every session and level_up
-  - kiroku/nikki/ files are append-only — never overwrite
-  - kiroku/makimono/ files are living documents — updated via PR, never directly on main
-  - kata/ files are updated via PR, never directly on main
-  - templates/ must be read before generating any document
-  - densho/ does not exist — books are read from library sources, not stored in the repository
-  - file permissions are declared in .agent.yml file_access — structure.yml is reference only
-  - onboarding.yml is read only once at first session — never again after setup is complete
+required_files:
+  - path: .agent.yml
+    role: AI manifest — read at session start
+    template: zeroth/templates/.agent.yml
+  - path: .scenarios.yml
+    role: scenario catalog
+    template: zeroth/frameworks/dojo/.scenarios.yml
+  - path: .registry.yml
+    role: cross-repo connection map
+    template: zeroth/templates/.registry.yml
+  - path: .gakusei.yml
+    role: learner identity, current belt, last kata, weak points
+    template: null  # created at dojo init with real learner data
 
-strict_root:
-  allowed:
-    - .agent.yml
-    - .scenarios.yml
-    - .registry.yml
-    - .gakusei.yml
-    - .github
-    - .git
-    - gakusei.md
-    - README.md
-    - LICENSE
-    - onboarding.yml
-    - kata
-    - kiroku
-    - templates
+required_directories:
+  - path: kata/
+    role: kata definitions — one file per topic
+    min_files: 1
+  - path: log/
+    role: append-only session logs
+    min_files: 0  # empty at init, populated after first review
 
-dynamic_dirs:
-  kata/{subject}/:
-    pattern: "{topic}.md"
-    regex: "^.+\\.md$"
-    allow_empty: false
-  kiroku/makimono/:
-    pattern: "{subject}.md"
-    regex: "^.+\\.md$"
-    allow_empty: true
-  kiroku/nikki/:
-    pattern: "YYYY-MM-DD_{subject}_{type}.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\\.md$"
-    allow_empty: true
+file_naming:
+  kata: "{{slug}}.yml"            # e.g. promises.yml, closures.yml
+  log: "YYYY-MM-DD_{{slug}}.yml"  # e.g. 2026-06-13_promises.yml
 
-# ---------------------------------------------------------------------------
-# SCAFFOLD STRATEGY
-# Used by the create_framework scenario to know what to do with each file.
-# ---------------------------------------------------------------------------
-scaffold_strategy:
-
-  read:  # read to understand what to do — do not copy
-    - frameworks/{name}/structure.yml
-    - frameworks/{name}/overview.yml
-    - frameworks/{name}/onboarding.yml
-
-  copy:  # copy as-is from zeroth/templates/ into the new repo root
-    - source: templates/.agent.yml
-      dest: .agent.yml
-    - source: templates/.registry.yml
-      dest: .registry.yml
-    - source: templates/.scenarios.yml
-      dest: .scenarios.yml
-
-  copy_framework:  # copy from frameworks/{name}/ into the new repo
-    - source: frameworks/{name}/onboarding.yml
-      dest: onboarding.yml
-    - source: frameworks/{name}/templates/kata.yml
-      dest: templates/kata.yml
-    - source: frameworks/{name}/templates/kiroku_nikki.yml
-      dest: templates/kiroku_nikki.yml
-    - source: frameworks/{name}/templates/kiroku_makimono.yml
-      dest: templates/kiroku_makimono.yml
-    - source: frameworks/{name}/templates/shinsa.yml
-      dest: templates/shinsa.yml
-
-  generate:  # generate from scratch using context + onboarding.yml
-    - dest: .gakusei.yml
-      guided_by: onboarding.yml
-      note: neutral at init — populated during first session
-    - dest: kiroku/makimono/.gitkeep
-      note: empty dir placeholder
-    - dest: kiroku/nikki/.gitkeep
-      note: empty dir placeholder
-    - dest: kata/.gitkeep
-      note: empty dir placeholder
-    - dest: README.md
-      guided_by: overview.yml
-      note: human-facing intro generated from overview
+notes:
+  - log/ files are immutable — never overwrite, only append new files
+  - .gakusei.yml is the single source of truth for learner state
+  - one dojo = one subject — do not mix unrelated topics in one repo
