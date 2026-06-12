@@ -25,7 +25,7 @@ required_scenarios:
         on_confirm:
           - call: study_open
         on_reject:
-          - say: "What would you like to do? study_open, quiz, shinsa, randori."
+          - say: "What would you like to do? study_open, shinsa, randori."
     output:
       state_changes: []
 
@@ -124,6 +124,8 @@ required_scenarios:
       - user wants to drill on the current topic
       - user asks to be quizzed on what was just explained
       - user wants to practice a concept
+      - user wants to review what they know
+      - user wants to practice on their own without studying
     creates_issue: false
     # When called from study_open: concept, subject, topic passed as context.
     # When called standalone: read from .gakusei.yml last_session.
@@ -190,7 +192,7 @@ required_scenarios:
     # EVENT-TRIGGERED — silent.
     # Triggered by: study-completed.
     # Computes readiness score, writes result to .gakusei.yml, emits outcome event.
-    # User interaction delegated entirely to readiness_report (user-triggered).
+    # User interaction delegated entirely to readiness_report.
     on:
       events: [study-completed]
     dedup: once per session
@@ -198,13 +200,10 @@ required_scenarios:
     read:
       - .gakusei.yml                      # readiness_thresholds + session history
       - "kiroku/nikki/"                   # recent sessions for score + gap analysis
-    # readiness_thresholds (defined in .gakusei.yml):
-    #   min_randori_score: 0.75           # % correct across recent sessions
-    #   min_sessions_without_gaps: 2      # consecutive sessions with no weak_spots
     steps:
-      - compute: randori_score            # % correct answers across last N sessions
-      - compute: sessions_without_gaps    # consecutive sessions with zero weak_spots
-      - compute: session_weak_spots       # weak_spots from current session nikki
+      - compute: randori_score
+      - compute: sessions_without_gaps
+      - compute: session_weak_spots
       - if:
           condition: randori_score >= readiness_thresholds.min_randori_score
                      AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
@@ -233,16 +232,14 @@ required_scenarios:
                       via: PR
                   - emit: readiness-loop
     output:
-      state_changes: []                   # all emits are conditional — declared above
+      state_changes: []
 
   readiness_report:
-    # USER-TRIGGERED (also auto-invoked after evaluate_readiness event chain).
-    # Reads readiness_status from .gakusei.yml and proposes next action.
     on:
       events: [readiness-ready, readiness-gap, readiness-loop]
     creates_issue: false
     read:
-      - .gakusei.yml                      # readiness_status, readiness_score, readiness_gaps
+      - .gakusei.yml
     steps:
       - if:
           condition: readiness_status == "ready"
@@ -277,26 +274,6 @@ required_scenarios:
                           topic: "{{next_concept_not_yet_in_kata}}"
                     on_reject:
                       - say: "OK. See you next session."
-    output:
-      state_changes: []
-
-  quiz:
-    on:
-      - user wants to do a quick quiz on their current subject
-      - user wants to practice on their own without studying
-      - user wants to review what they know
-    creates_issue: false
-    read:
-      - .gakusei.yml
-      - "kata/{subject}/"
-    steps:
-      - say: "Quiz on {{last_session.subject}}. Answer by typing A, B, C or D."
-      - ask: "{{mc_question_1_with_4_options_from_kata}}"
-      - ask: "{{mc_question_2_with_4_options_from_kata}}"
-      - ask: "{{mc_question_3_with_4_options_from_kata}}"
-      - ask: "{{mc_question_4_with_4_options_from_kata}}"
-      - ask: "{{mc_question_5_with_4_options_from_kata}}"
-      - say: "Score: {{score}}/5. {{weak_spots_summary}}"
     output:
       state_changes: []
 
