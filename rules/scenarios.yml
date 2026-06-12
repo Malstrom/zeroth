@@ -19,6 +19,28 @@ routing:
     on: patterns are always written in English — language-independent.
 
 # ---------------------------------------------------------------------------
+# EVENT ROUTING
+# How the AI handles state_change events emitted by scenarios.
+# ---------------------------------------------------------------------------
+event_routing:
+  # When a scenario emits a state_change (via output.state_changes or emit:),
+  # the AI scans ALL scenarios for on: events: lists that include that event name.
+  # Matching scenarios are queued and executed in declaration order.
+  mechanism: sequential           # matching scenarios run one after the other
+  on_conflict: all_matches        # ALL matching scenarios run — not just first
+  execution: automatic            # no user prompt — runs immediately after emitting scenario
+  context_inheritance: true       # event-triggered scenario inherits calling scenario's context
+                                  # (subject, topic, slug, etc.)
+  forbidden_steps: [say, ask, propose, issue]
+                                  # event-triggered scenarios are silent — no user interaction.
+                                  # They compute, write, and emit. Interaction happens in
+                                  # a follow-up user-triggered scenario that reads the result.
+  note: |
+    Pattern: emit → silent handler (compute + write + emit) → user-triggered reporter (say + propose).
+    The reporter scenario is called automatically by the framework after all event handlers complete,
+    if a reporter is registered for that event chain.
+
+# ---------------------------------------------------------------------------
 # SCENARIO ANATOMY
 # Every scenario is one named key under required_scenarios.
 # Fields are listed in reading order — top = evaluated first.
@@ -44,7 +66,10 @@ anatomy:
         syntax: |
           on:
             events: [event-name-1, event-name-2]
-        note: called explicitly after a state_change — never auto-triggered
+        note: |
+          Runs automatically when a matching event is emitted.
+          Silent — no say, ask, propose, or issue steps allowed.
+          Computes, writes, emits. Interaction delegated to a reporter scenario.
         required_with: creates_issue == false
 
   # --- issue lifecycle ---
@@ -112,6 +137,16 @@ anatomy:
           - propose: "action description"
             on_confirm:
               - call: scenario_name
+            on_reject:
+              - say: "fallback message"
+
+      compute:
+        description: calculate a derived value from available data — stores result as named variable
+        syntax: "- compute: variable_name"
+        note: |
+          Available in event-triggered scenarios.
+          The AI derives the value from read: files and inherited context.
+          Result is available as {{variable_name}} in subsequent steps.
 
       write:
         description: write a file — behavior declared via access field
@@ -142,8 +177,11 @@ anatomy:
         syntax: |
           - issue:
               check: "checklist item text"  # checks that item in issue body
+          # OR
+          - issue:
+              comment: "free text comment"  # adds a comment to the open issue
         note: |
-          Use only for mid-scenario checklist updates.
+          Use only for mid-scenario checklist updates or progress comments.
           Open and close are automatic — do not replicate with issue steps.
         forbidden_in: event-triggered scenarios
 
@@ -158,6 +196,11 @@ anatomy:
                 - step
         note: else is optional
 
+      emit:
+        description: emit a state_change event conditionally (inside if/then/else only)
+        syntax: "- emit: event-name"
+        note: use inside if/then/else only — never unconditionally outside if
+
     forbidden_in_event_triggered: [say, ask, propose, issue]
 
   # --- output ---
@@ -165,18 +208,13 @@ anatomy:
     rule: required on every scenario
     fields:
       state_changes:
-        rule: list of event names emitted when scenario completes
+        rule: list of event names emitted when scenario completes unconditionally
         format: block sequence or []
         naming: kebab-case
         empty: use state_changes: [] — never omit
         note: |
-          Conditional emits go inside if/then/else steps using a dedicated emit step.
+          Conditional emits go inside if/then/else steps using emit:.
           Do not list conditional events here — only unconditional ones.
-
-      emit: (inside steps only)
-        description: emit a state_change event conditionally
-        syntax: "- emit: event-name"
-        note: use inside if/then/else only — never unconditionally outside if
 
 # ---------------------------------------------------------------------------
 # REQUIRED SCENARIOS
@@ -205,3 +243,4 @@ validation:
   - output.state_changes must never be omitted
   - dedup is only valid on event-triggered scenarios
   - trigger patterns and on: events must be in English
+  - compute steps are only valid in event-triggered scenarios

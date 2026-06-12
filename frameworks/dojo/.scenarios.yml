@@ -90,7 +90,7 @@ required_scenarios:
       - write:
           path: "kata/{subject}/"
           filename: "{topic}.md"
-          access: read-write             # create if missing, overwrite/extend if exists
+          access: read-write
           via: PR
       - issue:
           check: "kata updated"
@@ -112,16 +112,10 @@ required_scenarios:
       - issue:
           check: ".gakusei.yml updated"
 
-      # ——— READINESS EVALUATION LOOP ———
-      # Read readiness_thresholds from .gakusei.yml.
-      # Compute: randori_score (% correct across recent sessions) and
-      #          sessions_without_gaps (consecutive sessions with no weak_spots).
-      # Loop until student is ready for shinsa or explicitly stops.
-      - call: evaluate_readiness
       - issue:
-          check: "readiness evaluated"
+          check: "readiness evaluated"   # checked by readiness_report after event chain
     output:
-      state_changes: [study-completed]
+      state_changes: [study-completed]   # → triggers evaluate_readiness → readiness_report
 
   randori:
     # Called by study_open once per concept.
@@ -193,10 +187,13 @@ required_scenarios:
       state_changes: [randori-completed]
 
   evaluate_readiness:
-    # Called automatically at end of study_open.
-    # Loops until student is ready for shinsa or explicitly stops.
+    # EVENT-TRIGGERED — silent.
+    # Triggered by: study-completed.
+    # Computes readiness score, writes result to .gakusei.yml, emits outcome event.
+    # User interaction delegated entirely to readiness_report (user-triggered).
     on:
-      - events: [study-completed]
+      events: [study-completed]
+    dedup: once per session
     creates_issue: false
     read:
       - .gakusei.yml                      # readiness_thresholds + session history
@@ -207,12 +204,50 @@ required_scenarios:
     steps:
       - compute: randori_score            # % correct answers across last N sessions
       - compute: sessions_without_gaps    # consecutive sessions with zero weak_spots
-
+      - compute: session_weak_spots       # weak_spots from current session nikki
       - if:
           condition: randori_score >= readiness_thresholds.min_randori_score
                      AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
           then:
-            - say: "Score: {{randori_score_pct}}% correct, {{sessions_without_gaps}} clean sessions. You look ready for shinsa."
+            - write:
+                path: .gakusei.yml
+                fields: [readiness_status, readiness_score]
+                access: read-write
+                via: PR
+            - emit: readiness-ready
+          else:
+            - if:
+                condition: session_weak_spots | count > 0
+                then:
+                  - write:
+                      path: .gakusei.yml
+                      fields: [readiness_status, readiness_score, readiness_gaps]
+                      access: read-write
+                      via: PR
+                  - emit: readiness-gap
+                else:
+                  - write:
+                      path: .gakusei.yml
+                      fields: [readiness_status, readiness_score]
+                      access: read-write
+                      via: PR
+                  - emit: readiness-loop
+    output:
+      state_changes: []                   # all emits are conditional — declared above
+
+  readiness_report:
+    # USER-TRIGGERED (also auto-invoked after evaluate_readiness event chain).
+    # Reads readiness_status from .gakusei.yml and proposes next action.
+    on:
+      events: [readiness-ready, readiness-gap, readiness-loop]
+    creates_issue: false
+    read:
+      - .gakusei.yml                      # readiness_status, readiness_score, readiness_gaps
+    steps:
+      - if:
+          condition: readiness_status == "ready"
+          then:
+            - say: "Score: {{readiness_score.randori_pct}}% correct, {{readiness_score.clean_sessions}} clean sessions. You look ready for shinsa."
             - propose: "Take the shinsa for {{subject}} now?"
               on_confirm:
                 - call: shinsa
@@ -220,20 +255,20 @@ required_scenarios:
                 - say: "OK. Come back when you're ready."
           else:
             - if:
-                condition: session_weak_spots | count > 0
+                condition: readiness_status == "gap"
                 then:
-                  - say: "Gaps found: {{weak_spots_summary}}. Let's work on them."
+                  - say: "Gaps found: {{readiness_gaps | join}}. Let's work on them."
                   - propose: "Study the weak spots now?"
                     on_confirm:
                       - call: study_open
                         with:
                           subject: "{{subject}}"
-                          topic: "{{weak_spots_as_topic}}"
+                          topic: "{{readiness_gaps_as_topic}}"
                           source: gaps_from_nikki
                     on_reject:
                       - say: "OK. Weak spots saved. We'll revisit them next session."
                 else:
-                  - say: "No gaps today, but not enough sessions yet ({{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}} clean). Keep going."
+                  - say: "No gaps today, but not enough clean sessions yet ({{readiness_score.clean_sessions}}/{{readiness_thresholds.min_sessions_without_gaps}}). Keep going."
                   - propose: "Study a new concept in {{subject}}?"
                     on_confirm:
                       - call: study_open
@@ -243,7 +278,7 @@ required_scenarios:
                     on_reject:
                       - say: "OK. See you next session."
     output:
-      state_changes: [readiness-evaluated]
+      state_changes: []
 
   quiz:
     on:
