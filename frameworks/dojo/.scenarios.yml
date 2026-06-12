@@ -13,11 +13,19 @@ required_scenarios:
     read:
       - .gakusei.yml
     steps:
+      - if:
+          condition: gakusei_missing OR student_name == ""
+          then:
+            - read: frameworks/dojo/onboarding.yml
+            - call: onboarding
+            - stop
       - say: "{{student_name}}!"
       - say: "Last session: {{last_session.subject}} — {{last_session.topic}}. Next: {{last_session.next}}"
       - propose: "Continue from where you left off?"
         on_confirm:
           - call: study_open
+        on_reject:
+          - say: "What would you like to do? study_open, quiz, shinsa, randori."
     output:
       state_changes: []
 
