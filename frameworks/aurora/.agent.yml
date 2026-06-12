@@ -1,11 +1,11 @@
 # .agent.yml
-# AI-only operational manifest for the dojo framework.
+# AI-only operational manifest for the aurora framework.
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
 # ---------------------------------------------------------------------------
 language:
-  chat: read from .gakusei.yml    # language used when speaking with the student
+  chat: read from .aurora.yml     # language used when speaking with the user
   files: english                  # all file content, commits, PR/issue bodies
   filenames: english              # all file names AND folder names (snake_case, lowercase)
 
@@ -17,8 +17,8 @@ work_rules:
   branch_naming: "{type}/{short-description}"
   all_writes_via_pr: true
   merge_strategy: squash
-  level_up: AI proposes, student confirms — never automatic
-  densho: does not exist — books consumed live from library sources
+  log_immutability: append-only, commit before responding
+  inbox_immutability: write-once, never edit after creation
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
@@ -54,28 +54,46 @@ scenarios:
 # Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
 workspace:
-  .gakusei.yml:
-    role: student identity, progress, and language
-    access: read-write
+  .aurora.yml:
+    role: user profile, roles, domains, language, timezone
+    access: read-only
   .scenarios.yml:
     role: scenario catalog
     access: read-only
   .registry.yml:
     role: cross-repo connections
     access: read-only
-  gakusei.md:
-    role: human-readable student profile
+  contacts/:
+    role: external and internal contact profiles
+    access: read-write
+  playbooks/:
+    role: step-by-step instructions for recurring work types
     access: read-write
   templates/:
-    role: file templates for kata, nikki, makimono, shinsa
+    role: file templates for log, inbox, contact, playbook, client context
     access: read-only
   patterns:
-    - path: "kata/**"
-      role: practice exercises
+    - path: "clients/*/context.yml"
+      role: static client info
       access: read-write
-    - path: "kiroku/nikki/**"
-      role: immutable session logs
+    - path: "clients/*/summary.md"
+      role: human-facing client summary
+      access: read-write
+    - path: "clients/*/inbox/*.yml"
+      role: raw incoming tasks
+      access: write-once
+    - path: "clients/*/output/**"
+      role: AI-generated output for human delivery
+      access: read-write
+    - path: "clients/*/playbooks/**"
+      role: client-specific playbook overrides
+      access: read-write
+    - path: "clients/*/log/*.yml"
+      role: immutable daily work logs
       access: append-only
-    - path: "kiroku/makimono/**"
-      role: study scrolls
+    - path: "clients/*/log/*.index.yml"
+      role: monthly log index, AI-generated
+      access: read-write
+    - path: "contacts/*.yml"
+      role: contact profiles
       access: read-write

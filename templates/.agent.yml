@@ -4,84 +4,68 @@
 # Spec: github.com/Malstrom/zeroth
 
 # ---------------------------------------------------------------------------
-# CONNECTOR CHECK — mandatory, must be first block
+# LANGUAGE
 # ---------------------------------------------------------------------------
-connector_check:
-  on_fail: |
-    Say: "GitHub connector not active. Click + → GitHub → new chat."
-    Stop immediately. Do not fall back to web or browser.
+language:
+  chat: read from identity file   # language used in conversation with the user
+  files: english                  # all file content, commits, PR/issue bodies
+  filenames: english              # all file names AND folder names (snake_case, lowercase)
 
 # ---------------------------------------------------------------------------
-# GLOBAL
+# WORK RULES
 # ---------------------------------------------------------------------------
-global:
-  language: read from identity file
-  pr_strategy: batch_per_session
+work_rules:
+  branch_per_issue: true
+  branch_naming: "{type}/{short-description}"
+  all_writes_via_pr: true
   merge_strategy: squash
-  dedup_scope: current_session
-  trigger_matching: pattern_first
-
-# ---------------------------------------------------------------------------
-# REPO MAP
-# ---------------------------------------------------------------------------
-repo_map:
-  # declare all files and their role
-  # example:
-  # .gakusei.yml: student identity and profile
-  # kiroku/: immutable session records
-
-# ---------------------------------------------------------------------------
-# FILE ACCESS
-# ---------------------------------------------------------------------------
-file_access:
-  .agent.yml: read-only
-  .registry.yml: read-only
-  .scenarios.yml: read-only
-  # add all files with explicit permissions
+  # add framework-specific rules here
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
+# false = execute immediately, no confirmation needed
+# true  = always ask before executing
 # ---------------------------------------------------------------------------
 tool_approval:
-  feature_branch: false
-  file_edit: false
+  create_branch: false
   push_files: false
   create_pr: false
+  create_issue: false
+  create_sub_issue: false
+  update_issue: false
   merge_to_main: false
   delete_file: true
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
-# WRITE-AHEAD
-# ---------------------------------------------------------------------------
-write_ahead:
-  rule: commit before responding
-  branch_strategy: |
-    NEVER push directly to main.
-    Always: feature branch → PR → squash merge.
-    Branch naming: {type}/{short-description}
-    Types: feat, fix, docs, test, chore
-
-# ---------------------------------------------------------------------------
 # SCENARIOS
+# Read .scenarios.yml BEFORE any reasoning.
+# Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
 scenarios:
-  scenarios_file: .scenarios.yml
+  file: .scenarios.yml
+  spec: zeroth/rules/scenarios.yml
+  read_before_responding: true
+  on_no_match: propose new scenario to user before proceeding
 
 # ---------------------------------------------------------------------------
-# POST-ACTION HOOK
+# WORKSPACE
+# Exact paths: named keys
+# Glob patterns: under patterns list
+# Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
-post_action_hook:
-  after_every_state_change:
-    - read: .registry.yml
-    - if:
-        condition: matching_sync_triggers_exist
-        then:
-          - call_handlers: matching
-  conflict_check:
-    if_open_pr_on_same_file: stop and notify user
-
-# ---------------------------------------------------------------------------
-# HANDLERS
-# ---------------------------------------------------------------------------
-handlers: {}
+workspace:
+  .agent.yml:
+    role: AI manifest
+    access: read-only
+  .scenarios.yml:
+    role: scenario catalog
+    access: read-only
+  .registry.yml:
+    role: cross-repo connections
+    access: read-only
+  # add all framework-specific paths here
+  # patterns:
+  #   - path: "some/glob/**"
+  #     role: description
+  #     access: read-only | read-write | append-only | write-once
