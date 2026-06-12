@@ -1,26 +1,41 @@
 # dojo framework — scenario catalog
+# Model: GitHub Actions workflows — on: for routing, steps: for logic
+# Each scenario = one workflow: trigger → read → steps → output
 # Syntax: rules/scenarios.yml
+# Spec: github.com/Malstrom/zeroth
 
 required_scenarios:
 
   session_start:
-    trigger_patterns:
+    on:
       - session opens automatically
+    creates_issue: false
     read:
       - .gakusei.yml
-    actions:
+    steps:
       - say: "{{student_name}}!"
       - say: "Last session: {{last_session.subject}} — {{last_session.topic}}. Next: {{last_session.next}}"
       - propose: "Continue from where you left off?"
         on_confirm:
           - call: study_open
-    state_changes: []
+    output:
+      state_changes: []
 
   study_open:
-    trigger_patterns:
+    on:
       - user wants to study a specific topic or chapter
       - user asks to be taught something
       - user wants to open a study session on a subject
+    creates_issue: true
+    issue:
+      title: "Study: {subject} — {topic}"
+      body: |
+        - [ ] source loaded
+        - [ ] kata updated
+        - [ ] nikki written
+        - [ ] .gakusei.yml updated
+      on_complete: close
+      on_fail: comment
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
@@ -29,36 +44,45 @@ required_scenarios:
       - attached_file
       - pasted_text
       - ai_knowledge
-    actions:
+    steps:
       - say: "{{source_loading_message}}"
       - call: randori
         after: each_concept
-      - update:
-          file: "kata/{subject}/{topic}.md"
+      - write:
+          path: "kata/{subject}/"
+          filename: "{topic}.md"
+          access: read-write
           via: PR
-      - update:
-          file: "kiroku/{subject}/{date}.md"
-          mode: append
+      - issue:
+          check: "kata updated"
+      - write:
+          path: "kiroku/nikki/"
+          filename: "YYYY-MM-DD_{subject}_study.yml"
+          from: templates/nikki.yml
+          access: append-only
           via: PR
-      - update:
-          file: .gakusei.yml
+      - issue:
+          check: "nikki written"
+      - write:
+          path: .gakusei.yml
           fields: [last_session, book_progress]
+          access: read-write
           via: PR
-      - update:
-          file: gakusei.md
-          via: PR
-    state_changes:
-      - study-completed
+      - issue:
+          check: ".gakusei.yml updated"
+    output:
+      state_changes: [study-completed]
 
   randori:
-    trigger_patterns:
+    on:
       - user wants to drill on the current topic
       - user asks to be quizzed on what was just explained
       - user wants to practice a concept
+    creates_issue: false
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
-    actions:
+    steps:
       - ask: "{{open_question_on_current_concept_adapted_to_student_level}}"
       - if:
           condition: answer_correct
@@ -67,23 +91,25 @@ required_scenarios:
           else:
             - say: "Not quite — {{gap_explanation}}"
             - ask: "{{simpler_followup_on_same_concept}}"
-      - update:
-          file: "kiroku/{subject}/{date}.md"
+      - write:
+          path: "kiroku/nikki/"
+          filename: "YYYY-MM-DD_{subject}_study.yml"
           fields: [weak_spots]
-          mode: append
+          access: append-only
           via: PR
-    state_changes:
-      - randori-completed
+    output:
+      state_changes: [randori-completed]
 
   quiz:
-    trigger_patterns:
+    on:
       - user wants to do a quick quiz on their current subject
       - user wants to practice on their own without studying
       - user wants to review what they know
+    creates_issue: false
     read:
       - .gakusei.yml
       - "kata/{subject}/"
-    actions:
+    steps:
       - say: "Quiz on {{last_session.subject}}. Answer by typing A, B, C or D."
       - ask: "{{mc_question_1_with_4_options_from_kata}}"
       - ask: "{{mc_question_2_with_4_options_from_kata}}"
@@ -91,83 +117,110 @@ required_scenarios:
       - ask: "{{mc_question_4_with_4_options_from_kata}}"
       - ask: "{{mc_question_5_with_4_options_from_kata}}"
       - say: "Score: {{score}}/5. {{weak_spots_summary}}"
-    state_changes: []
+    output:
+      state_changes: []
 
   shinsa:
-    trigger_patterns:
+    on:
       - user says they finished a book or subject
       - user wants to take the formal exam for a subject
       - user wants to test their overall knowledge of a subject
+    creates_issue: true
+    issue:
+      title: "Shinsa: {subject}"
+      body: |
+        - [ ] exam conducted
+        - [ ] nikki written
+        - [ ] .gakusei.yml updated
+      on_complete: close
+      on_fail: comment
     read:
       - .gakusei.yml
       - "kata/{subject}/"
-    actions:
-      - ask: "Are you ready to begin the shinsa for {subject}? There is no feedback during the exam — only your final score."
+    steps:
+      - ask: "Ready for shinsa on {subject}? No feedback during exam — only final score."
       - say: "Shinsa begins. Answer each question in your own words. 10 to 15 questions."
-      - ask: "{{open_exam_question_1_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_2_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_3_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_4_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_5_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_6_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_7_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_8_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_9_explain_or_describe_or_difference}}"
-      - ask: "{{open_exam_question_10_explain_or_describe_or_difference}}"
+      - ask: "{{open_exam_question_1}}"
+      - ask: "{{open_exam_question_2}}"
+      - ask: "{{open_exam_question_3}}"
+      - ask: "{{open_exam_question_4}}"
+      - ask: "{{open_exam_question_5}}"
+      - ask: "{{open_exam_question_6}}"
+      - ask: "{{open_exam_question_7}}"
+      - ask: "{{open_exam_question_8}}"
+      - ask: "{{open_exam_question_9}}"
+      - ask: "{{open_exam_question_10}}"
       - if:
           condition: score >= 80
           then:
-            - update:
-                file: "kiroku/{subject}/{date}.md"
-                fields: [exam_result, score]
-                mode: append
+            - write:
+                path: "kiroku/nikki/"
+                filename: "YYYY-MM-DD_{subject}_shinsa.yml"
+                from: templates/nikki.yml
+                access: write-once
                 via: PR
-            - update:
-                file: .gakusei.yml
+            - issue:
+                check: "nikki written"
+            - write:
+                path: .gakusei.yml
                 fields: [exams]
+                access: read-write
                 via: PR
+            - issue:
+                check: ".gakusei.yml updated"
             - say: "Shinsa passed. Score: {{score}}%."
             - emit: shinsa-passed
-            - propose: "Move to the next level for {subject}?"
+            - propose: "Move to next level for {subject}?"
               on_confirm:
                 - call: level_up
           else:
-            - update:
-                file: "kiroku/{subject}/{date}.md"
-                fields: [exam_result, score, weak_chapters]
-                mode: append
+            - write:
+                path: "kiroku/nikki/"
+                filename: "YYYY-MM-DD_{subject}_shinsa.yml"
+                from: templates/nikki.yml
+                access: write-once
                 via: PR
-            - update:
-                file: .gakusei.yml
+            - issue:
+                check: "nikki written"
+            - write:
+                path: .gakusei.yml
                 fields: [exams]
+                access: read-write
                 via: PR
+            - issue:
+                check: ".gakusei.yml updated"
             - say: "Shinsa not passed. Score: {{score}}%. Weak chapters: {{weak_chapters}}. Review and retry."
             - emit: shinsa-failed
-    state_changes: []
+    output:
+      state_changes: []
 
   level_up:
-    trigger_patterns:
+    on:
       - user confirms level up after passing the shinsa
       - user wants to manually advance their level on a subject
+    creates_issue: false
     read:
       - .gakusei.yml
       - gakusei.md
-    actions:
-      - update:
-          file: .gakusei.yml
+    steps:
+      - write:
+          path: .gakusei.yml
           fields: [subjects, active_books, completed_books]
+          access: read-write
           via: PR
-      - update:
-          file: gakusei.md
+      - write:
+          path: gakusei.md
+          access: read-write
           via: PR
-    state_changes:
-      - level-up-completed
+    output:
+      state_changes: [level-up-completed]
 
   unknown_scenario:
-    trigger_patterns:
+    on:
       - any message that does not match any other scenario
+    creates_issue: false
     read: []
-    actions:
+    steps:
       - propose: "Did you mean: {{closest_scenario}}?"
         on_confirm:
           - call: "{{closest_scenario}}"
@@ -175,4 +228,5 @@ required_scenarios:
           condition: no_match
           then:
             - say: "Scenario not defined. Want me to add it?"
-    state_changes: []
+    output:
+      state_changes: []
