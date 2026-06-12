@@ -39,30 +39,62 @@ required_scenarios:
       title: "Study: {subject} — {topic}"
       body: |
         - [ ] source loaded
+        - [ ] concepts taught and randori completed
         - [ ] kata updated
         - [ ] nikki written
         - [ ] .gakusei.yml updated
+        - [ ] readiness evaluated
       on_complete: close
       on_fail: comment
     read:
-      - .gakusei.yml
-      - "kata/{subject}/{topic}.md"
+      - .gakusei.yml                      # student profile, readiness_thresholds, history
+      - "kata/{subject}/{topic}.md"       # read if exists — skip silently if missing (first study)
     input_sources:
-      - google_drive
-      - attached_file
-      - pasted_text
-      - ai_knowledge
+      # Priority order: attached_file > url > pasted_text > ai_knowledge
+      - attached_file                     # user uploads a PDF, doc, or text file
+      - url                               # user shares a link — AI reads the page
+      - pasted_text                       # user pastes raw text
+      - ai_knowledge                      # fallback: AI generates content on the subject
     steps:
-      - say: "{{source_loading_message}}"
-      - call: randori
-        after: each_concept
+      - say: "{{source_summary}}: {{concept_count}} concepts identified."
+      - issue:
+          check: "source loaded"
+
+      # ——— CONCEPT LOOP ———
+      # Repeat for each concept in the source, in order.
+      # concept = one discrete unit: a heading block, a thematic paragraph,
+      #           or a logical chunk if the source is unstructured.
+      # Do NOT invent concepts outside the source.
+      # Prerequisites not in source: only if already in kata/ for this subject.
+      - for_each: concept in source.concepts
+        do:
+          - say: |
+              **{{concept.title}}**
+              {{concept.explanation}}
+              > Source: {{concept.citation}}
+          - issue:
+              comment: |
+                ### Concept: {{concept.title}}
+                {{concept.explanation}}
+                > {{concept.citation}}
+          - call: randori
+            with:
+              concept: "{{concept}}"
+              subject: "{{subject}}"
+              topic: "{{topic}}"
+      # ——— END CONCEPT LOOP ———
+
+      - issue:
+          check: "concepts taught and randori completed"
+
       - write:
           path: "kata/{subject}/"
           filename: "{topic}.md"
-          access: read-write
+          access: read-write             # create if missing, overwrite/extend if exists
           via: PR
       - issue:
           check: "kata updated"
+
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{subject}_study.yml"
@@ -71,6 +103,7 @@ required_scenarios:
           via: PR
       - issue:
           check: "nikki written"
+
       - write:
           path: .gakusei.yml
           fields: [last_session, book_progress]
@@ -78,35 +111,139 @@ required_scenarios:
           via: PR
       - issue:
           check: ".gakusei.yml updated"
+
+      # ——— READINESS EVALUATION LOOP ———
+      # Read readiness_thresholds from .gakusei.yml.
+      # Compute: randori_score (% correct across recent sessions) and
+      #          sessions_without_gaps (consecutive sessions with no weak_spots).
+      # Loop until student is ready for shinsa or explicitly stops.
+      - call: evaluate_readiness
+      - issue:
+          check: "readiness evaluated"
     output:
       state_changes: [study-completed]
 
   randori:
+    # Called by study_open once per concept.
+    # Also callable standalone by the user.
     on:
       - user wants to drill on the current topic
       - user asks to be quizzed on what was just explained
       - user wants to practice a concept
     creates_issue: false
+    # When called from study_open: concept, subject, topic passed as context.
+    # When called standalone: read from .gakusei.yml last_session.
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
     steps:
-      - ask: "{{open_question_on_current_concept_adapted_to_student_level}}"
+      # Question must require the concept to answer.
+      # It must make the student reason — not recall a fact.
+      # It must be answerable with what was just explained (no out-of-scope knowledge).
+      - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
+
       - if:
-          condition: answer_correct
+          condition: answer_correct OR answer_substantially_correct
           then:
-            - say: "Correct."
+            - say: "Correct. {{brief_positive_reinforcement}}"
+            - issue:
+                comment: |
+                  ✅ Randori — {{concept.title}}
+                  Q: {{question}}
+                  A: {{student_answer}}
+                  Outcome: correct
           else:
             - say: "Not quite — {{gap_explanation}}"
-            - ask: "{{simpler_followup_on_same_concept}}"
-      - write:
-          path: "kiroku/nikki/"
-          filename: "YYYY-MM-DD_{subject}_study.yml"
-          fields: [weak_spots]
-          access: append-only
-          via: PR
+            - ask: "{{simpler_followup_on_same_concept_using_only_source_or_prior_kata}}"
+            - if:
+                condition: followup_correct
+                then:
+                  - say: "Good. {{brief_explanation_of_gap}}"
+                  - issue:
+                      comment: |
+                        ⚠️ Randori — {{concept.title}}
+                        Q: {{question}}
+                        A: {{student_answer}}
+                        Followup: {{followup_question}}
+                        FA: {{followup_answer}}
+                        Outcome: partial — gap: {{gap_description}}
+                  - write:
+                      path: "kiroku/nikki/"
+                      filename: "YYYY-MM-DD_{subject}_study.yml"
+                      fields: [weak_spots]
+                      access: append-only
+                      via: PR
+                else:
+                  - say: "{{full_re_explanation_of_concept}}"
+                  - issue:
+                      comment: |
+                        ❌ Randori — {{concept.title}}
+                        Q: {{question}}
+                        A: {{student_answer}}
+                        Followup: {{followup_question}}
+                        FA: {{followup_answer}}
+                        Outcome: incorrect — gap: {{gap_description}}
+                  - write:
+                      path: "kiroku/nikki/"
+                      filename: "YYYY-MM-DD_{subject}_study.yml"
+                      fields: [weak_spots]
+                      access: append-only
+                      via: PR
     output:
       state_changes: [randori-completed]
+
+  evaluate_readiness:
+    # Called automatically at end of study_open.
+    # Loops until student is ready for shinsa or explicitly stops.
+    on:
+      - events: [study-completed]
+    creates_issue: false
+    read:
+      - .gakusei.yml                      # readiness_thresholds + session history
+      - "kiroku/nikki/"                   # recent sessions for score + gap analysis
+    # readiness_thresholds (defined in .gakusei.yml):
+    #   min_randori_score: 0.75           # % correct across recent sessions
+    #   min_sessions_without_gaps: 2      # consecutive sessions with no weak_spots
+    steps:
+      - compute: randori_score            # % correct answers across last N sessions
+      - compute: sessions_without_gaps    # consecutive sessions with zero weak_spots
+
+      - if:
+          condition: randori_score >= readiness_thresholds.min_randori_score
+                     AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
+          then:
+            - say: "Score: {{randori_score_pct}}% correct, {{sessions_without_gaps}} clean sessions. You look ready for shinsa."
+            - propose: "Take the shinsa for {{subject}} now?"
+              on_confirm:
+                - call: shinsa
+              on_reject:
+                - say: "OK. Come back when you're ready."
+          else:
+            - if:
+                condition: session_weak_spots | count > 0
+                then:
+                  - say: "Gaps found: {{weak_spots_summary}}. Let's work on them."
+                  - propose: "Study the weak spots now?"
+                    on_confirm:
+                      - call: study_open
+                        with:
+                          subject: "{{subject}}"
+                          topic: "{{weak_spots_as_topic}}"
+                          source: gaps_from_nikki
+                    on_reject:
+                      - say: "OK. Weak spots saved. We'll revisit them next session."
+                else:
+                  - say: "No gaps today, but not enough sessions yet ({{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}} clean). Keep going."
+                  - propose: "Study a new concept in {{subject}}?"
+                    on_confirm:
+                      - call: study_open
+                        with:
+                          subject: "{{subject}}"
+                          topic: "{{next_concept_not_yet_in_kata}}"
+                    on_reject:
+                      - say: "OK. See you next session."
+    output:
+      state_changes: [readiness-evaluated]
 
   quiz:
     on:
