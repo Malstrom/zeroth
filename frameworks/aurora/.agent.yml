@@ -1,7 +1,5 @@
 # .agent.yml
 # AI-only operational manifest for the aurora framework.
-# Canonical reference — not to be copied verbatim into instances.
-# Status: DRAFT (see overview.yml)
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
