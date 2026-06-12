@@ -167,6 +167,16 @@ anatomy:
           filename is required when path ends with /.
           filename pattern must match a key in rules/files.yml#filename_patterns.
 
+      commit_before_reply:
+        description: |
+          Execute all pending write steps and wait for PRs to merge before
+          any say, emit, or propose step runs.
+          Use when all writes for the current scenario must be persisted to
+          GitHub before the AI communicates any result to the user.
+          GitHub is the source of truth — chat is ephemeral.
+        syntax: "- commit_before_reply"
+        note: no parameters. Place after the last write, before the first say/emit/propose.
+
       call:
         description: invoke another scenario by name
         syntax: "- call: scenario_name"

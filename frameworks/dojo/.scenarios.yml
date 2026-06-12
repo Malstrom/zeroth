@@ -47,14 +47,13 @@ required_scenarios:
       on_complete: close
       on_fail: comment
     read:
-      - .gakusei.yml                      # student profile, readiness_thresholds, history
-      - "kata/{subject}/{topic}.md"       # read if exists — skip silently if missing (first study)
+      - .gakusei.yml
+      - "kata/{subject}/{topic}.md"
     input_sources:
-      # Priority order: attached_file > url > pasted_text > ai_knowledge
-      - attached_file                     # user uploads a PDF, doc, or text file
-      - url                               # user shares a link — AI reads the page
-      - pasted_text                       # user pastes raw text
-      - ai_knowledge                      # fallback: AI generates content on the subject
+      - attached_file
+      - url
+      - pasted_text
+      - ai_knowledge
     steps:
       - say: "{{source_summary}}: {{concept_count}} concepts identified."
       - issue:
@@ -113,9 +112,9 @@ required_scenarios:
           check: ".gakusei.yml updated"
 
       - issue:
-          check: "readiness evaluated"   # checked by readiness_report after event chain
+          check: "readiness evaluated"
     output:
-      state_changes: [study-completed]   # → triggers evaluate_readiness → readiness_report
+      state_changes: [study-completed]
 
   randori:
     # Called by study_open once per concept.
@@ -127,15 +126,10 @@ required_scenarios:
       - user wants to review what they know
       - user wants to practice on their own without studying
     creates_issue: false
-    # When called from study_open: concept, subject, topic passed as context.
-    # When called standalone: read from .gakusei.yml last_session.
     read:
       - .gakusei.yml
       - "kata/{subject}/{topic}.md"
     steps:
-      # Question must require the concept to answer.
-      # It must make the student reason — not recall a fact.
-      # It must be answerable with what was just explained (no out-of-scope knowledge).
       - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
 
       - if:
@@ -198,8 +192,8 @@ required_scenarios:
     dedup: once per session
     creates_issue: false
     read:
-      - .gakusei.yml                      # readiness_thresholds + session history
-      - "kiroku/nikki/"                   # recent sessions for score + gap analysis
+      - .gakusei.yml
+      - "kiroku/nikki/"
     steps:
       - compute: randori_score
       - compute: sessions_without_gaps
@@ -289,65 +283,93 @@ required_scenarios:
         - [ ] exam conducted
         - [ ] nikki written
         - [ ] .gakusei.yml updated
+        - [ ] gakusei.md updated
       on_complete: close
       on_fail: comment
     read:
       - .gakusei.yml
       - "kata/{subject}/"
     steps:
-      - ask: "Ready for shinsa on {subject}? No feedback during exam — only final score."
-      - say: "Shinsa begins. Answer each question in your own words. 10 to 15 questions."
-      - ask: "{{open_exam_question_1}}"
-      - ask: "{{open_exam_question_2}}"
-      - ask: "{{open_exam_question_3}}"
-      - ask: "{{open_exam_question_4}}"
-      - ask: "{{open_exam_question_5}}"
-      - ask: "{{open_exam_question_6}}"
-      - ask: "{{open_exam_question_7}}"
-      - ask: "{{open_exam_question_8}}"
-      - ask: "{{open_exam_question_9}}"
-      - ask: "{{open_exam_question_10}}"
+      - ask: "Ready for shinsa on {{subject}}? No feedback during exam — only final score."
+
+      # ——— EXAM LOOP ———
+      # 10 open questions drawn from kata/{subject}/.
+      # No feedback between questions — score computed at end.
+      - for_each: question in exam.questions   # count: 10, source: kata/{subject}/
+        do:
+          - ask: "{{question.text}}"
+      # ——— END EXAM LOOP ———
+
+      - compute: score
+      - compute: weak_chapters
+      - issue:
+          check: "exam conducted"
+
+      - write:
+          path: "kiroku/nikki/"
+          filename: "YYYY-MM-DD_{subject}_shinsa.yml"
+          from: templates/nikki.yml
+          access: write-once
+          via: PR
+      - issue:
+          check: "nikki written"
+
+      - write:
+          path: .gakusei.yml
+          fields: [exams, readiness_status]
+          access: read-write
+          via: PR
+      - issue:
+          check: ".gakusei.yml updated"
+
+      - write:
+          path: gakusei.md
+          access: read-write
+          via: PR
+      - issue:
+          check: "gakusei.md updated"
+
+      - commit_before_reply
+
       - if:
           condition: score >= 80
           then:
-            - write:
-                path: "kiroku/nikki/"
-                filename: "YYYY-MM-DD_{subject}_shinsa.yml"
-                from: templates/nikki.yml
-                access: write-once
-                via: PR
-            - issue:
-                check: "nikki written"
-            - write:
-                path: .gakusei.yml
-                fields: [exams]
-                access: read-write
-                via: PR
-            - issue:
-                check: ".gakusei.yml updated"
-            - say: "Shinsa passed. Score: {{score}}%."
             - emit: shinsa-passed
-            - propose: "Move to next level for {subject}?"
+          else:
+            - emit: shinsa-failed
+    output:
+      state_changes: []   # emits are conditional — see if/then/else above
+
+  shinsa_report:
+    # EVENT-TRIGGERED — user-facing.
+    # Triggered by: shinsa-passed, shinsa-failed.
+    # Reads exam result from .gakusei.yml and proposes next action.
+    on:
+      events: [shinsa-passed, shinsa-failed]
+    creates_issue: false
+    read:
+      - .gakusei.yml
+    steps:
+      - if:
+          condition: shinsa_event == "shinsa-passed"
+          then:
+            - say: "Shinsa passed. Score: {{score}}%."
+            - propose: "Move to next level for {{subject}}?"
               on_confirm:
                 - call: level_up
+              on_reject:
+                - say: "OK. Level up whenever you're ready."
           else:
-            - write:
-                path: "kiroku/nikki/"
-                filename: "YYYY-MM-DD_{subject}_shinsa.yml"
-                from: templates/nikki.yml
-                access: write-once
-                via: PR
-            - issue:
-                check: "nikki written"
-            - write:
-                path: .gakusei.yml
-                fields: [exams]
-                access: read-write
-                via: PR
-            - issue:
-                check: ".gakusei.yml updated"
-            - say: "Shinsa not passed. Score: {{score}}%. Weak chapters: {{weak_chapters}}. Review and retry."
-            - emit: shinsa-failed
+            - say: "Shinsa not passed. Score: {{score}}%. Weak chapters: {{weak_chapters}}."
+            - propose: "Study the weak chapters now?"
+              on_confirm:
+                - call: study_open
+                  with:
+                    subject: "{{subject}}"
+                    topic: "{{weak_chapters_as_topic}}"
+                    source: gaps_from_nikki
+              on_reject:
+                - say: "OK. Review when you're ready and try again."
     output:
       state_changes: []
 
