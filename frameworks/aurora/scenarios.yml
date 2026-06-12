@@ -1,241 +1,265 @@
 # frameworks/aurora/scenarios.yml
-# Aurora framework scenario catalog.
-# Canonical definition of aurora scenarios — used as reference for aurora instances.
+# Aurora framework — scenario catalog
+# Model: GitHub Actions workflows — on: for routing, steps: for logic
+# Each scenario = one workflow: trigger → read → steps → output
 # Syntax: rules/scenarios.yml
+# Spec: github.com/Malstrom/zeroth
 
 required_scenarios:
 
   session_start:
-    trigger_patterns:
+    on:
       - session opens automatically
+    creates_issue: false
     read:
       - .aurora.yml
       - "clients/"
-    actions:
+    steps:
       - say: "Aurora ready."
       - say: "Clients: {{aurora.clients | join}}. Open inbox tasks: {{open_inbox_count}}."
-      - say: "Available actions:"
-      - say: "1. ingest_task — register a new task or email"
-      - say: "2. delegate_task — assign an open task to a team member"
-      - say: "3. rate_work — evaluate completed work"
-      - say: "4. work_session — start working on a task yourself"
-      - say: "5. log_work — record what you did"
-      - say: "6. recall — look up past work for a client"
-      - say: "7. summarize_client — get a full client overview"
-      - say: "8. draft_reply — draft a message to a contact"
+      - say: "Available actions: ingest_task, delegate_task, rate_work, work_session, log_work, recall, summarize_client, draft_reply."
       - if:
           condition: open_inbox_count > 0
           then:
             - propose: "You have {{open_inbox_count}} open task(s). Work on one now?"
               on_confirm:
                 - call: work_session
-    state_changes: []
+    output:
+      state_changes: []
 
   propose_action:
-    trigger_patterns:
-      - user sends a message that does not clearly match any specific scenario
+    on:
+      - user sends a message without a clear intent
       - user asks what they can do
-      - user greets or sends a short message without a clear intent
+      - user greets or sends a short message
       - user seems unsure what to do next
+    creates_issue: false
     read:
       - .aurora.yml
       - "clients/"
-    actions:
+    steps:
       - say: "Current state: {{open_inbox_count}} open task(s), clients: {{aurora.clients | join}}."
-      - say: "What would you like to do?"
-      - say: "1. ingest_task — register a new task or email"
-      - say: "2. delegate_task — assign an open task"
-      - say: "3. rate_work — evaluate completed work"
-      - say: "4. work_session — start working on a task"
-      - say: "5. log_work — record what you did"
-      - say: "6. recall — look up history for a client"
-      - say: "7. summarize_client — full client overview"
-      - say: "8. draft_reply — draft a message"
-    state_changes: []
+      - say: "Available actions: ingest_task, delegate_task, rate_work, work_session, log_work, recall, summarize_client, draft_reply."
+    output:
+      state_changes: []
 
   ingest_task:
-    trigger_patterns:
+    on:
       - user shares a new task, email, or request
       - user pastes an email or message they received
       - user describes a new incoming request from a client
+    creates_issue: true
+    issue:
+      title: "Task: {slug} — {{date}}"
+      body: |
+        - [ ] inbox file created
+        - [ ] next step proposed
+      on_complete: close
+      on_fail: comment
     read:
       - "clients/{slug}/context.yml"
       - "log/_index/{{current_year}}.yml"
       - templates/inbox.yml
-    actions:
+    steps:
       - say: "Loading client context and history..."
       - say: "Relevant past entries found: {{history_matches | count}}."
-      - create:
-          file: "clients/{slug}/inbox/{{date}}_{slug}.yml"
+      - write:
+          path: "clients/{slug}/inbox/"
+          filename: "YYYY-MM-DD_{slug}.yml"
           from: templates/inbox.yml
-          via: direct_commit
-      - create:
-          file: issue
-          via: issue
-      - say: "Task ingested. Issue opened. Proposed next step: {{next_step}}."
-    state_changes:
-      - task-ingested
+          access: write-once
+          via: PR
+      - issue:
+          check: "inbox file created"
+      - say: "Task ingested. Proposed next step: {{next_step}}."
+      - issue:
+          check: "next step proposed"
+    output:
+      state_changes: [task-ingested]
 
   delegate_task:
-    trigger_patterns:
+    on:
       - user wants to assign a task to a team member
       - user asks who is the best person for a task
       - user wants to delegate work
+    creates_issue: false
     read:
       - "clients/{slug}/inbox/{{task_file}}"
       - "contacts/"
-    actions:
+    steps:
       - say: "Candidates ranked by skill match and performance score: {{ranked_candidates}}."
       - ask: "Which candidate do you want to assign this to?"
       - call: draft_reply
-      - update:
-          file: "clients/{slug}/inbox/{{task_file}}"
+      - write:
+          path: "clients/{slug}/inbox/{{task_file}}"
           fields: [assigned_to, status_log]
-          mode: append
-          via: direct_commit
-      - update:
-          file: "log/{slug}/{{date}}.yml"
+          access: append-only
+          via: PR
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
           fields: [entries]
-          mode: append
-          via: direct_commit
-    state_changes:
-      - task-delegated
+          access: append-only
+          via: PR
+    output:
+      state_changes: [task-delegated]
 
   rate_work:
-    trigger_patterns:
+    on:
       - user wants to evaluate completed work by a team member
       - user wants to give feedback on a completed task
       - user wants to rate a team member's work
+    creates_issue: false
     read:
       - "clients/{slug}/inbox/{{task_file}}"
       - "contacts/{{contact_file}}"
-    actions:
+    steps:
       - ask: "Score (1-5)?"
       - ask: "Strengths?"
       - ask: "Weaknesses?"
       - ask: "Notes?"
-      - update:
-          file: "contacts/{{contact_file}}"
+      - write:
+          path: "contacts/"
+          filename: "{client}_{firstname}_{lastname}.yml"
           fields: [performance_log]
-          mode: append
-          via: direct_commit
-      - update:
-          file: "clients/{slug}/inbox/{{task_file}}"
+          access: append-only
+          via: PR
+      - write:
+          path: "clients/{slug}/inbox/{{task_file}}"
           fields: [status_log]
-          mode: append
-          via: direct_commit
-      - update:
-          file: "log/{slug}/{{date}}.yml"
+          access: append-only
+          via: PR
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
           fields: [entries]
-          mode: append
-          via: direct_commit
+          access: append-only
+          via: PR
       - say: "Rating saved. Updated performance summary: {{performance_summary}}."
-    state_changes:
-      - work-rated
+    output:
+      state_changes: [work-rated]
 
   work_session:
-    trigger_patterns:
+    on:
       - user starts working on a task themselves
       - user wants to open a work session on a task
+    creates_issue: false
     read:
       - "clients/{slug}/inbox/{{task_file}}"
       - "clients/{slug}/context.yml"
       - "playbooks/{{work_type}}.yml"
-    actions:
+    steps:
       - say: "Playbook: {{playbook.name}} — {{playbook.description}}."
       - say: "Steps: {{playbook.steps}}."
       - propose: "Start playbook execution step by step?"
         on_confirm:
           - call: log_work
-    state_changes: []
+    output:
+      state_changes: []
 
   log_work:
-    trigger_patterns:
+    on:
       - user asks to log work done
       - user says a session is ending and wants to record what was done
+    creates_issue: false
     read:
       - templates/log.yml
-    actions:
-      - update:
-          file: "log/{slug}/{{date}}.yml"
+    steps:
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
           fields: [entries]
-          mode: append
-          via: direct_commit
+          access: append-only
+          via: PR
       - if:
           condition: unindexed_log_count > 30
           then:
             - call: reindex
       - say: "Work logged."
-    state_changes:
-      - work-logged
+    output:
+      state_changes: [work-logged]
 
   recall:
-    trigger_patterns:
+    on:
       - user asks about past work for a client or topic
       - user wants to know the history of a client or project
+    creates_issue: false
     read:
       - "log/_index/{{current_year}}.yml"
       - "log/_index/{{previous_year}}.yml"
-    actions:
+    steps:
       - say: "History for {{slug}}: {{history_summary}}."
-    state_changes: []
+    output:
+      state_changes: []
 
   reindex:
-    trigger_patterns:
+    on:
       - user asks to reindex logs
       - user wants to update the log index for a client or period
+    creates_issue: false
     read:
       - templates/log_index.yml
       - "log/{slug}/"
-    actions:
-      - create:
-          file: "log/{slug}/{{year}}-{{month}}.index.yml"
+    steps:
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM.index.yml"
           from: templates/log_index.yml
-          via: direct_commit
-      - update:
-          file: "log/_index/{{year}}.yml"
+          access: write-once
+          via: PR
+      - write:
+          path: "log/_index/{{year}}.yml"
           fields: [monthly_refs]
-          mode: append
-          via: direct_commit
+          access: append-only
+          via: PR
       - say: "Index updated. Files indexed: {{file_count}}."
-    state_changes:
-      - reindex-completed
+    output:
+      state_changes: [reindex-completed]
 
   summarize_client:
-    trigger_patterns:
+    on:
       - user asks for a client summary
       - user wants an overview of a client relationship
+    creates_issue: false
     read:
       - "clients/{slug}/context.yml"
       - "clients/{slug}/summary.md"
-    actions:
+    steps:
       - call: recall
-      - update:
-          file: "clients/{slug}/summary.md"
-          via: direct_commit
+      - write:
+          path: "clients/{slug}/summary.md"
+          access: read-write
+          via: PR
       - say: "Summary updated: clients/{slug}/summary.md."
-    state_changes: []
+    output:
+      state_changes: []
 
   draft_reply:
-    trigger_patterns:
+    on:
       - user asks to draft a reply or message to a contact
       - user wants to write a message to a client or team member
+    creates_issue: false
     read:
       - "contacts/{{contact_file}}"
       - "clients/{slug}/context.yml"
-    actions:
+    steps:
       - say: "Draft: {{message_draft}}."
       - propose: "Save draft to output?"
         on_confirm:
-          - create:
-              file: "clients/{slug}/output/{{date}}_{slug}.md"
-              via: direct_commit
-    state_changes: []
+          - write:
+              path: "clients/{slug}/output/"
+              filename: "YYYY-MM-DD_{slug}.md"
+              access: write-once
+              via: PR
+    output:
+      state_changes: []
 
   unknown_scenario:
-    trigger_patterns:
+    on:
       - any message that does not match any other scenario
+    creates_issue: false
     read: []
-    actions:
+    steps:
       - call: propose_action
-    state_changes: []
+    output:
+      state_changes: []
