@@ -1,0 +1,32 @@
+name: giskard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-zeroth:
+    name: giskard — zeroth spec
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout zeroth
+        uses: actions/checkout@v4
+
+      - name: giskard — dojo@zeroth
+        uses: Malstrom/giskard@main
+        with:
+          repo: .
+          mode: zeroth
+          framework: dojo
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: giskard — aurora@zeroth
+        uses: Malstrom/giskard@main
+        with:
+          repo: .
+          mode: zeroth
+          framework: aurora
+          github-token: ${{ secrets.GITHUB_TOKEN }}
