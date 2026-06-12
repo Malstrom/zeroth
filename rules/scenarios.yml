@@ -19,26 +19,60 @@ routing:
     on: patterns are always written in English — language-independent.
 
 # ---------------------------------------------------------------------------
+# SCENARIO TYPES
+# Three types. Declared via on: form. Each has different constraints.
+# ---------------------------------------------------------------------------
+scenario_types:
+
+  user_triggered:
+    on_form: list of intent strings
+    description: |
+      Started by the user. Can use all step modules.
+      Interaction (say, ask, propose) is expected.
+    allowed_steps: all
+    note: compute is allowed — it has no side effects and is useful for
+          deriving values mid-scenario (e.g. score after an exam loop).
+
+  event_triggered:
+    on_form: "on: events: [event-name]"
+    description: |
+      Runs automatically when a matching event is emitted.
+      SILENT — no user interaction. Computes, writes, emits only.
+      Interaction delegated to a reporter scenario.
+    forbidden_steps: [say, ask, propose, issue]
+    allowed_steps: [compute, write, emit, if, call]
+
+  reporter:
+    on_form: "on: events: [event-name]"
+    description: |
+      Runs automatically after event_triggered handlers complete.
+      User-facing — communicates results and proposes next actions.
+      Does NOT compute or write — reads results written by event_triggered handlers.
+      Declared with type: reporter to distinguish from silent event_triggered.
+    forbidden_steps: [compute, write, emit]
+    allowed_steps: [say, ask, propose, call, if]
+    required_field: type: reporter
+    note: |
+      Pattern: emit → event_triggered (compute + write + emit) → reporter (say + propose).
+      The reporter reads from files written by the event_triggered handler.
+      It never writes and never emits — it only communicates.
+
+# ---------------------------------------------------------------------------
 # EVENT ROUTING
 # How the AI handles state_change events emitted by scenarios.
 # ---------------------------------------------------------------------------
 event_routing:
-  # When a scenario emits a state_change (via output.state_changes or emit:),
-  # the AI scans ALL scenarios for on: events: lists that include that event name.
-  # Matching scenarios are queued and executed in declaration order.
   mechanism: sequential           # matching scenarios run one after the other
   on_conflict: all_matches        # ALL matching scenarios run — not just first
   execution: automatic            # no user prompt — runs immediately after emitting scenario
-  context_inheritance: true       # event-triggered scenario inherits calling scenario's context
-                                  # (subject, topic, slug, etc.)
-  forbidden_steps: [say, ask, propose, issue]
-                                  # event-triggered scenarios are silent — no user interaction.
-                                  # They compute, write, and emit. Interaction happens in
-                                  # a follow-up user-triggered scenario that reads the result.
+  context_inheritance: true       # event-triggered and reporter scenarios inherit calling
+                                  # scenario's context (subject, topic, slug, etc.)
+  execution_order: |
+    For a given event:
+    1. All event_triggered scenarios run first (silent, in declaration order)
+    2. All reporter scenarios run after (user-facing, in declaration order)
   note: |
-    Pattern: emit → silent handler (compute + write + emit) → user-triggered reporter (say + propose).
-    The reporter scenario is called automatically by the framework after all event handlers complete,
-    if a reporter is registered for that event chain.
+    Pattern: emit → silent handler (compute + write + emit) → reporter (say + propose).
 
 # ---------------------------------------------------------------------------
 # SCENARIO ANATOMY
@@ -52,6 +86,14 @@ anatomy:
     rule: snake_case, lowercase, English
     examples: [study_open, shinsa, readme_sync]
 
+  # --- type (optional, required for reporter) ---
+  type:
+    rule: omit for user_triggered and event_triggered — required only for reporter
+    values: [reporter]
+    note: the AI infers user_triggered vs event_triggered from the on: form.
+          reporter must be declared explicitly because it shares the events: on: form
+          with event_triggered but has different constraints.
+
   # --- routing ---
   on:
     rule: exactly one form — never both
@@ -62,15 +104,13 @@ anatomy:
             - intent description in English
             - another intent description
         note: semantic intent — not literal phrases. The AI matches meaning, not words.
-      event_triggered:
+      event_triggered_or_reporter:
         syntax: |
           on:
             events: [event-name-1, event-name-2]
         note: |
-          Runs automatically when a matching event is emitted.
-          Silent — no say, ask, propose, or issue steps allowed.
-          Computes, writes, emits. Interaction delegated to a reporter scenario.
-        required_with: creates_issue == false
+          Used by both event_triggered and reporter types.
+          Disambiguated by presence of type: reporter field.
 
   # --- issue lifecycle ---
   creates_issue:
@@ -98,9 +138,9 @@ anatomy:
         values: [comment]
         default: comment
 
-  # --- dedup (event-triggered only) ---
+  # --- dedup (event-triggered and reporter only) ---
   dedup:
-    rule: optional, event-triggered scenarios only
+    rule: optional, event-triggered and reporter scenarios only
     values:
       - once per session
       - once per {variable} per session
@@ -125,11 +165,13 @@ anatomy:
         description: emit a message to the user
         syntax: "- say: \"message text\""
         note: may use {{token}} for runtime values
+        forbidden_in: [event_triggered]
 
       ask:
         description: ask the user a question and wait for answer before continuing
         syntax: "- ask: \"question text\""
         note: may use {{token}} for runtime values
+        forbidden_in: [event_triggered]
 
       propose:
         description: present an option, wait for confirmation, then execute on_confirm
@@ -139,14 +181,18 @@ anatomy:
               - call: scenario_name
             on_reject:
               - say: "fallback message"
+        forbidden_in: [event_triggered]
 
       compute:
-        description: calculate a derived value from available data — stores result as named variable
+        description: |
+          Calculate a derived value from available data — stores result as named variable.
+          No side effects. Available in all scenario types.
         syntax: "- compute: variable_name"
         note: |
-          Available in event-triggered scenarios.
           The AI derives the value from read: files and inherited context.
           Result is available as {{variable_name}} in subsequent steps.
+          Typical uses: score after exam loop, readiness metrics, gap lists.
+        forbidden_in: [reporter]
 
       write:
         description: write a file — behavior declared via access field
@@ -166,6 +212,7 @@ anatomy:
         note: |
           filename is required when path ends with /.
           filename pattern must match a key in rules/files.yml#filename_patterns.
+        forbidden_in: [reporter]
 
       commit_before_reply:
         description: |
@@ -176,6 +223,7 @@ anatomy:
           GitHub is the source of truth — chat is ephemeral.
         syntax: "- commit_before_reply"
         note: no parameters. Place after the last write, before the first say/emit/propose.
+        forbidden_in: [event_triggered, reporter]
 
       call:
         description: invoke another scenario by name
@@ -193,7 +241,7 @@ anatomy:
         note: |
           Use only for mid-scenario checklist updates or progress comments.
           Open and close are automatic — do not replicate with issue steps.
-        forbidden_in: event-triggered scenarios
+        forbidden_in: [event_triggered, reporter]
 
       if:
         description: conditional branch
@@ -210,8 +258,7 @@ anatomy:
         description: emit a state_change event conditionally (inside if/then/else only)
         syntax: "- emit: event-name"
         note: use inside if/then/else only — never unconditionally outside if
-
-    forbidden_in_event_triggered: [say, ask, propose, issue]
+        forbidden_in: [reporter]
 
   # --- output ---
   output:
@@ -243,14 +290,16 @@ validation:
   - session_start must be present
   - unknown_scenario must be present and last
   - every scenario must have: on, creates_issue, read, steps, output
-  - on: must be a list (user-triggered) OR have events: key (event-triggered) — never both
+  - on: must be a list (user-triggered) OR have events: key (event-triggered/reporter) — never both
   - if creates_issue == true, issue: block must be present with title and body
   - if creates_issue == false, issue: block must be absent
   - every write step must have: path, access, via
   - every write step where path ends with / must have filename
   - filename must match a key in rules/files.yml#filename_patterns
-  - say, ask, propose, issue steps are forbidden in event-triggered scenarios
+  - say, ask, propose, issue steps are forbidden in event_triggered scenarios
+  - compute, write, emit steps are forbidden in reporter scenarios
+  - commit_before_reply is forbidden in event_triggered and reporter scenarios
   - output.state_changes must never be omitted
-  - dedup is only valid on event-triggered scenarios
+  - dedup is only valid on event-triggered and reporter scenarios
   - trigger patterns and on: events must be in English
-  - compute steps are only valid in event-triggered scenarios
+  - type: reporter is required when scenario uses events: on: form AND has say/propose steps

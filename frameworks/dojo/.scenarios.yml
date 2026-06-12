@@ -220,6 +220,11 @@ required_scenarios:
       state_changes: []
 
   readiness_report:
+    # REPORTER — user-facing.
+    # Triggered by: readiness-ready, readiness-gap, readiness-loop.
+    # Reads result written by evaluate_readiness, proposes next action.
+    # Does NOT compute or write.
+    type: reporter
     on:
       events: [readiness-ready, readiness-gap, readiness-loop]
     creates_issue: false
@@ -332,9 +337,11 @@ required_scenarios:
       state_changes: []   # emits are conditional — see if/then/else above
 
   shinsa_report:
-    # EVENT-TRIGGERED — user-facing.
+    # REPORTER — user-facing.
     # Triggered by: shinsa-passed, shinsa-failed.
-    # Reads exam result from .gakusei.yml and proposes next action.
+    # Reads exam result written by shinsa, proposes next action.
+    # Does NOT compute or write.
+    type: reporter
     on:
       events: [shinsa-passed, shinsa-failed]
     creates_issue: false
