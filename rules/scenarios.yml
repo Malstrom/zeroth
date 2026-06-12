@@ -1,141 +1,207 @@
 # rules/scenarios.yml
-# Question: "How do I write scenarios and handlers?"
+# Question: "How do I write a scenario?"
+#
+# Model: GitHub Actions workflows
+# Each scenario = one workflow: trigger → read → steps → output
+# Canonical anatomy declared below. Validation rules at the bottom.
 
 # ---------------------------------------------------------------------------
-# STRUCTURE
+# ROUTING
+# How the AI picks a scenario before executing anything.
 # ---------------------------------------------------------------------------
-structure:
-  root_key: required_scenarios
-  required_scenarios: [session_start, unknown_scenario]
-  scenario_fields:
-    required: [trigger_patterns, read, actions, state_changes]
-    optional: [input_sources, when]
-
-# ---------------------------------------------------------------------------
-# TRIGGER PATTERNS
-# ---------------------------------------------------------------------------
-trigger_patterns:
-  rule: describe user intent in plain English — semantic matching, not literal phrases
-  note: the AI resolves language from global.language or the identity file
-  unknown_scenario: must always be the last fallthrough
+routing:
+  rule: read ALL on: patterns before picking a scenario
+  match: first semantic match wins — pick the most specific
+  on_no_match: call unknown_scenario
+  order: scenarios evaluated top to bottom
+  note: |
+    The AI resolves the user's language, then matches intent.
+    on: patterns are always written in English — language-independent.
 
 # ---------------------------------------------------------------------------
-# READ
+# SCENARIO ANATOMY
+# Every scenario is one named key under required_scenarios.
+# Fields are listed in reading order — top = evaluated first.
 # ---------------------------------------------------------------------------
-read:
-  rule: list all files to read BEFORE executing actions
-  format: block sequence — never flow sequence
-  empty: use read: [] — never omit the field
+anatomy:
+
+  # --- identity ---
+  name:
+    rule: snake_case, lowercase, English
+    examples: [study_open, shinsa, readme_sync]
+
+  # --- routing ---
+  on:
+    rule: exactly one form — never both
+    forms:
+      user_triggered:
+        syntax: |
+          on:
+            - intent description in English
+            - another intent description
+        note: semantic intent — not literal phrases. The AI matches meaning, not words.
+      event_triggered:
+        syntax: |
+          on:
+            events: [event-name-1, event-name-2]
+        note: called explicitly after a state_change — never auto-triggered
+        required_with: creates_issue == false
+
+  # --- issue lifecycle ---
+  creates_issue:
+    rule: required on every scenario — the AI never decides autonomously
+    values:
+      true: AI opens issue before starting, closes on complete
+      false: no issue, no lifecycle management
+
+  issue:
+    rule: required if and only if creates_issue == true
+    fields:
+      title:
+        rule: short, English, may use {placeholder} for runtime values
+        example: "Shinsa: {subject}"
+      body:
+        rule: markdown, use - [ ] for checklist items
+        example: |
+          - [ ] exam conducted
+          - [ ] nikki written
+          - [ ] .gakusei.yml updated
+      on_complete:
+        values: [close]
+        default: close
+      on_fail:
+        values: [comment]
+        default: comment
+
+  # --- dedup (event-triggered only) ---
+  dedup:
+    rule: optional, event-triggered scenarios only
+    values:
+      - once per session
+      - once per {variable} per session
+
+  # --- input ---
+  read:
+    rule: list all files to read BEFORE executing steps
+    format: block sequence
+    empty: use read: [] — never omit
+    note: use glob patterns for directories (e.g. "kata/{subject}/")
+
+  input_sources:
+    rule: optional — declare when scenario accepts multiple input types
+    allowed_values: [google_drive, attached_file, pasted_text, ai_knowledge]
+
+  # --- logic ---
+  steps:
+    rule: ordered list of actions — each step uses exactly one module
+    modules:
+
+      say:
+        description: emit a message to the user
+        syntax: "- say: \"message text\""
+        note: may use {{token}} for runtime values
+
+      ask:
+        description: ask the user a question and wait for answer before continuing
+        syntax: "- ask: \"question text\""
+        note: may use {{token}} for runtime values
+
+      propose:
+        description: present an option, wait for confirmation, then execute on_confirm
+        syntax: |
+          - propose: "action description"
+            on_confirm:
+              - call: scenario_name
+
+      write:
+        description: write a file — behavior declared via access field
+        syntax: |
+          - write:
+              path: "folder/"           # folder path OR exact file path
+              filename: "YYYY-MM-DD_{slug}.yml"  # required when path is a folder
+              from: templates/file.yml  # template to use — required for new files
+              fields: [field1, field2]  # optional — limit write to specific fields
+              access: append-only       # required — see access values below
+              via: PR                   # always PR unless stated otherwise
+        access_values:
+          read-write:   create if missing, overwrite if exists
+          append-only:  create if missing, append if exists — never overwrite
+          write-once:   create if missing, error if exists
+          read-only:    never write — error if attempted
+        note: |
+          filename is required when path ends with /.
+          filename pattern must match a key in rules/files.yml#filename_patterns.
+
+      call:
+        description: invoke another scenario by name
+        syntax: "- call: scenario_name"
+        note: may be used inside on_confirm or if/then/else
+
+      issue:
+        description: mid-scenario issue update — opt-in, only when needed
+        syntax: |
+          - issue:
+              check: "checklist item text"  # checks that item in issue body
+        note: |
+          Use only for mid-scenario checklist updates.
+          Open and close are automatic — do not replicate with issue steps.
+        forbidden_in: event-triggered scenarios
+
+      if:
+        description: conditional branch
+        syntax: |
+          - if:
+              condition: expression
+              then:
+                - step
+              else:
+                - step
+        note: else is optional
+
+    forbidden_in_event_triggered: [say, ask, propose, issue]
+
+  # --- output ---
+  output:
+    rule: required on every scenario
+    fields:
+      state_changes:
+        rule: list of event names emitted when scenario completes
+        format: block sequence or []
+        naming: kebab-case
+        empty: use state_changes: [] — never omit
+        note: |
+          Conditional emits go inside if/then/else steps using a dedicated emit step.
+          Do not list conditional events here — only unconditional ones.
+
+      emit: (inside steps only)
+        description: emit a state_change event conditionally
+        syntax: "- emit: event-name"
+        note: use inside if/then/else only — never unconditionally outside if
 
 # ---------------------------------------------------------------------------
-# ACTIONS
+# REQUIRED SCENARIOS
+# Every .scenarios.yml must have these two, in this order.
 # ---------------------------------------------------------------------------
-actions:
-  rule: every action uses exactly one declared module — no prose, no loops
-
-  scenario_modules: [say, ask, propose]
-  shared_modules: [read, call, update, create, emit, if]
-  post_action_hook_only: [call_handlers]
-
-  modules:
-    say:
-      description: emit a fixed or templated message to the user
-      syntax: "- say: \"message text\""
-
-    ask:
-      description: ask the user a question and wait for their answer before continuing
-      syntax: "- ask: \"question text\""
-
-    propose:
-      description: present an option, wait for confirmation, then execute on_confirm
-      syntax: |
-        - propose: "action description"
-          on_confirm:
-            - module: ...
-
-    call:
-      description: invoke another scenario by name
-      syntax: "- call: scenario_name"
-
-    update:
-      description: write or modify a file — always via PR unless stated otherwise
-      syntax: |
-        - update:
-            file: path/to/file.yml
-            fields: [field1, field2]
-            via: PR
-            mode: append | overwrite
-
-    create:
-      description: create a new file from a template
-      syntax: |
-        - create:
-            file: path/to/new_file.yml
-            from: path/to/template.yml
-            via: PR
-
-    emit:
-      description: emit a state_change event — use inside if only, not unconditionally
-      syntax: "- emit: event-name"
-      note: do not declare the same event in both emit and state_changes
-
-    if:
-      description: conditional branch
-      syntax: |
-        - if:
-            condition: expression
-            then:
-              - module: ...
-            else:
-              - module: ...
-
-    read:
-      description: conditional file read inside actions
-      note: prefer the top-level read field for unconditional reads
-
-    call_handlers:
-      description: invoke all handlers matching the current state_change
-      post_action_hook_only: true
-      syntax: "- call_handlers: matching"
-
-# ---------------------------------------------------------------------------
-# HANDLERS
-# ---------------------------------------------------------------------------
-handlers:
-  rule: reactive to state_changes — never user-triggered
-  forbidden_in_actions: [say, ask, propose]
-  required_fields: [listen, dedup, actions, state_changes]
-  dedup_values:
-    - once per session
-    - once per {variable} per session
-
-# ---------------------------------------------------------------------------
-# STATE_CHANGES
-# ---------------------------------------------------------------------------
-state_changes:
-  rule: list of event names emitted when the scenario completes
-  format: block sequence or []
-  naming: kebab-case
-  empty: use state_changes: [] — never omit
-
-# ---------------------------------------------------------------------------
-# INPUT_SOURCES
-# ---------------------------------------------------------------------------
-input_sources:
-  rule: optional field for scenarios that accept multiple input types
-  allowed_values: [google_drive, attached_file, pasted_text, ai_knowledge]
+required_scenarios:
+  - session_start   # first — triggered when session opens
+  - unknown_scenario  # last — fallthrough for unmatched intents
 
 # ---------------------------------------------------------------------------
 # VALIDATION
+# Rules enforced by giskard.
 # ---------------------------------------------------------------------------
 validation:
   - root key must be required_scenarios
-  - session_start and unknown_scenario must be present
-  - unknown_scenario must be last
-  - every action item must use a declared module
-  - say/ask/propose forbidden in handler actions
-  - emit and state_changes must not declare the same event
-  - trigger patterns must be intent descriptions in English — not phrases in any language
-  - placeholders in file paths must be quoted strings
-  - read must never be omitted
-  - state_changes must never be omitted
+  - session_start must be present
+  - unknown_scenario must be present and last
+  - every scenario must have: on, creates_issue, read, steps, output
+  - on: must be a list (user-triggered) OR have events: key (event-triggered) — never both
+  - if creates_issue == true, issue: block must be present with title and body
+  - if creates_issue == false, issue: block must be absent
+  - every write step must have: path, access, via
+  - every write step where path ends with / must have filename
+  - filename must match a key in rules/files.yml#filename_patterns
+  - say, ask, propose, issue steps are forbidden in event-triggered scenarios
+  - output.state_changes must never be omitted
+  - dedup is only valid on event-triggered scenarios
+  - trigger patterns and on: events must be in English
