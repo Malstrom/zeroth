@@ -69,7 +69,7 @@ templates:
 immutability:
   rule: critical event logs are immutable once written — append only, never overwrite
   critical_events: [shinsa, decision, hire, milestone]
-  declaration: immutable files must be listed explicitly in .agent.yml file_access
+  declaration: immutable files must be declared in workspace with access: append-only
 
 logs:
   naming_format: YYYY-MM-DD_{type}_{topic}.yml
@@ -78,3 +78,82 @@ logs:
     - 2026-06-09_study_activerecord.yml
   required_fields: [date, type, topic, summary]
   optional_fields: [score, weak_chapters, weak_spots]
+
+# ---------------------------------------------------------------------------
+# FILENAME PATTERNS
+# Canonical regex per file type. Used by giskard to validate generated files.
+# Declared here — referenced in each scenario's create action via pattern_ref.
+# ---------------------------------------------------------------------------
+filename_patterns:
+
+  # --- dojo ---
+  dojo_nikki:
+    description: immutable session log (study, randori, shinsa)
+    pattern: "YYYY-MM-DD_{subject}_{type}.yml"
+    regex: '^\d{4}-\d{2}-\d{2}_[a-z0-9]+_(study|randori|shinsa)\.yml$'
+    examples:
+      - 2026-06-09_ruby-blocks_study.yml
+      - 2026-06-09_activerecord_shinsa.yml
+
+  dojo_makimono:
+    description: study scroll
+    pattern: "{subject}.yml"
+    regex: '^[a-z0-9][a-z0-9-]*\.yml$'
+    examples:
+      - ruby-blocks.yml
+      - activerecord.yml
+
+  dojo_kata:
+    description: practice exercise
+    pattern: "{slug}.{ext}"
+    regex: '^[a-z0-9][a-z0-9_-]*\.(rb|py|js|ts|md|yml)$'
+    examples:
+      - fibonacci.rb
+      - binary-search.py
+
+  # --- aurora ---
+  aurora_log:
+    description: immutable daily work log
+    pattern: "YYYY-MM-DD.yml"
+    regex: '^\d{4}-\d{2}-\d{2}\.yml$'
+    examples:
+      - 2026-06-09.yml
+
+  aurora_log_index:
+    description: monthly log index, AI-generated
+    pattern: "YYYY-MM.index.yml"
+    regex: '^\d{4}-\d{2}\.index\.yml$'
+    examples:
+      - 2026-06.index.yml
+
+  aurora_inbox:
+    description: raw incoming task, write-once
+    pattern: "YYYY-MM-DD_{client_slug}.yml"
+    regex: '^\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9_-]*\.yml$'
+    examples:
+      - 2026-06-09_acme.yml
+      - 2026-06-09_mario-rossi.yml
+
+  aurora_output:
+    description: AI-generated output for human delivery
+    pattern: "YYYY-MM-DD_{client_slug}.md"
+    regex: '^\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9_-]*\.md$'
+    examples:
+      - 2026-06-09_acme.md
+
+  aurora_contact:
+    description: contact profile
+    pattern: "{client}_{firstname}_{lastname}.yml"
+    regex: '^[a-z0-9][a-z0-9_-]*_[a-z0-9]+_[a-z0-9]+\.yml$'
+    examples:
+      - acme_mario_rossi.yml
+      - internal_luca_bianchi.yml
+
+  # --- universal ---
+  branch_name:
+    description: git branch name
+    pattern: "{type}/{short-description}"
+    regex: '^(feat|fix|docs|test|chore)/[a-z0-9][a-z0-9-]*$'
+    examples:
+      - feat/add-shinsa-scenario
+      - fix/zeroth-agent-yml
