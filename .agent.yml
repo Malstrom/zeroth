@@ -1,146 +1,92 @@
 # .agent.yml
-# AI-only operational manifest. Not for humans.
-# Read this at the start of every session. Single entry point.
-# Model: Ansible-inspired — scenarios (user-triggered) + handlers (auto-reactive)
-# Spec: github.com/Malstrom/zeroth
+# AI-only operational manifest for zeroth.
+# Read this before answering anything. Single entry point.
 
 # ---------------------------------------------------------------------------
-# CONNECTOR CHECK
+# LANGUAGE
 # ---------------------------------------------------------------------------
-connector_check:
-  on_fail: |
-    Say: "GitHub connector not active. Click + → GitHub → new chat."
-    Stop immediately. Do not fall back to web or browser.
+language:
+  chat: italian                   # language used in conversation with Igor
+  files: english                  # all file content, commits, PR/issue bodies
+  filenames: english              # all file names AND folder names (snake_case, lowercase)
 
 # ---------------------------------------------------------------------------
-# SCENARIOS
-# Read .scenarios.yml FIRST before any reasoning.
-# Every user message must be matched against scenarios before free reasoning.
-# If a scenario matches, follow it. The solution is probably already there.
+# WORK RULES
 # ---------------------------------------------------------------------------
-scenarios:
-  scenarios_file: .scenarios.yml
-  matching: mandatory_before_reasoning
-
-# ---------------------------------------------------------------------------
-# GLOBAL
-# ---------------------------------------------------------------------------
-global:
-  language: Italian
-  pr_strategy: batch_per_session
+work_rules:
+  branch_per_issue: true
+  branch_naming: "{type}/{short-description}"
+  all_writes_via_pr: true
   merge_strategy: squash
-  dedup_scope: current_session
-  trigger_matching: pattern_first
-
-# ---------------------------------------------------------------------------
-# REPO MAP
-# ---------------------------------------------------------------------------
-repo_map:
-  rules/agent.yml: "How do I structure .agent.yml?"
-  rules/scenarios.yml: "How do I write scenarios and handlers?"
-  rules/files.yml: "How do I name, organize and handle files?"
-  rules/connections.yml: "How do I declare cross-repo connections?"
-  frameworks/dojo/.agent.yml: dojo framework AI manifest
-  frameworks/dojo/.scenarios.yml: dojo framework scenario catalog
-  frameworks/dojo/overview.yml: dojo framework overview and vocabulary
-  frameworks/dojo/structure.yml: dojo framework directory structure spec
-  frameworks/dojo/checklist.yml: dojo framework giskard validation checklist
-  frameworks/aurora/: spec and validation rules for the aurora framework
-  templates/.agent.yml: base template for new framework agent files
-  templates/.scenarios.yml: base template for new framework scenarios files
-  templates/.registry.yml: base template for new framework registry files
-  templates/overview.yml: base template for new framework overview files
-  templates/rule.yml: template for writing rules/ files
-
-# ---------------------------------------------------------------------------
-# FILE ACCESS
-# ---------------------------------------------------------------------------
-file_access:
-  .agent.yml: read-only
-  .registry.yml: read-only
-  .scenarios.yml: read-only
-  rules/*.yml: read-write
-  frameworks/**/*.yml: read-write
-  frameworks/**/.agent.yml: read-write
-  frameworks/**/.scenarios.yml: read-write
-  templates/*: read-write
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
+# false = execute immediately, no confirmation needed
+# true  = always ask before executing
 # ---------------------------------------------------------------------------
 tool_approval:
-  feature_branch: false
-  file_edit: false
+  create_branch: false
   push_files: false
   create_pr: false
   create_issue: false
+  create_sub_issue: false
   update_issue: false
   merge_to_main: false
   delete_file: true
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
-# POST-ACTION HOOK
+# SCENARIOS
+# Read .scenarios.yml BEFORE any reasoning.
+# Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
-post_action_hook:
-  after_every_state_change:
-    - read: .registry.yml
-    - if:
-        condition: matching_sync_triggers_exist
-        then:
-          - call_handlers: matching
-  conflict_check:
-    if_open_pr_on_same_file: stop and notify Igor
+scenarios:
+  file: .scenarios.yml
+  spec: zeroth/rules/scenarios.yml
+  read_before_responding: true
+  on_no_match: propose new scenario to user before proceeding
 
 # ---------------------------------------------------------------------------
-# HANDLERS
+# WORKSPACE
+# Exact paths: named keys
+# Glob patterns: under patterns list
+# Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
-handlers:
-
-  giskard_sync:
-    listen:
-      - framework-added
-      - checker-added
-    dedup: once per session
-    actions:
-      - if:
-          condition: event == framework-added
-          then:
-            - update:
-                file: Malstrom/giskard:giskard.py
-                fields: [ZEROTH_CHECKLISTS]
-                via: PR
-      - if:
-          condition: event == checker-added
-          then:
-            - update:
-                file: Malstrom/giskard:checks/frameworks/README.yml
-                fields: [registered_frameworks]
-                via: PR
-    state_changes: []
-
-  readme_sync:
-    listen:
-      - framework-added
-    dedup: once per session
-    actions:
-      - update:
-          file: README.md
-          fields: [structure, registered_frameworks]
-          via: PR
-    state_changes:
-      - readme-updated
-
-  propagate_rule:
-    listen:
-      - rule-updated
-    dedup: once per rule per session
-    actions:
-      - read: .registry.yml
-      - if:
-          condition: repo.access == read-write and rule_impacts_agent
-          then:
-            - update:
-                file: "{repo}/.agent.yml"
-                via: PR
-    state_changes: []
+workspace:
+  .agent.yml:
+    role: AI manifest
+    access: read-only
+  .scenarios.yml:
+    role: scenario catalog
+    access: read-only
+  .registry.yml:
+    role: cross-repo connections
+    access: read-only
+  README.md:
+    role: human-facing repo overview
+    access: read-write
+  rules/:
+    role: canonical rules for zeroth spec (agent, scenarios, files, connections)
+    access: read-write
+  frameworks/:
+    role: framework definitions (one subfolder per framework)
+    access: read-write
+  templates/:
+    role: base templates for new framework files
+    access: read-write
+  patterns:
+    - path: "rules/*.yml"
+      role: individual rule files
+      access: read-write
+    - path: "frameworks/**/.agent.yml"
+      role: framework AI manifests
+      access: read-write
+    - path: "frameworks/**/.scenarios.yml"
+      role: framework scenario catalogs
+      access: read-write
+    - path: "frameworks/**/*.yml"
+      role: framework spec files
+      access: read-write
+    - path: "templates/*"
+      role: template files
+      access: read-write
