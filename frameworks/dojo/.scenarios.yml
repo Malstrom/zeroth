@@ -377,20 +377,47 @@ required_scenarios:
     on:
       - user confirms level up after passing the shinsa
       - user wants to manually advance their level on a subject
-    creates_issue: false
+    creates_issue: true
+    issue:
+      title: "Level up: {subject} → level {new_level}"
+      body: |
+        - [ ] .gakusei.yml updated (level, active_books, completed_books)
+        - [ ] gakusei.md updated
+        - [ ] kiroku/makimono updated
+      on_complete: close
+      on_fail: comment
     read:
       - .gakusei.yml
       - gakusei.md
+      - "kiroku/makimono/"
     steps:
       - write:
           path: .gakusei.yml
-          fields: [subjects, active_books, completed_books]
+          fields: [subjects.level, subjects.active_books, subjects.completed_books]
           access: read-write
           via: PR
+      - issue:
+          check: ".gakusei.yml updated (level, active_books, completed_books)"
+
       - write:
           path: gakusei.md
           access: read-write
           via: PR
+      - issue:
+          check: "gakusei.md updated"
+
+      - write:
+          path: "kiroku/makimono/"
+          filename: "YYYY-MM-DD_{subject}_level_{new_level}.yml"
+          from: templates/makimono.yml
+          access: write-once
+          via: PR
+      - issue:
+          check: "kiroku/makimono updated"
+
+      - commit_before_reply
+
+      - say: "Level up complete. {{subject}} is now level {{new_level}}."
     output:
       state_changes: [level-up-completed]
 
@@ -400,12 +427,17 @@ required_scenarios:
     creates_issue: false
     read: []
     steps:
-      - propose: "Did you mean: {{closest_scenario}}?"
-        on_confirm:
-          - call: "{{closest_scenario}}"
       - if:
-          condition: no_match
+          condition: closest_scenario exists
           then:
-            - say: "Scenario not defined. Want me to add it?"
+            - propose: "Did you mean: {{closest_scenario}}?"
+              on_confirm:
+                - call: "{{closest_scenario}}"
+              on_reject:
+                - say: "OK. What would you like to do?"
+          else:
+            - say: "I don't recognize that as a defined scenario. Want me to open an issue to add it?"
+              # Note: the AI must NOT open the issue autonomously.
+              # It must wait for user confirmation before any action.
     output:
       state_changes: []
