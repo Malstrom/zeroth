@@ -1,28 +1,32 @@
 # .scenarios.yml
 # AI-only scenario catalog.
-# All user-triggered flows live here. Referenced by .agent.yml.
+# Model: GitHub Actions workflows — on: for routing, steps: for logic
+# Each scenario = one workflow: trigger → read → steps → output
 # Syntax: rules/scenarios.yml
 # Spec: github.com/Malstrom/zeroth
 
 required_scenarios:
 
   session_start:
-    trigger_patterns:
+    on:
       - session opens automatically
+    creates_issue: false
     # declare identity or state file here (e.g. .gakusei.yml)
     read: []
-    actions:
+    steps:
       - say: "{{greeting_with_current_state}}"
       - propose: "{{most_relevant_next_action}}"
         on_confirm:
           - call: # most_relevant_scenario
-    state_changes: []
+    output:
+      state_changes: []
 
   unknown_scenario:
-    trigger_patterns:
+    on:
       - any message that does not match any other scenario
+    creates_issue: false
     read: []
-    actions:
+    steps:
       - propose: "Did you mean: {{closest_scenario}}?"
         on_confirm:
           - call: "{{closest_scenario}}"
@@ -30,9 +34,64 @@ required_scenarios:
           condition: no_match
           then:
             - say: "Scenario not defined. Want me to add it?"
-    state_changes: []
+    output:
+      state_changes: []
 
-  # add framework-specific scenarios below
-  # syntax reference: rules/scenarios.yml
-  # every scenario must have: trigger_patterns, read, actions, state_changes
-  # actions must use declared modules only — no free-form prose
+  # ---------------------------------------------------------------------------
+  # Add framework-specific scenarios below.
+  # Syntax reference: rules/scenarios.yml
+  # ---------------------------------------------------------------------------
+
+  # EXAMPLE — user-triggered scenario that writes a file and opens an issue:
+  #
+  # example_create:
+  #   on:
+  #     - user wants to create a new X
+  #     - user asks to start a new X
+  #   creates_issue: true
+  #   issue:
+  #     title: "Create X: {slug}"
+  #     body: |
+  #       - [ ] file created
+  #       - [ ] state updated
+  #     on_complete: close
+  #     on_fail: comment
+  #   read:
+  #     - .agent.yml
+  #   steps:
+  #     - ask: "What should the X be about?"
+  #     - write:
+  #         path: "some/folder/"
+  #         filename: "YYYY-MM-DD_{slug}.yml"
+  #         from: templates/x.yml
+  #         access: write-once
+  #         via: PR
+  #     - issue:
+  #         check: "file created"
+  #     - write:
+  #         path: .state.yml
+  #         fields: [last_x]
+  #         access: read-write
+  #         via: PR
+  #     - issue:
+  #         check: "state updated"
+  #   output:
+  #     state_changes: [x-created]
+
+  # EXAMPLE — event-triggered scenario (migrated handler):
+  #
+  # example_sync:
+  #   on:
+  #     events: [x-created]
+  #   creates_issue: false
+  #   dedup: once per session
+  #   read:
+  #     - .registry.yml
+  #   steps:
+  #     - write:
+  #         path: some/index.yml
+  #         fields: [entries]
+  #         access: read-write
+  #         via: PR
+  #   output:
+  #     state_changes: [index-updated]
