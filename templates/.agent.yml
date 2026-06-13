@@ -1,25 +1,58 @@
 # .agent.yml
 # AI-only operational manifest. Not for humans.
 # Read this at the start of every session.
-# Spec: github.com/Malstrom/zeroth
+# Spec: Malstrom/zeroth:rules/agent.yml
 
 # ---------------------------------------------------------------------------
-# LANGUAGE
+# CONNECTOR CHECK
+# Must be first. If connector not active, stop.
 # ---------------------------------------------------------------------------
-language:
-  chat: read from identity file   # language used in conversation with the user
-  files: english                  # all file content, commits, PR/issue bodies
-  filenames: english              # all file names AND folder names (snake_case, lowercase)
+connector_check:
+  on_failure: say "GitHub connector not active. Click + → GitHub → new chat." and stop
+  forbidden: fall back to web or browser
 
 # ---------------------------------------------------------------------------
-# WORK RULES
+# GLOBAL
 # ---------------------------------------------------------------------------
-work_rules:
-  branch_per_issue: true
-  branch_naming: "{type}/{short-description}"
-  all_writes_via_pr: true
+global:
+  language:
+    chat: read from identity file   # language used in conversation with the user
+    files: english                  # all file content, commits, PR/issue bodies
+    filenames: english              # all file names AND folder names (snake_case, lowercase)
+  pr_strategy: batch_per_session
   merge_strategy: squash
-  # add framework-specific rules here
+  dedup_scope: current_session
+  trigger_matching: pattern_first
+  # add framework-specific global rules here
+
+# ---------------------------------------------------------------------------
+# REPO MAP
+# ---------------------------------------------------------------------------
+repo_map:
+  this: "{{owner}}/{{repo}}"
+  zeroth: Malstrom/zeroth
+
+# ---------------------------------------------------------------------------
+# FRAMEWORK
+# Cross-repo references — owner/repo:path format (see Malstrom/zeroth:rules/agent.yml)
+# ---------------------------------------------------------------------------
+framework:
+  name: "{{framework_name}}"
+  scenarios: "Malstrom/zeroth:frameworks/{{framework_name}}/.scenarios.yml"
+  templates: "Malstrom/zeroth:frameworks/{{framework_name}}/templates/"
+  rules: "Malstrom/zeroth:rules/"
+
+# ---------------------------------------------------------------------------
+# FILE ACCESS
+# ---------------------------------------------------------------------------
+file_access:
+  .agent.yml: read-only
+  .registry.yml: read-only
+  # add all framework-specific paths here
+  # examples:
+  #   identity_file.yml: read-write
+  #   "logs/**": append-only
+  #   "output/**": read-write
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
@@ -38,34 +71,38 @@ tool_approval:
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# WRITE AHEAD
+# ---------------------------------------------------------------------------
+write_ahead:
+  rule: never push directly to main — always branch → PR → squash merge
+  branch_naming: "{type}/{short-description}"
+  immutable_logs: immediate PR, not batched
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # Read .scenarios.yml BEFORE any reasoning.
 # Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
 scenarios:
-  file: .scenarios.yml
-  spec: zeroth/rules/scenarios.yml
+  scenarios_file: "Malstrom/zeroth:frameworks/{{framework_name}}/.scenarios.yml"
+  spec: Malstrom/zeroth:rules/scenarios.yml
   read_before_responding: true
   on_no_match: propose new scenario to user before proceeding
 
 # ---------------------------------------------------------------------------
-# WORKSPACE
-# Exact paths: named keys
-# Glob patterns: under patterns list
-# Filename conventions live in each scenario's create action, not here.
+# POST ACTION HOOK
 # ---------------------------------------------------------------------------
-workspace:
-  .agent.yml:
-    role: AI manifest
-    access: read-only
-  .scenarios.yml:
-    role: scenario catalog
-    access: read-only
-  .registry.yml:
-    role: cross-repo connections
-    access: read-only
-  # add all framework-specific paths here
-  # patterns:
-  #   - path: "some/glob/**"
-  #     role: description
-  #     access: read-only | read-write | append-only | write-once
+post_action_hook:
+  after_every_state_change:
+    - read: .registry.yml
+    - if:
+        condition: matching_sync_triggers_exist
+        then:
+          - call_handlers: matching
+  conflict_check:
+    if_open_pr_on_same_file: stop and notify user
+
+# ---------------------------------------------------------------------------
+# HANDLERS
+# ---------------------------------------------------------------------------
+handlers: {}

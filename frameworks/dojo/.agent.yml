@@ -1,24 +1,59 @@
 # .agent.yml
-# AI-only operational manifest for the dojo framework.
+# AI-only operational manifest for dojo instances.
+# Read this at the start of every session.
+# Spec: Malstrom/zeroth:rules/agent.yml
 
 # ---------------------------------------------------------------------------
-# LANGUAGE
+# CONNECTOR CHECK
+# Must be first. If connector not active, stop.
 # ---------------------------------------------------------------------------
-language:
-  chat: read from .gakusei.yml    # language used when speaking with the student
-  files: english                  # all file content, commits, PR/issue bodies
-  filenames: english              # all file names AND folder names (snake_case, lowercase)
+connector_check:
+  on_failure: say "GitHub connector not active. Click + → GitHub → new chat." and stop
+  forbidden: fall back to web or browser
 
 # ---------------------------------------------------------------------------
-# WORK RULES
+# GLOBAL
 # ---------------------------------------------------------------------------
-work_rules:
-  branch_per_issue: true
-  branch_naming: "{type}/{short-description}"
-  all_writes_via_pr: true
+global:
+  language:
+    chat: read from .gakusei.yml    # language used when speaking with the student
+    files: english
+    filenames: english
+  pr_strategy: batch_per_session
   merge_strategy: squash
+  dedup_scope: current_session
+  trigger_matching: pattern_first
   level_up: AI proposes, student confirms — never automatic
   densho: does not exist — books consumed live from library sources
+
+# ---------------------------------------------------------------------------
+# REPO MAP
+# ---------------------------------------------------------------------------
+repo_map:
+  this: "{{owner}}/{{repo}}"
+  zeroth: Malstrom/zeroth
+
+# ---------------------------------------------------------------------------
+# FRAMEWORK
+# Cross-repo references — owner/repo:path format (see Malstrom/zeroth:rules/agent.yml)
+# ---------------------------------------------------------------------------
+framework:
+  name: dojo
+  scenarios: Malstrom/zeroth:frameworks/dojo/.scenarios.yml
+  templates: Malstrom/zeroth:frameworks/dojo/templates/
+  rules: Malstrom/zeroth:rules/
+
+# ---------------------------------------------------------------------------
+# FILE ACCESS
+# ---------------------------------------------------------------------------
+file_access:
+  .agent.yml: read-only
+  .registry.yml: read-only
+  .gakusei.yml: read-write
+  gakusei.md: read-write
+  "kata/**": read-write
+  "kiroku/nikki/**": append-only
+  "kiroku/makimono/**": read-write
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
@@ -37,45 +72,37 @@ tool_approval:
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# WRITE AHEAD
+# ---------------------------------------------------------------------------
+write_ahead:
+  rule: never push directly to main — always branch → PR → squash merge
+  branch_naming: "{type}/{short-description}"
+  immutable_logs: immediate PR, not batched
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
-# Read .scenarios.yml BEFORE any reasoning.
-# Every user message must be matched against scenarios first.
+# Read from zeroth via absolute reference — never local copy.
 # ---------------------------------------------------------------------------
 scenarios:
-  file: .scenarios.yml
-  spec: zeroth/rules/scenarios.yml
+  scenarios_file: Malstrom/zeroth:frameworks/dojo/.scenarios.yml
+  spec: Malstrom/zeroth:rules/scenarios.yml
   read_before_responding: true
   on_no_match: propose new scenario to user before proceeding
 
 # ---------------------------------------------------------------------------
-# WORKSPACE
-# Exact paths: named keys
-# Glob patterns: under patterns list
-# Filename conventions live in each scenario's create action, not here.
+# POST ACTION HOOK
 # ---------------------------------------------------------------------------
-workspace:
-  .gakusei.yml:
-    role: student identity, progress, and language
-    access: read-write
-  .scenarios.yml:
-    role: scenario catalog
-    access: read-only
-  .registry.yml:
-    role: cross-repo connections
-    access: read-only
-  gakusei.md:
-    role: human-readable student profile
-    access: read-write
-  templates/:
-    role: file templates for kata, nikki, makimono, shinsa
-    access: read-only
-  patterns:
-    - path: "kata/**"
-      role: practice exercises
-      access: read-write
-    - path: "kiroku/nikki/**"
-      role: immutable session logs
-      access: append-only
-    - path: "kiroku/makimono/**"
-      role: study scrolls
-      access: read-write
+post_action_hook:
+  after_every_state_change:
+    - read: .registry.yml
+    - if:
+        condition: matching_sync_triggers_exist
+        then:
+          - call_handlers: matching
+  conflict_check:
+    if_open_pr_on_same_file: stop and notify user
+
+# ---------------------------------------------------------------------------
+# HANDLERS
+# ---------------------------------------------------------------------------
+handlers: {}

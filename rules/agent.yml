@@ -9,12 +9,14 @@ structure:
     - connector_check
     - global
     - repo_map
+    - framework
     - file_access
     - tool_approval
     - write_ahead
     - scenarios
     - post_action_hook
     - handlers
+  note: framework block is required in instance .agent.yml — omit only in zeroth itself
 
 # ---------------------------------------------------------------------------
 # CONNECTOR CHECK
@@ -36,11 +38,42 @@ global:
   trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
 
 # ---------------------------------------------------------------------------
+# REPO MAP
+# ---------------------------------------------------------------------------
+repo_map:
+  rule: declare this repo and all cross-repo dependencies by short name
+  required_keys:
+    this: owner/repo of the current instance
+    zeroth: Malstrom/zeroth — always present
+  note: short names defined here are used in framework and handlers blocks
+
+# ---------------------------------------------------------------------------
+# FRAMEWORK
+# ---------------------------------------------------------------------------
+framework:
+  rule: required in every instance .agent.yml — omit only in zeroth itself
+  purpose: declares cross-repo references to zeroth spec files — never local copies
+  required_fields: [name, scenarios, templates, rules]
+  ref_format: owner/repo:path — same syntax used in handlers.actions and scenarios.read
+  examples:
+    scenarios: Malstrom/zeroth:frameworks/dojo/.scenarios.yml
+    templates: Malstrom/zeroth:frameworks/dojo/templates/
+    rules: Malstrom/zeroth:rules/
+  forbidden:
+    - local paths (e.g. .scenarios.yml, templates/)
+    - raw GitHub URLs (e.g. https://raw.githubusercontent.com/...)
+    - absolute URLs of any kind
+  note: |
+    URL always resolves to main — instances always receive the latest zeroth version.
+    If zeroth becomes private, all instances stop working. Zeroth must remain public.
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
 scenarios:
   rule: scenarios live in .scenarios.yml — never inline in .agent.yml
   required: [session_start, unknown_scenario]
+  scenarios_file: cross-repo ref in owner/repo:path format pointing to zeroth
   note: giskard validates .scenarios.yml directly — see rules/scenarios.yml
 
 # ---------------------------------------------------------------------------
@@ -54,7 +87,7 @@ handlers:
     - once per session
     - once per {variable} per session
   forbidden_in_actions: [say, ask, propose]
-  cross_repo_refs: use owner/repo:path format in actions — never in the read field
+  cross_repo_refs: use owner/repo:path format in actions and in framework block — never raw URLs
 
 # ---------------------------------------------------------------------------
 # POST ACTION HOOK
@@ -126,9 +159,11 @@ yaml_validity:
 validation:
   - connector_check is the first block
   - repo_map is present
+  - framework is present in instance .agent.yml (not required in zeroth itself)
+  - framework.scenarios, framework.templates, framework.rules use owner/repo:path format
   - file_access is present
   - tool_approval is present
   - write_ahead is present
-  - scenarios declares scenarios_file
+  - scenarios declares scenarios_file in owner/repo:path format
   - handlers is present
   - post_action_hook declares after_every_state_change with read: .registry.yml
