@@ -1,0 +1,265 @@
+# frameworks/aurora/.scenarios.yml
+# Aurora framework — scenario catalog
+# Model: GitHub Actions workflows — on: for routing, steps: for logic
+# Each scenario = one workflow: trigger → read → steps → output
+# Syntax: rules/scenarios.yml
+# Spec: github.com/Malstrom/zeroth
+
+required_scenarios:
+
+  session_start:
+    on:
+      - session opens automatically
+    creates_issue: false
+    read:
+      - .aurora.yml
+      - "clients/"
+    steps:
+      - say: "Aurora ready."
+      - say: "Clients: {{aurora.clients | join}}. Open inbox tasks: {{open_inbox_count}}."
+      - say: "Available actions: ingest_task, delegate_task, rate_work, work_session, log_work, recall, summarize_client, draft_reply."
+      - if:
+          condition: open_inbox_count > 0
+          then:
+            - propose: "You have {{open_inbox_count}} open task(s). Work on one now?"
+              on_confirm:
+                - call: work_session
+    output:
+      state_changes: []
+
+  propose_action:
+    on:
+      - user sends a message without a clear intent
+      - user asks what they can do
+      - user greets or sends a short message
+      - user seems unsure what to do next
+    creates_issue: false
+    read:
+      - .aurora.yml
+      - "clients/"
+    steps:
+      - say: "Current state: {{open_inbox_count}} open task(s), clients: {{aurora.clients | join}}."
+      - say: "Available actions: ingest_task, delegate_task, rate_work, work_session, log_work, recall, summarize_client, draft_reply."
+    output:
+      state_changes: []
+
+  ingest_task:
+    on:
+      - user shares a new task, email, or request
+      - user pastes an email or message they received
+      - user describes a new incoming request from a client
+    creates_issue: true
+    issue:
+      title: "Task: {slug} — {{date}}"
+      body: |
+        - [ ] inbox file created
+        - [ ] next step proposed
+      on_complete: close
+      on_fail: comment
+    read:
+      - "clients/{slug}/context.yml"
+      - "log/_index/{{current_year}}.yml"
+      - templates/inbox.yml
+    steps:
+      - say: "Loading client context and history..."
+      - say: "Relevant past entries found: {{history_matches | count}}."
+      - write:
+          path: "clients/{slug}/inbox/"
+          filename: "YYYY-MM-DD_{slug}.yml"
+          from: templates/inbox.yml
+          access: write-once
+          via: PR
+      - issue:
+          check: "inbox file created"
+      - say: "Task ingested. Proposed next step: {{next_step}}."
+      - issue:
+          check: "next step proposed"
+    output:
+      state_changes: [task-ingested]
+
+  delegate_task:
+    on:
+      - user wants to assign a task to a team member
+      - user asks who is the best person for a task
+      - user wants to delegate work
+    creates_issue: false
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "contacts/"
+    steps:
+      - say: "Candidates ranked by skill match and performance score: {{ranked_candidates}}."
+      - ask: "Which candidate do you want to assign this to?"
+      - call: draft_reply
+      - write:
+          path: "clients/{slug}/inbox/{{task_file}}"
+          fields: [assigned_to, status_log]
+          access: append-only
+          via: PR
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
+          fields: [entries]
+          access: append-only
+          via: PR
+    output:
+      state_changes: [task-delegated]
+
+  rate_work:
+    on:
+      - user wants to evaluate completed work by a team member
+      - user wants to give feedback on a completed task
+      - user wants to rate a team member's work
+    creates_issue: false
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "contacts/{{contact_file}}"
+    steps:
+      - ask: "Score (1-5)?"
+      - ask: "Strengths?"
+      - ask: "Weaknesses?"
+      - ask: "Notes?"
+      - write:
+          path: "contacts/"
+          filename: "{client}_{firstname}_{lastname}.yml"
+          fields: [performance_log]
+          access: append-only
+          via: PR
+      - write:
+          path: "clients/{slug}/inbox/{{task_file}}"
+          fields: [status_log]
+          access: append-only
+          via: PR
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
+          fields: [entries]
+          access: append-only
+          via: PR
+      - say: "Rating saved. Updated performance summary: {{performance_summary}}."
+    output:
+      state_changes: [work-rated]
+
+  work_session:
+    on:
+      - user starts working on a task themselves
+      - user wants to open a work session on a task
+    creates_issue: false
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "clients/{slug}/context.yml"
+      - "playbooks/{{work_type}}.yml"
+    steps:
+      - say: "Playbook: {{playbook.name}} — {{playbook.description}}."
+      - say: "Steps: {{playbook.steps}}."
+      - propose: "Start playbook execution step by step?"
+        on_confirm:
+          - call: log_work
+    output:
+      state_changes: []
+
+  log_work:
+    on:
+      - user asks to log work done
+      - user says a session is ending and wants to record what was done
+    creates_issue: false
+    read:
+      - templates/log.yml
+    steps:
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
+          fields: [entries]
+          access: append-only
+          via: PR
+      - if:
+          condition: unindexed_log_count > 30
+          then:
+            - call: reindex
+      - say: "Work logged."
+    output:
+      state_changes: [work-logged]
+
+  recall:
+    on:
+      - user asks about past work for a client or topic
+      - user wants to know the history of a client or project
+    creates_issue: false
+    read:
+      - "log/_index/{{current_year}}.yml"
+      - "log/_index/{{previous_year}}.yml"
+    steps:
+      - say: "History for {{slug}}: {{history_summary}}."
+    output:
+      state_changes: []
+
+  reindex:
+    on:
+      - user asks to reindex logs
+      - user wants to update the log index for a client or period
+    creates_issue: false
+    read:
+      - templates/log_index.yml
+      - "log/{slug}/"
+    steps:
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM.index.yml"
+          from: templates/log_index.yml
+          access: write-once
+          via: PR
+      - write:
+          path: "log/_index/{{year}}.yml"
+          fields: [monthly_refs]
+          access: append-only
+          via: PR
+      - say: "Index updated. Files indexed: {{file_count}}."
+    output:
+      state_changes: [reindex-completed]
+
+  summarize_client:
+    on:
+      - user asks for a client summary
+      - user wants an overview of a client relationship
+    creates_issue: false
+    read:
+      - "clients/{slug}/context.yml"
+      - "clients/{slug}/summary.md"
+    steps:
+      - call: recall
+      - write:
+          path: "clients/{slug}/summary.md"
+          access: read-write
+          via: PR
+      - say: "Summary updated: clients/{slug}/summary.md."
+    output:
+      state_changes: []
+
+  draft_reply:
+    on:
+      - user asks to draft a reply or message to a contact
+      - user wants to write a message to a client or team member
+    creates_issue: false
+    read:
+      - "contacts/{{contact_file}}"
+      - "clients/{slug}/context.yml"
+    steps:
+      - say: "Draft: {{message_draft}}."
+      - propose: "Save draft to output?"
+        on_confirm:
+          - write:
+              path: "clients/{slug}/output/"
+              filename: "YYYY-MM-DD_{slug}.md"
+              access: write-once
+              via: PR
+    output:
+      state_changes: []
+
+  unknown_scenario:
+    on:
+      - any message that does not match any other scenario
+    creates_issue: false
+    read: []
+    steps:
+      - call: propose_action
+    output:
+      state_changes: []
