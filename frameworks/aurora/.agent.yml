@@ -17,8 +17,8 @@ work_rules:
   branch_naming: "{type}/{short-description}"
   all_writes_via_pr: true
   merge_strategy: squash
-  log_immutability: append-only, commit before responding
-  inbox_immutability: write-once, never edit after creation
+  log_immutability: append-only — commit before responding
+  inbox_immutability: write-once — never edit after creation
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL

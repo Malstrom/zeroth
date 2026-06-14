@@ -1,13 +1,11 @@
 # .agent.yml
-# AI-only operational manifest. Not for humans.
-# Read this at the start of every session.
-# Spec: github.com/Malstrom/zeroth
+# AI-only operational manifest for the {framework} framework.
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
 # ---------------------------------------------------------------------------
 language:
-  chat: read from identity file   # language used in conversation with the user
+  chat: read from .{identity}.yml # language used when speaking with the user
   files: english                  # all file content, commits, PR/issue bodies
   filenames: english              # all file names AND folder names (snake_case, lowercase)
 
@@ -19,7 +17,7 @@ work_rules:
   branch_naming: "{type}/{short-description}"
   all_writes_via_pr: true
   merge_strategy: squash
-  # add framework-specific rules here
+  # framework-specific rules: key: value — explanation
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
@@ -55,17 +53,20 @@ scenarios:
 # Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
 workspace:
-  .agent.yml:
-    role: AI manifest
-    access: read-only
+  .{identity}.yml:
+    role: user/student identity, progress, language
+    access: read-write
   .scenarios.yml:
     role: scenario catalog
     access: read-only
   .registry.yml:
     role: cross-repo connections
     access: read-only
-  # add all framework-specific paths here
-  # patterns:
-  #   - path: "some/glob/**"
-  #     role: description
-  #     access: read-only | read-write | append-only | write-once
+  templates/:
+    role: file templates
+    access: read-only
+  # add framework-specific named keys here
+  patterns:
+    # - path: "some/glob/**"
+    #   role: description
+    #   access: read-only | read-write | append-only | write-once
