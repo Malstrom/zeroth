@@ -1,4 +1,4 @@
-# frameworks/aurora/scenarios.yml
+# frameworks/aurora/.scenarios.yml
 # Aurora framework — scenario catalog
 # Model: GitHub Actions workflows — on: for routing, steps: for logic
 # Each scenario = one workflow: trigger → read → steps → output
