@@ -147,7 +147,6 @@ required_scenarios:
         - [ ] framework files read from zeroth
         - [ ] repo created
         - [ ] .agent.yml pushed
-        - [ ] identity file pushed
         - [ ] structure created
         - [ ] README.md pushed
         - [ ] .registry.yml updated in zeroth
@@ -158,7 +157,6 @@ required_scenarios:
       - "frameworks/{framework}/overview.yml"
       - "frameworks/{framework}/.agent.yml"
       - "frameworks/{framework}/.scenarios.yml"
-      - "frameworks/{framework}/onboarding.yml"
       - "frameworks/{framework}/structure.yml"
       - "frameworks/{framework}/templates/"
     steps:
@@ -170,6 +168,8 @@ required_scenarios:
       - create: repo
           name: "{repo_name}"
           visibility: "{visibility}"
+      - issue:
+          check: "repo created"
       - write:
           path: "{repo_name}:.agent.yml"
           from: "frameworks/{framework}/.agent.yml"
@@ -177,16 +177,6 @@ required_scenarios:
           via: PR
       - issue:
           check: ".agent.yml pushed"
-      - write:
-          path: "{repo_name}:{identity_file}"
-          generate: true
-          guided_by: "frameworks/{framework}/onboarding.yml"
-          fields: placeholder
-          access: write-once
-          via: PR
-          note: identity_file name is declared in overview.yml onboarding.creates (e.g. .gakusei.yml)
-      - issue:
-          check: "identity file pushed"
       - write:
           path: "{repo_name}:kata/.gitkeep"
           access: write-once
