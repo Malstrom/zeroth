@@ -37,3 +37,12 @@ connections:
     sync_trigger:
       - rule-updated
     access: read-write
+
+  - repo: Malstrom/Dojo
+    role: dojo instance — spawned 2026-06-14
+    framework: dojo
+    sync_trigger:
+      - rule-updated
+    access: read-write
+    note: |
+      Onboarding pending — .gakusei.yml student_name and language not yet filled.
