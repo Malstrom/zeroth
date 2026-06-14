@@ -16,6 +16,7 @@ connections:
     note: |
       When a checklist in zeroth changes, giskard.py may need updating.
       When a new framework is added, add it to ZEROTH_CHECKLISTS in giskard.py.
+      fix/report-path-artifact-name merged 2026-06-14 — report now posts correctly.
 
   - repo: Malstrom/dojo
     role: reference implementation of zeroth dojo framework spec
