@@ -7,34 +7,17 @@ on:
     branches: [main]
 
 jobs:
-  zeroth-dojo:
-    name: zeroth@dojo
+  zeroth:
+    name: zeroth@all
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout zeroth
         uses: actions/checkout@v4
 
-      - name: zeroth@dojo
+      - name: zeroth@all
         uses: Malstrom/giskard@main
         with:
           repo: .
           mode: zeroth
-          framework: dojo
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  zeroth-aurora:
-    name: zeroth@aurora
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout zeroth
-        uses: actions/checkout@v4
-
-      - name: zeroth@aurora
-        uses: Malstrom/giskard@main
-        with:
-          repo: .
-          mode: zeroth
-          framework: aurora
           github-token: ${{ secrets.GITHUB_TOKEN }}
