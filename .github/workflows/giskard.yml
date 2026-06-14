@@ -7,15 +7,15 @@ on:
     branches: [main]
 
 jobs:
-  validate-zeroth:
-    name: giskard — zeroth spec
+  zeroth-dojo:
+    name: zeroth@dojo
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout zeroth
         uses: actions/checkout@v4
 
-      - name: giskard — dojo@zeroth
+      - name: zeroth@dojo
         uses: Malstrom/giskard@main
         with:
           repo: .
@@ -23,7 +23,15 @@ jobs:
           framework: dojo
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: giskard — aurora@zeroth
+  zeroth-aurora:
+    name: zeroth@aurora
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout zeroth
+        uses: actions/checkout@v4
+
+      - name: zeroth@aurora
         uses: Malstrom/giskard@main
         with:
           repo: .
