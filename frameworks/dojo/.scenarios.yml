@@ -16,7 +16,7 @@ required_scenarios:
       - if:
           condition: gakusei_missing OR student_name == ""
           then:
-            - read: frameworks/dojo/onboarding.yml
+            - read: Malstrom/zeroth:frameworks/dojo/onboarding.yml
             - call: onboarding
             - stop
       - say: "{{student_name}}!"
@@ -97,7 +97,7 @@ required_scenarios:
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{subject}_study.yml"
-          from: templates/nikki.yml
+          from: Malstrom/zeroth:frameworks/dojo/templates/nikki.yml
           access: append-only
           via: PR
       - issue:
@@ -304,7 +304,7 @@ required_scenarios:
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{subject}_shinsa.yml"
-          from: templates/nikki.yml
+          from: Malstrom/zeroth:frameworks/dojo/templates/nikki.yml
           access: write-once
           via: PR
       - issue:
@@ -407,7 +407,7 @@ required_scenarios:
       - write:
           path: "kiroku/makimono/"
           filename: "YYYY-MM-DD_{subject}_level_{new_level}.yml"
-          from: templates/makimono.yml
+          from: Malstrom/zeroth:frameworks/dojo/templates/makimono.yml
           access: write-once
           via: PR
       - issue:
