@@ -51,3 +51,23 @@ library_sources:
   - attached_file: PDF, DOCX, MD, TXT, or similar text-readable attachment from chat
   - pasted_text: chapter text pasted inline in chat
   - ai_knowledge: no book provided — the AI teaches from its own knowledge, adapted to the student level
+
+# ---------------------------------------------------------------------------
+# ONBOARDING
+# Read by spawn scenario to collect identity data before creating the repo.
+# creates: identity file generated from identity_template filled with answers.
+# ---------------------------------------------------------------------------
+onboarding:
+  questions:
+    - field: student_name
+      ask: "Student name?"
+    - field: language
+      ask: "Language for chat? (e.g. italian, english)"
+    - field: subject
+      ask: "First subject to study? (default: github)"
+      default: github
+    - field: level
+      ask: "Starting level? (not_started / beginner / intermediate / advanced)"
+      default: not_started
+  creates: .gakusei.yml
+  identity_template: templates/.gakusei.yml
