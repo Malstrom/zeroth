@@ -6,6 +6,9 @@ required_layout:
     - .gakusei.yml         # machine-readable student profile — AI reads and writes
     - README.md            # human navigation hub
     # gakusei.md is NOT required at init — created by AI on first session
+    # .scenarios.yml lives in zeroth — read by AI from there, NOT copied to instance
+    # onboarding.yml lives in zeroth — read by AI from there, NOT copied to instance
+    # templates/ live in zeroth — read by AI from there, NOT copied to instance
   kata/:
     - "{subject}/"            # one subfolder per subject (e.g. github/, rails/, devops/)
     - "{subject}/{topic}.md"  # one file per topic within the subject
@@ -13,7 +16,7 @@ required_layout:
     makimono/:              # living documents — evolve with the student, updated via PR
       - "{subject}.md"      # one file per subject (e.g. github.md, python.md)
     nikki/:                 # immutable session diary — append-only, never overwrite
-      - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session (e.g. 2026-06-09_python_study.md)
+      - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session
 
 rules:
   - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
@@ -21,10 +24,10 @@ rules:
   - kiroku/nikki/ files are append-only — never overwrite
   - kiroku/makimono/ files are living documents — updated via PR, never directly on main
   - kata/ files are updated via PR, never directly on main
-  - .scenarios.yml, .registry.yml, onboarding.yml, templates/ are NOT stored in the repo — the AI reads them from zeroth
+  - .scenarios.yml is read from zeroth/frameworks/dojo/.scenarios.yml — never copied to instance
+  - onboarding.yml is read from zeroth/frameworks/dojo/onboarding.yml — never copied to instance
+  - templates/ are read from zeroth/frameworks/dojo/templates/ — never copied to instance
   - densho/ does not exist — books are read from library sources, not stored in the repository
-  - file permissions are declared in .agent.yml — structure.yml is reference only
-  - onboarding.yml is read from zeroth only once at first session
 
 strict_root:
   allowed:
@@ -41,33 +44,38 @@ strict_root:
 dynamic_dirs:
   kata/{subject}/:
     pattern: "{topic}.md"
-    regex: "^.+\.md$"
+    regex: "^.+\\.md$"
     allow_empty: false
   kiroku/makimono/:
     pattern: "{subject}.md"
-    regex: "^.+\.md$"
+    regex: "^.+\\.md$"
     allow_empty: true
   kiroku/nikki/:
     pattern: "YYYY-MM-DD_{subject}_{type}.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\.md$"
+    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\\.md$"
     allow_empty: true
 
 # ---------------------------------------------------------------------------
 # SCAFFOLD STRATEGY
 # Used by the spawn scenario to know what to create in the new repo.
-# All other framework files (.scenarios.yml, .registry.yml, onboarding.yml,
-# templates/) are read by the AI directly from zeroth — never copied.
 # ---------------------------------------------------------------------------
 scaffold_strategy:
 
-  copy:  # copy from frameworks/{name}/ into the new repo root
+  read:  # read from zeroth to understand context — do NOT copy to instance
+    - frameworks/{name}/structure.yml
+    - frameworks/{name}/overview.yml
+    - frameworks/{name}/onboarding.yml
+    - frameworks/{name}/.scenarios.yml
+    - frameworks/{name}/templates/
+
+  copy:  # copy as-is from zeroth/frameworks/{name}/ into the new repo root
     - source: frameworks/{name}/.agent.yml
       dest: .agent.yml
 
-  generate:  # generate from scratch using onboarding data + overview.yml
+  generate:  # generate from scratch using onboarding data
     - dest: .gakusei.yml
       guided_by: frameworks/{name}/onboarding.yml
-      note: populated with onboarding data collected during spawn
+      note: populated with onboarding answers
     - dest: kiroku/makimono/.gitkeep
       note: empty dir placeholder
     - dest: kiroku/nikki/.gitkeep
