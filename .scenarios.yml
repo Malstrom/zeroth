@@ -148,10 +148,9 @@ required_scenarios:
         - [ ] onboarding data collected
         - [ ] repo created
         - [ ] .agent.yml pushed
-        - [ ] .scenarios.yml pushed
         - [ ] identity file pushed
         - [ ] structure created
-        - [ ] templates/ pushed
+        - [ ] README.md pushed
         - [ ] .registry.yml updated in zeroth
       on_complete: close
       on_fail: comment
@@ -160,6 +159,7 @@ required_scenarios:
       - "frameworks/{framework}/overview.yml"
       - "frameworks/{framework}/.agent.yml"
       - "frameworks/{framework}/.scenarios.yml"
+      - "frameworks/{framework}/onboarding.yml"
       - "frameworks/{framework}/structure.yml"
       - "frameworks/{framework}/templates/"
     steps:
@@ -171,6 +171,9 @@ required_scenarios:
       - ask: "{{onboarding_questions_from_overview}}"
       - issue:
           check: "onboarding data collected"
+      - create: repo
+          name: "{repo_name}"
+          visibility: "{visibility}"
       - write:
           path: "{repo_name}:.agent.yml"
           from: "frameworks/{framework}/.agent.yml"
@@ -179,34 +182,38 @@ required_scenarios:
       - issue:
           check: ".agent.yml pushed"
       - write:
-          path: "{repo_name}:.scenarios.yml"
-          from: "frameworks/{framework}/.scenarios.yml"
-          access: write-once
-          via: PR
-      - issue:
-          check: ".scenarios.yml pushed"
-      - write:
-          path: "{repo_name}:.{identity}.yml"
-          from: "frameworks/{framework}/templates/.{identity}.yml"
+          path: "{repo_name}:{identity_file}"
+          generate: true
+          guided_by: "frameworks/{framework}/onboarding.yml"
           fields: "{{onboarding_data}}"
           access: write-once
           via: PR
+          note: identity_file name is declared in overview.yml onboarding.creates (e.g. .gakusei.yml)
       - issue:
           check: "identity file pushed"
       - write:
-          path: "{repo_name}:structure"
-          from: "frameworks/{framework}/structure.yml"
+          path: "{repo_name}:kata/.gitkeep"
+          access: write-once
+          via: PR
+      - write:
+          path: "{repo_name}:kiroku/makimono/.gitkeep"
+          access: write-once
+          via: PR
+      - write:
+          path: "{repo_name}:kiroku/nikki/.gitkeep"
           access: write-once
           via: PR
       - issue:
           check: "structure created"
       - write:
-          path: "{repo_name}:templates/"
-          from: "frameworks/{framework}/templates/"
+          path: "{repo_name}:README.md"
+          generate: true
+          guided_by: "frameworks/{framework}/overview.yml"
+          fields: "{{onboarding_data}}"
           access: write-once
           via: PR
       - issue:
-          check: "templates/ pushed"
+          check: "README.md pushed"
       - write:
           path: .registry.yml
           fields: [connections]
