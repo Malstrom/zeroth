@@ -25,3 +25,4 @@ jobs:
           repo: .
           mode: zeroth
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # retrigger: giskard#63 — removed scenario presence check
