@@ -42,8 +42,7 @@ tool_approval:
 # Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
 scenarios:
-  file: .scenarios.yml
-  spec: Malstrom/zeroth:frameworks/dojo/scenarios.yml
+  spec: Malstrom/zeroth:frameworks/dojo/.scenarios.yml
   read_before_responding: true
   on_no_match: propose new scenario to user before proceeding
 
