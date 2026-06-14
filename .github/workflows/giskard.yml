@@ -8,14 +8,14 @@ on:
 
 jobs:
   zeroth:
-    name: zeroth@all
+    name: zeroth
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout zeroth
         uses: actions/checkout@v4
 
-      - name: zeroth@all
+      - name: zeroth
         uses: Malstrom/giskard@main
         with:
           repo: .
