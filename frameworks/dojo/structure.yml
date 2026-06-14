@@ -3,10 +3,7 @@
 required_layout:
   root:
     - .agent.yml           # AI manifest — entry point, read-only
-    - .scenarios.yml       # AI scenario catalog — detailed user-triggered flows
-    - .registry.yml        # cross-repo connections — read-only
     - .gakusei.yml         # machine-readable student profile — AI reads and writes
-    - onboarding.yml       # atomic onboarding — read once at first session, self-contained
     - README.md            # human navigation hub
     # gakusei.md is NOT required at init — created by AI on first session
   kata/:
@@ -17,11 +14,6 @@ required_layout:
       - "{subject}.md"      # one file per subject (e.g. github.md, python.md)
     nikki/:                 # immutable session diary — append-only, never overwrite
       - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session (e.g. 2026-06-09_python_study.md)
-  templates/:
-    - kata.yml
-    - kiroku_nikki.yml
-    - kiroku_makimono.yml
-    - shinsa.yml
 
 rules:
   - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
@@ -29,76 +21,53 @@ rules:
   - kiroku/nikki/ files are append-only — never overwrite
   - kiroku/makimono/ files are living documents — updated via PR, never directly on main
   - kata/ files are updated via PR, never directly on main
-  - templates/ must be read before generating any document
+  - .scenarios.yml, .registry.yml, onboarding.yml, templates/ are NOT stored in the repo — the AI reads them from zeroth
   - densho/ does not exist — books are read from library sources, not stored in the repository
-  - file permissions are declared in .agent.yml file_access — structure.yml is reference only
-  - onboarding.yml is read only once at first session — never again after setup is complete
+  - file permissions are declared in .agent.yml — structure.yml is reference only
+  - onboarding.yml is read from zeroth only once at first session
 
 strict_root:
   allowed:
     - .agent.yml
-    - .scenarios.yml
-    - .registry.yml
     - .gakusei.yml
     - .github
     - .git
     - gakusei.md
     - README.md
     - LICENSE
-    - onboarding.yml
     - kata
     - kiroku
-    - templates
 
 dynamic_dirs:
   kata/{subject}/:
     pattern: "{topic}.md"
-    regex: "^.+\\.md$"
+    regex: "^.+\.md$"
     allow_empty: false
   kiroku/makimono/:
     pattern: "{subject}.md"
-    regex: "^.+\\.md$"
+    regex: "^.+\.md$"
     allow_empty: true
   kiroku/nikki/:
     pattern: "YYYY-MM-DD_{subject}_{type}.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\\.md$"
+    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\.md$"
     allow_empty: true
 
 # ---------------------------------------------------------------------------
 # SCAFFOLD STRATEGY
-# Used by the create_framework scenario to know what to do with each file.
+# Used by the spawn scenario to know what to create in the new repo.
+# All other framework files (.scenarios.yml, .registry.yml, onboarding.yml,
+# templates/) are read by the AI directly from zeroth — never copied.
 # ---------------------------------------------------------------------------
 scaffold_strategy:
 
-  read:  # read to understand what to do — do not copy
-    - frameworks/{name}/structure.yml
-    - frameworks/{name}/overview.yml
-    - frameworks/{name}/onboarding.yml
-
-  copy:  # copy as-is from zeroth/templates/ into the new repo root
-    - source: templates/.agent.yml
+  copy:  # copy from frameworks/{name}/ into the new repo root
+    - source: frameworks/{name}/.agent.yml
       dest: .agent.yml
-    - source: templates/.registry.yml
-      dest: .registry.yml
-    - source: templates/.scenarios.yml
-      dest: .scenarios.yml
 
-  copy_framework:  # copy from frameworks/{name}/ into the new repo
-    - source: frameworks/{name}/onboarding.yml
-      dest: onboarding.yml
-    - source: frameworks/{name}/templates/kata.yml
-      dest: templates/kata.yml
-    - source: frameworks/{name}/templates/kiroku_nikki.yml
-      dest: templates/kiroku_nikki.yml
-    - source: frameworks/{name}/templates/kiroku_makimono.yml
-      dest: templates/kiroku_makimono.yml
-    - source: frameworks/{name}/templates/shinsa.yml
-      dest: templates/shinsa.yml
-
-  generate:  # generate from scratch using context + onboarding.yml
+  generate:  # generate from scratch using onboarding data + overview.yml
     - dest: .gakusei.yml
-      guided_by: onboarding.yml
-      note: neutral at init — populated during first session
+      guided_by: frameworks/{name}/onboarding.yml
+      note: populated with onboarding data collected during spawn
     - dest: kiroku/makimono/.gitkeep
       note: empty dir placeholder
     - dest: kiroku/nikki/.gitkeep
@@ -106,5 +75,5 @@ scaffold_strategy:
     - dest: kata/.gitkeep
       note: empty dir placeholder
     - dest: README.md
-      guided_by: overview.yml
+      guided_by: frameworks/{name}/overview.yml
       note: human-facing intro generated from overview
