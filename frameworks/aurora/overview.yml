@@ -47,3 +47,23 @@ scenarios:
 
 derives_from: zeroth
 L2_compliance: see rules/laws.yml in zeroth
+
+# ---------------------------------------------------------------------------
+# ONBOARDING
+# Read by spawn scenario to collect identity data before creating the repo.
+# creates: identity file generated from identity_template filled with answers.
+# ---------------------------------------------------------------------------
+onboarding:
+  questions:
+    - field: user_name
+      ask: "Your name?"
+    - field: language
+      ask: "Language for chat? (e.g. italian, english)"
+    - field: timezone
+      ask: "Your timezone? (e.g. Europe/Rome, Europe/Moscow)"
+    - field: role
+      ask: "Your role? (e.g. consultant, developer, freelancer)"
+    - field: first_client
+      ask: "First client name? (can add more later)"
+  creates: .aurora.yml
+  identity_template: templates/.aurora.yml
