@@ -135,6 +135,88 @@ required_scenarios:
     output:
       state_changes: [checker-added]
 
+  spawn:
+    on:
+      - user wants to create a new repo from a framework
+      - user wants to instantiate a framework
+      - user wants to spawn a new instance of dojo, aurora, or any registered framework
+    creates_issue: true
+    issue:
+      title: "Spawn: {framework}/{repo_name}"
+      body: |
+        - [ ] framework files read from zeroth
+        - [ ] onboarding data collected
+        - [ ] repo created
+        - [ ] .agent.yml pushed
+        - [ ] .scenarios.yml pushed
+        - [ ] identity file pushed
+        - [ ] structure created
+        - [ ] templates/ pushed
+        - [ ] .registry.yml updated in zeroth
+      on_complete: close
+      on_fail: comment
+    read:
+      - .registry.yml
+      - "frameworks/{framework}/overview.yml"
+      - "frameworks/{framework}/.agent.yml"
+      - "frameworks/{framework}/.scenarios.yml"
+      - "frameworks/{framework}/structure.yml"
+      - "frameworks/{framework}/templates/"
+    steps:
+      - ask: "Which framework? (available: {{registered_frameworks}})"
+      - ask: "Repo name?"
+      - ask: "Repo visibility? (public / private)"
+      - issue:
+          check: "framework files read from zeroth"
+      - ask: "{{onboarding_questions_from_overview}}"
+      - issue:
+          check: "onboarding data collected"
+      - write:
+          path: "{repo_name}:.agent.yml"
+          from: "frameworks/{framework}/.agent.yml"
+          access: write-once
+          via: PR
+      - issue:
+          check: ".agent.yml pushed"
+      - write:
+          path: "{repo_name}:.scenarios.yml"
+          from: "frameworks/{framework}/.scenarios.yml"
+          access: write-once
+          via: PR
+      - issue:
+          check: ".scenarios.yml pushed"
+      - write:
+          path: "{repo_name}:.{identity}.yml"
+          from: "frameworks/{framework}/templates/.{identity}.yml"
+          fields: "{{onboarding_data}}"
+          access: write-once
+          via: PR
+      - issue:
+          check: "identity file pushed"
+      - write:
+          path: "{repo_name}:structure"
+          from: "frameworks/{framework}/structure.yml"
+          access: write-once
+          via: PR
+      - issue:
+          check: "structure created"
+      - write:
+          path: "{repo_name}:templates/"
+          from: "frameworks/{framework}/templates/"
+          access: write-once
+          via: PR
+      - issue:
+          check: "templates/ pushed"
+      - write:
+          path: .registry.yml
+          fields: [connections]
+          access: read-write
+          via: PR
+      - issue:
+          check: ".registry.yml updated in zeroth"
+    output:
+      state_changes: [repo-spawned]
+
   # ---------------------------------------------------------------------------
   # Event-triggered scenarios (ex-handlers)
   # Called explicitly after state_changes — never auto-triggered
@@ -156,6 +238,22 @@ required_scenarios:
           via: PR
     output:
       state_changes: [readme-updated]
+
+  registry_sync:
+    on:
+      events: [repo-spawned]
+    creates_issue: false
+    dedup: once per {repo_name} per session
+    read:
+      - .registry.yml
+    steps:
+      - write:
+          path: .registry.yml
+          fields: [connections]
+          access: read-write
+          via: PR
+    output:
+      state_changes: [registry-updated]
 
   # TODO: giskard_sync — pending cross-repo write strategy (see #105)
   # TODO: propagate_rule — pending .registry.yml population (see #105)
