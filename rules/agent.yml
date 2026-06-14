@@ -6,129 +6,108 @@
 # ---------------------------------------------------------------------------
 structure:
   required_blocks_in_order:
+    - language
+    - work_rules
+    - tool_approval
+    - scenarios
+    - workspace
+  forbidden_blocks:
     - connector_check
     - global
     - repo_map
     - file_access
-    - tool_approval
     - write_ahead
-    - scenarios
     - post_action_hook
     - handlers
+    - deployment
 
 # ---------------------------------------------------------------------------
-# CONNECTOR CHECK
+# LANGUAGE
 # ---------------------------------------------------------------------------
-connector_check:
-  rule: must be the first block — if connector not active, show clear message and stop
-  forbidden: fall back to web or browser
+language:
+  chat:
+    rule: read from identity file — never hardcoded except in zeroth (special case)
+    examples:
+      - "read from .gakusei.yml"   # dojo
+      - "read from .aurora.yml"    # aurora
+  files:
+    rule: always english — never override
+  filenames:
+    rule: always english — snake_case, lowercase — never override
 
 # ---------------------------------------------------------------------------
-# GLOBAL
+# WORK RULES
 # ---------------------------------------------------------------------------
-global:
-  language:
-    rule: always declared or read from an identity file (e.g. .gakusei.yml) — single source
-    forbidden: extra language fields (e.g. replies_in)
-  pr_strategy: batch_per_session — exception only for immutable logs
-  merge_strategy: squash — always squash merge PRs into main
-  dedup_scope: current_session — each handler runs at most once per topic per session
-  trigger_matching: pattern_first — fallthrough to unknown_scenario if no match
+work_rules:
+  required_keys:
+    - branch_per_issue      # always true
+    - branch_naming         # always "{type}/{short-description}"
+    - all_writes_via_pr     # always true
+    - merge_strategy        # always squash
+  framework_specific_keys:
+    rule: allowed — added after required keys, inline comment with trattino (—)
+    format: "key: value — explanation"
+    examples:
+      - "level_up: AI proposes, student confirms — never automatic"
+      - "log_immutability: append-only — commit before responding"
+
+# ---------------------------------------------------------------------------
+# TOOL APPROVAL
+# ---------------------------------------------------------------------------
+tool_approval:
+  rule: follow this mapping exactly — never deviate, never add keys
+  mapping:
+    create_branch: false
+    push_files: false
+    create_pr: false
+    create_issue: false
+    create_sub_issue: false
+    update_issue: false
+    merge_to_main: false
+    delete_file: true
+    destructive_ops: true
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
 scenarios:
   rule: scenarios live in .scenarios.yml — never inline in .agent.yml
-  required: [session_start, unknown_scenario]
-  note: giskard validates .scenarios.yml directly — see rules/scenarios.yml
+  required_fields:
+    - file                       # always .scenarios.yml
+    - spec                       # always zeroth/rules/scenarios.yml
+    - read_before_responding     # always true
+    - on_no_match                # always "propose new scenario to user before proceeding"
 
 # ---------------------------------------------------------------------------
-# HANDLERS
+# WORKSPACE
 # ---------------------------------------------------------------------------
-handlers:
-  rule: reactive to state_changes — never called directly by the user
-  empty: use handlers: {} — never omit the block
-  required_fields: [listen, dedup, actions, state_changes]
-  dedup_values:
-    - once per session
-    - once per {variable} per session
-  forbidden_in_actions: [say, ask, propose]
-  cross_repo_refs: use owner/repo:path format in actions — never in the read field
-
-# ---------------------------------------------------------------------------
-# POST ACTION HOOK
-# ---------------------------------------------------------------------------
-post_action_hook:
-  rule: mandatory — must read .registry.yml after every state_change
-  empty: post_action_hook: {} is NOT valid
-  structure:
-    after_every_state_change:
-      allowed_modules: [read, if, call_handlers]
-      note: call_handlers is post_action_hook-exclusive — forbidden in scenarios and handlers
-    conflict_check:
-      if_open_pr_on_same_file: stop | warn | proceed
-  minimal_valid_example: |
-    post_action_hook:
-      after_every_state_change:
-        - read: .registry.yml
-        - if:
-            condition: matching_sync_triggers_exist
-            then:
-              - call_handlers: matching
-      conflict_check:
-        if_open_pr_on_same_file: stop and notify user
-
-# ---------------------------------------------------------------------------
-# WRITE AHEAD
-# ---------------------------------------------------------------------------
-write_ahead:
-  rule: commit before responding — NEVER push directly to main
-  branch_strategy: feature branch → PR → squash merge
-  branch_naming: "{type}/{short-description} — types: feat, fix, docs, test, chore"
-  immutable_logs: immediate PR → squash merge, not batched
-
-# ---------------------------------------------------------------------------
-# FILE ACCESS
-# ---------------------------------------------------------------------------
-file_access:
-  rule: every file must have its permission declared explicitly
-  defaults:
-    .agent.yml: read-only
-    .registry.yml: read-only
-
-# ---------------------------------------------------------------------------
-# TOOL APPROVAL
-# ---------------------------------------------------------------------------
-tool_approval:
-  rule: follow this mapping for _requires_user_approval on every tool call — never ask approval for false entries
-  mapping:
-    feature_branch: false
-    file_edit: false
-    push_files: false
-    create_pr: false
-    merge_to_main: false
-    delete_file: true
-    destructive_ops: true
-  destructive_ops: "delete_file, overwrite without branch, clear directory, any operation that cannot be reverted by reverting a PR"
-
-# ---------------------------------------------------------------------------
-# YAML VALIDITY
-# ---------------------------------------------------------------------------
-yaml_validity:
-  rule: all .agent.yml and dot-prefixed YAML files must be parseable by yaml.safe_load
-  forbidden: flow sequences [...] when values contain { } characters
-  placeholders: template placeholders like {topic} must be quoted inside sequences
+workspace:
+  rule: declare every file and pattern the AI may read or write — explicit access for each
+  required_named_keys:
+    - .scenarios.yml    # access: read-only — always
+    - .registry.yml     # access: read-only — always
+    - templates/        # access: read-only — always
+  identity_file:
+    rule: framework identity file (e.g. .gakusei.yml, .aurora.yml) must be declared as named key
+    access: read-write or read-only depending on framework
+  patterns:
+    rule: glob patterns for dynamic paths — path + role + access required on every entry
+    access_values:
+      - read-write      # create if missing, overwrite if exists
+      - append-only     # create if missing, append if exists — never overwrite
+      - write-once      # create if missing, error if exists
+      - read-only       # never write — error if attempted
 
 # ---------------------------------------------------------------------------
 # VALIDATION
 # ---------------------------------------------------------------------------
 validation:
-  - connector_check is the first block
-  - repo_map is present
-  - file_access is present
-  - tool_approval is present
-  - write_ahead is present
-  - scenarios declares scenarios_file
-  - handlers is present
-  - post_action_hook declares after_every_state_change with read: .registry.yml
+  - all five required blocks present in order
+  - no forbidden blocks present
+  - language.files == english
+  - language.filenames == english
+  - work_rules has all four required keys
+  - tool_approval matches mapping exactly
+  - scenarios.read_before_responding == true
+  - workspace declares .scenarios.yml, .registry.yml, templates/ as read-only
+  - workspace declares identity file
