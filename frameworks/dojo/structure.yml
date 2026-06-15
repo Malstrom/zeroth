@@ -33,7 +33,7 @@ structure:
       Flat kata library. One file per topic — no subject subfolders.
       Each file accumulates questions, answers, and concepts for that topic.
     filename_pattern: "{topic}.md"
-    template: frameworks/dojo/templates/kata.yml
+    template: frameworks/dojo/templates/kata.md
     access: read-write
     managed_by: [study_open]
     note: topic slug is the filename stem — e.g. deadlock.md, sql_indexes.md
@@ -67,18 +67,6 @@ structure:
 
 # ---------------------------------------------------------------------------
 # CROSS REFS
-# Declarative inter-file relationships. Read by giskard at runtime.
-# Each entry is one check. Fields:
-#
-#   label         human-readable check label (failure description)
-#   source        path/glob that produces the value to look up
-#   source_group  regex capture group index in filename_groups (1-based)
-#   source_filter (optional) only apply to files whose 'type' group equals this
-#   target        dotted key path in gakusei_state_file to look up against
-#   target_type   'keys' (dict keys) or 'value' (scalar)
-#   level         'error' (FAIL) or 'warning' (WARN, non-blocking)
-#
-# Special source value 'last_session.{field}' reads from gakusei_state_file.
 # ---------------------------------------------------------------------------
 cross_refs:
 
