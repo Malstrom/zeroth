@@ -67,8 +67,6 @@ onboarding:
             content: "{{generated_gakusei_yml}}"
           - path: "kiroku/nikki/{{date}}.yml"
             content: "{{generated_nikki}}"
-          - path: "kiroku/makimono.yml"
-            content: "{{generated_makimono}}"
         append_always: |
           With Perplexity Pro + GitHub connector I would create and update
           this file automatically in your repo.
@@ -129,3 +127,18 @@ onboarding:
       say: |
         Every new chat: click + bottom left → Connectors → check GitHub.
         Done? Open a new chat in your Space and we'll start your first session.
+
+    write_files:
+      description: |
+        Write initial repo files after collecting name, repo, language.
+        Executed autonomously via GitHub connector — no user action needed.
+      actions:
+        - write:
+            path: ".gakusei.yml"
+            content: "{{generated_gakusei_yml}}"
+        - write:
+            path: "README.md"
+            content: "{{generated_readme_md}}"
+            note: |
+              Human-readable student profile. Visible on the GitHub repo
+              landing page. Replaces any existing README.
