@@ -39,11 +39,7 @@ structure:
   kiroku/nikki/:
     description: |
       Session records. One file per session.
-      Filename: YYYY-MM-DD_{topic}.yml — topic slug only, no type in filename.
-    filename_pattern: "YYYY-MM-DD_{topic}.yml"
-    filename_regex: "^\\d{4}-\\d{2}-\\d{2}_(.+)\\.yml$"
-    filename_groups:
-      1: topic
+      Filename convention TBD — no pattern enforced for now.
     template: frameworks/dojo/templates/kiroku_nikki.yml
     access: write-once
     managed_by: [study_open, topic_shinsa, goal_shinsa]
