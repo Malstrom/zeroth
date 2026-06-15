@@ -7,6 +7,30 @@
 
 required_scenarios:
 
+  session_start:
+    on:
+      - session opens automatically
+    creates_issue: false
+    read:
+      - github:issues:malstrom/zeroth?state=open
+    steps:
+      - say: "zeroth ready."
+      - if:
+          condition: open_issues | count > 0
+          then:
+            - say: |
+                Open issues:
+                {{open_issues | each: "- #{{issue.number}} {{issue.title}}"}}
+            - propose: "Resume #{{open_issues.first.number}} — {{open_issues.first.title}}?"
+              on_confirm:
+                - say: "OK. What do you want to do on this?"
+              on_reject:
+                - say: "What would you like to work on?"
+          else:
+            - say: "No open issues. What would you like to improve?"
+    output:
+      state_changes: []
+
   spawn:
     on:
       - user wants to create a new repo from a framework
@@ -89,8 +113,36 @@ required_scenarios:
           via: PR
       - issue:
           check: ".registry.yml updated in zeroth"
+      - say: "Issue opened — {{issue.url}}"
     output:
       state_changes: [repo-spawned]
+
+  improve:
+    on:
+      - user wants to improve a framework
+      - user wants to improve zeroth
+      - user wants to improve giskard
+      - user reports a problem or bug
+      - user has a new idea for the system
+    creates_issue: true
+    issue:
+      title: "{target}: {slug}"
+      from: templates/issue_improve.md
+      update: comment
+      approval: none
+      on_complete: close
+      on_fail: comment
+    read:
+      - .registry.yml
+    steps:
+      - ask: "What do you want to improve? (framework / zeroth / giskard)"
+      - ask: "Describe the problem or idea."
+      - compute: target
+      - compute: slug
+      - say: "Issue opened — {{issue.url}}"
+      - say: "Let's reason through it."
+    output:
+      state_changes: []
 
   unknown_scenario:
     on:
