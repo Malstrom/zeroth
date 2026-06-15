@@ -1,6 +1,16 @@
 # dojo framework — repo structure
 # Defines expected folders, files, and naming conventions.
+# Read by giskard at runtime to generate all checks dynamically.
 
+# ---------------------------------------------------------------------------
+# STATE FILE
+# The single file giskard reads to extract declared topics and goals.
+# ---------------------------------------------------------------------------
+gakusei_state_file: .gakusei.yml
+
+# ---------------------------------------------------------------------------
+# STRUCTURE
+# ---------------------------------------------------------------------------
 structure:
 
   .gakusei.yml:
@@ -8,6 +18,7 @@ structure:
     template: frameworks/dojo/templates/.gakusei.yml
     access: read-write
     managed_by: [study_open, topic_shinsa, goal_shinsa, declare_goal, evaluate_readiness]
+    required_keys: [student_name, last_session, topics, goals]
 
   kata/:
     description: |
@@ -24,6 +35,10 @@ structure:
       Session records. One file per session.
       Covers study sessions, topic shinsa, and goal shinsa.
     filename_pattern: "YYYY-MM-DD_{topic}_{type}.yml"
+    filename_regex: "^\\d{4}-\\d{2}-\\d{2}_(.+)_([^_]+)\\.yml$"
+    filename_groups:
+      1: topic
+      2: type
     type_values: [study, shinsa, goal_shinsa]
     template: frameworks/dojo/templates/kiroku_nikki.yml
     access: write-once
@@ -35,6 +50,9 @@ structure:
       Produced by goal_shinsa on pass only — one per achieved goal.
       References the nikki of the exam session.
     filename_pattern: "YYYY-MM-DD_{goal_slug}_passed.yml"
+    filename_regex: "^\\d{4}-\\d{2}-\\d{2}_(.+)_passed\\.yml$"
+    filename_groups:
+      1: goal_slug
     template: frameworks/dojo/templates/kiroku_makimono.yml
     access: write-once
     managed_by: [goal_shinsa]
@@ -44,3 +62,58 @@ structure:
     template: frameworks/dojo/templates/gakusei.md
     access: read-write
     managed_by: [onboarding, goal_shinsa]
+
+# ---------------------------------------------------------------------------
+# CROSS REFS
+# Declarative inter-file relationships. Read by giskard at runtime.
+# Each entry is one check. Fields:
+#
+#   label         human-readable check label (failure description)
+#   source        path/glob that produces the value to look up
+#   source_group  regex capture group index in filename_groups (1-based)
+#   source_filter (optional) only apply to files whose 'type' group equals this
+#   target        dotted key path in gakusei_state_file to look up against
+#   target_type   'keys' (dict keys) or 'value' (scalar)
+#   level         'error' (FAIL) or 'warning' (WARN, non-blocking)
+#
+# Special source value 'last_session.{field}' reads from gakusei_state_file.
+# ---------------------------------------------------------------------------
+cross_refs:
+
+  - label: "last_session.topic has no kata/{topic}.md file"
+    source: last_session.topic
+    target: kata/{value}.md
+    target_type: file_exists
+    level: error
+
+  - label: "nikki topics not declared in .gakusei.yml topics"
+    source: kiroku/nikki/
+    source_group: 1
+    target: topics
+    target_type: keys
+    level: error
+
+  - label: "nikki topics have no kata/{topic}.md file"
+    source: kiroku/nikki/
+    source_group: 1
+    target: kata/{value}.md
+    target_type: file_exists
+    level: error
+
+  - label: "makimono goals not declared in .gakusei.yml goals"
+    source: kiroku/makimono/
+    source_group: 1
+    target: goals
+    target_type: keys
+    level: error
+
+  - label: "goal_shinsa nikki sessions missing corresponding makimono"
+    source: kiroku/nikki/
+    source_group: 1
+    source_filter:
+      group: 2
+      value: goal_shinsa
+    target: kiroku/makimono/
+    target_type: file_glob
+    target_glob_pattern: "????-??-??_{value}_passed.yml"
+    level: warning
