@@ -7,134 +7,6 @@
 
 required_scenarios:
 
-  session_start:
-    on:
-      - session opens automatically
-    creates_issue: false
-    read:
-      - .agent.yml
-    steps:
-      - say: "zeroth ready."
-      - propose: "What are we working on?"
-        on_confirm:
-          - call: unknown_scenario
-    output:
-      state_changes: []
-
-  add_framework:
-    on:
-      - user wants to add a new framework definition to zeroth
-      - user wants to create rules for a new framework type
-    creates_issue: true
-    issue:
-      title: "Add framework: {name}"
-      body: |
-        - [ ] overview.yml created
-        - [ ] checklist.yml created
-        - [ ] .agent.yml created
-        - [ ] .scenarios.yml created
-        - [ ] structure.yml created
-        - [ ] README.md updated
-        - [ ] .registry.yml updated
-      on_complete: close
-      on_fail: comment
-    read:
-      - templates/overview.yml
-      - templates/.agent.yml
-      - templates/.scenarios.yml
-      - templates/.registry.yml
-    steps:
-      - write:
-          path: "frameworks/{name}/"
-          filename: "overview.yml"
-          from: templates/overview.yml
-          access: write-once
-          via: PR
-      - issue:
-          check: "overview.yml created"
-      - write:
-          path: "frameworks/{name}/"
-          filename: "checklist.yml"
-          access: write-once
-          via: PR
-      - issue:
-          check: "checklist.yml created"
-      - write:
-          path: "frameworks/{name}/"
-          filename: ".agent.yml"
-          from: templates/.agent.yml
-          access: write-once
-          via: PR
-      - issue:
-          check: ".agent.yml created"
-      - write:
-          path: "frameworks/{name}/"
-          filename: ".scenarios.yml"
-          from: templates/.scenarios.yml
-          access: write-once
-          via: PR
-      - issue:
-          check: ".scenarios.yml created"
-      - write:
-          path: "frameworks/{name}/"
-          filename: "structure.yml"
-          access: write-once
-          via: PR
-      - issue:
-          check: "structure.yml created"
-      - write:
-          path: README.md
-          fields: [registered_frameworks]
-          access: read-write
-          via: PR
-      - issue:
-          check: "README.md updated"
-      - write:
-          path: .registry.yml
-          fields: [connections]
-          access: read-write
-          via: PR
-      - issue:
-          check: ".registry.yml updated"
-    output:
-      state_changes: [framework-added]
-
-  add_checker:
-    on:
-      - user wants to add a giskard checker for a framework
-      - user wants to validate a framework with giskard
-      - user wants to create a checks file in giskard for a framework
-    creates_issue: true
-    issue:
-      title: "Add giskard checker: {name}"
-      body: |
-        - [ ] checks/frameworks/{name}.py created
-        - [ ] giskard README updated
-      on_complete: close
-      on_fail: comment
-    read:
-      - "Malstrom/giskard:checks/frameworks/README.yml"
-      - "frameworks/{name}/structure.yml"
-      - "frameworks/{name}/.scenarios.yml"
-      - "frameworks/{name}/templates/"
-    steps:
-      - write:
-          path: "Malstrom/giskard:checks/frameworks/"
-          filename: "{name}.py"
-          access: write-once
-          via: PR
-      - issue:
-          check: "checks/frameworks/{name}.py created"
-      - write:
-          path: "Malstrom/giskard:checks/frameworks/README.yml"
-          fields: [registered_frameworks]
-          access: read-write
-          via: PR
-      - issue:
-          check: "giskard README updated"
-    output:
-      state_changes: [checker-added]
-
   spawn:
     on:
       - user wants to create a new repo from a framework
@@ -220,59 +92,21 @@ required_scenarios:
     output:
       state_changes: [repo-spawned]
 
-  # ---------------------------------------------------------------------------
-  # Event-triggered scenarios (ex-handlers)
-  # Called explicitly after state_changes — never auto-triggered
-  # ---------------------------------------------------------------------------
-
-  readme_sync:
-    on:
-      events: [framework-added]
-    creates_issue: false
-    dedup: once per session
-    read:
-      - README.md
-      - .registry.yml
-    steps:
-      - write:
-          path: README.md
-          fields: [structure, registered_frameworks]
-          access: read-write
-          via: PR
-    output:
-      state_changes: [readme-updated]
-
-  registry_sync:
-    on:
-      events: [repo-spawned]
-    creates_issue: false
-    dedup: once per {repo_name} per session
-    read:
-      - .registry.yml
-    steps:
-      - write:
-          path: .registry.yml
-          fields: [connections]
-          access: read-write
-          via: PR
-    output:
-      state_changes: [registry-updated]
-
-  # TODO: giskard_sync — pending cross-repo write strategy (see #105)
-  # TODO: propagate_rule — pending .registry.yml population (see #105)
-
   unknown_scenario:
     on:
       - any message that does not match any other scenario
     creates_issue: false
     read: []
     steps:
-      - propose: "Did you mean: {{closest_scenario}}?"
-        on_confirm:
-          - call: "{{closest_scenario}}"
       - if:
-          condition: no_match
+          condition: closest_scenario exists
           then:
+            - propose: "Did you mean: {{closest_scenario}}?"
+              on_confirm:
+                - call: "{{closest_scenario}}"
+              on_reject:
+                - say: "OK. What would you like to do?"
+          else:
             - say: "Scenario not defined. Want me to add it?"
     output:
       state_changes: []
