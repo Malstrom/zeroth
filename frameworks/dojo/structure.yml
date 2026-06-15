@@ -39,13 +39,13 @@ structure:
   kiroku/nikki/:
     description: |
       Session records. One file per session.
-      Covers study sessions, topic shinsa, and goal shinsa.
+      Covers study sessions, topic shinsa, goal shinsa, and gap review sessions.
     filename_pattern: "YYYY-MM-DD_{topic}_{type}.yml"
     filename_regex: "^\\d{4}-\\d{2}-\\d{2}_(.+)_([^_]+)\\.yml$"
     filename_groups:
       1: topic
       2: type
-    type_values: [study, shinsa, goal_shinsa]
+    type_values: [study, shinsa, goal_shinsa, gap_review]
     template: frameworks/dojo/templates/kiroku_nikki.yml
     access: write-once
     managed_by: [study_open, topic_shinsa, goal_shinsa]
