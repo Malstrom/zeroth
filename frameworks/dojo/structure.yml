@@ -1,87 +1,46 @@
-# dojo framework — directory structure
+# dojo framework — repo structure
+# Defines expected folders, files, and naming conventions.
 
-required_layout:
-  root:
-    - .agent.yml           # AI manifest — entry point, read-only
-    - .gakusei.yml         # machine-readable student profile — AI reads and writes
-    - README.md            # human navigation hub
-    # gakusei.md is NOT required at init — created by AI on first session
-    # .scenarios.yml lives in zeroth — read by AI from there, NOT copied to instance
-    # onboarding.yml lives in zeroth — read by AI from there, NOT copied to instance
-    # templates/ live in zeroth — read by AI from there, NOT copied to instance
+structure:
+
+  .gakusei.yml:
+    description: Student state — topics, goals, readiness scores, last session.
+    template: frameworks/dojo/templates/.gakusei.yml
+    access: read-write
+    managed_by: [study_open, topic_shinsa, goal_shinsa, declare_goal, evaluate_readiness]
+
   kata/:
-    - "{subject}/"            # one subfolder per subject (e.g. github/, rails/, devops/)
-    - "{subject}/{topic}.md"  # one file per topic within the subject
-  kiroku/:
-    makimono/:              # living documents — evolve with the student, updated via PR
-      - "{subject}.md"      # one file per subject (e.g. github.md, python.md)
-    nikki/:                 # immutable session diary — append-only, never overwrite
-      - "YYYY-MM-DD_{subject}_{type}.md"  # one file per session
+    description: |
+      Flat kata library. One file per topic — no subject subfolders.
+      Each file accumulates questions, answers, and concepts for that topic.
+    filename_pattern: "{topic}.md"
+    template: frameworks/dojo/templates/kata.yml
+    access: read-write
+    managed_by: [study_open]
+    note: topic slug is the filename stem — e.g. deadlock.md, sql_indexes.md
 
-rules:
-  - .gakusei.yml is the single source of truth for student progress — the AI reads and updates it
-  - gakusei.md is created by the AI on first session and updated after every session and level_up
-  - kiroku/nikki/ files are append-only — never overwrite
-  - kiroku/makimono/ files are living documents — updated via PR, never directly on main
-  - kata/ files are updated via PR, never directly on main
-  - .scenarios.yml is read from zeroth/frameworks/dojo/.scenarios.yml — never copied to instance
-  - onboarding.yml is read from zeroth/frameworks/dojo/onboarding.yml — never copied to instance
-  - templates/ are read from zeroth/frameworks/dojo/templates/ — never copied to instance
-  - densho/ does not exist — books are read from library sources, not stored in the repository
-
-strict_root:
-  allowed:
-    - .agent.yml
-    - .gakusei.yml
-    - .github
-    - .git
-    - gakusei.md
-    - README.md
-    - LICENSE
-    - kata
-    - kiroku
-
-dynamic_dirs:
-  kata/{subject}/:
-    pattern: "{topic}.md"
-    regex: "^.+\\.md$"
-    allow_empty: false
-  kiroku/makimono/:
-    pattern: "{subject}.md"
-    regex: "^.+\\.md$"
-    allow_empty: true
   kiroku/nikki/:
-    pattern: "YYYY-MM-DD_{subject}_{type}.md"
-    regex: "^\\d{4}-\\d{2}-\\d{2}_.+\\.md$"
-    allow_empty: true
+    description: |
+      Session records. One file per session.
+      Covers study sessions, topic shinsa, and goal shinsa.
+    filename_pattern: "YYYY-MM-DD_{topic}_{type}.yml"
+    type_values: [study, shinsa, goal_shinsa]
+    template: frameworks/dojo/templates/kiroku_nikki.yml
+    access: write-once
+    managed_by: [study_open, topic_shinsa, goal_shinsa]
 
-# ---------------------------------------------------------------------------
-# SCAFFOLD STRATEGY
-# Used by the spawn scenario to know what to create in the new repo.
-# ---------------------------------------------------------------------------
-scaffold_strategy:
+  kiroku/makimono/:
+    description: |
+      Immutable certification snapshots.
+      Produced by goal_shinsa on pass only — one per achieved goal.
+      References the nikki of the exam session.
+    filename_pattern: "YYYY-MM-DD_{goal_slug}_passed.yml"
+    template: frameworks/dojo/templates/kiroku_makimono.yml
+    access: write-once
+    managed_by: [goal_shinsa]
 
-  read:  # read from zeroth to understand context — do NOT copy to instance
-    - frameworks/{name}/structure.yml
-    - frameworks/{name}/overview.yml
-    - frameworks/{name}/onboarding.yml
-    - frameworks/{name}/.scenarios.yml
-    - frameworks/{name}/templates/
-
-  copy:  # copy as-is from zeroth/frameworks/{name}/ into the new repo root
-    - source: frameworks/{name}/.agent.yml
-      dest: .agent.yml
-
-  generate:  # generate from scratch using onboarding data
-    - dest: .gakusei.yml
-      guided_by: frameworks/{name}/onboarding.yml
-      note: populated with onboarding answers
-    - dest: kiroku/makimono/.gitkeep
-      note: empty dir placeholder
-    - dest: kiroku/nikki/.gitkeep
-      note: empty dir placeholder
-    - dest: kata/.gitkeep
-      note: empty dir placeholder
-    - dest: README.md
-      guided_by: frameworks/{name}/overview.yml
-      note: human-facing intro generated from overview
+  gakusei.md:
+    description: Human-readable student profile. Updated on significant milestones.
+    template: frameworks/dojo/templates/gakusei.md
+    access: read-write
+    managed_by: [onboarding, goal_shinsa]
