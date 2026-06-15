@@ -58,7 +58,7 @@ required_scenarios:
     creates_issue: true
     issue:
       title: "Goal: {goal_slug}"
-      from: templates/issue_declare_goal.md
+      from: Malstrom/zeroth:frameworks/dojo/templates/issue_declare_goal.md
       update: check
       approval: none
       on_complete: close
@@ -99,7 +99,7 @@ required_scenarios:
     creates_issue: true
     issue:
       title: "Study: {topic}"
-      from: templates/issue_study_open.md
+      from: Malstrom/zeroth:frameworks/dojo/templates/issue_study_open.md
       update: check
       approval: none
       on_complete: close
@@ -149,7 +149,7 @@ required_scenarios:
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{topic}_study.yml"
-          from: templates/kiroku_nikki.yml
+          from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
           access: write-once
           via: PR
           approval: none
@@ -329,7 +329,7 @@ required_scenarios:
     creates_issue: true
     issue:
       title: "Topic shinsa: {topic}"
-      from: templates/issue_topic_shinsa.md
+      from: Malstrom/zeroth:frameworks/dojo/templates/issue_topic_shinsa.md
       update: check
       approval: none
       on_complete: close
@@ -367,7 +367,7 @@ required_scenarios:
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{topic}_shinsa.yml"
-          from: templates/kiroku_nikki.yml
+          from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
           access: write-once
           via: PR
           approval: none
@@ -437,7 +437,7 @@ required_scenarios:
     creates_issue: true
     issue:
       title: "Goal shinsa: {goal_slug}"
-      from: templates/issue_goal_shinsa.md
+      from: Malstrom/zeroth:frameworks/dojo/templates/issue_goal_shinsa.md
       update: check
       approval: none
       on_complete: close
@@ -482,7 +482,7 @@ required_scenarios:
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{goal_slug}_goal_shinsa.yml"
-          from: templates/kiroku_nikki.yml
+          from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
           access: write-once
           via: PR
           approval: none
@@ -495,7 +495,7 @@ required_scenarios:
             - write:
                 path: "kiroku/makimono/"
                 filename: "YYYY-MM-DD_{goal_slug}_passed.yml"
-                from: templates/kiroku_makimono.yml
+                from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_makimono.yml
                 access: write-once
                 via: PR
                 approval: none
