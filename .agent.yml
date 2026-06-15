@@ -36,6 +36,14 @@ tool_approval:
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# PHILOSOPHY
+# Read .philosophy.yml BEFORE scenarios at every session start.
+# ---------------------------------------------------------------------------
+philosophy:
+  file: .philosophy.yml
+  read_before_responding: true
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # Read .scenarios.yml BEFORE any reasoning.
 # Every user message must be matched against scenarios first.
@@ -55,6 +63,9 @@ scenarios:
 workspace:
   .agent.yml:
     role: AI manifest
+    access: read-only
+  .philosophy.yml:
+    role: system philosophy and cross-framework model
     access: read-only
   .scenarios.yml:
     role: scenario catalog
