@@ -1,17 +1,14 @@
-# kiroku/makimono template
-# Produced by: goal_shinsa on pass only
-# Filename pattern: YYYY-MM-DD_{goal_slug}_passed.yml
-# Immutable — write-once, never updated after creation.
+# kiroku_makimono.yml
+# Schema for kiroku/makimono/YYYY-MM-DD_{goal_slug}_passed.yml files.
+# Produced only when goal_shinsa passes (score >= 80).
+# Giskard validates that every makimono file contains these keys.
 
-date: "{date}"
-goal: "{goal_slug}"
-result: passed
-score: {score}
-
-nikki_ref: "kiroku/nikki/YYYY-MM-DD_{goal_slug}_goal_shinsa.yml"
-
-topics_covered:
-  - {topic}
-
-notes: |
-  {notes}
+_format: yaml
+_required:
+  date: string           # YYYY-MM-DD
+  goal_slug: string      # must match a key in .gakusei.yml goals
+  score: integer         # must be >= 80
+  weak_topics: list      # list of strings — may be empty
+_invariants:
+  - score >= 80          # makimono must never be written on a failed shinsa
+  - goal_slug in .gakusei.yml goals

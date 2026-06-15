@@ -1,23 +1,19 @@
-# kiroku/nikki template
-# Produced by: study_open, topic_shinsa, goal_shinsa
-# Filename pattern: YYYY-MM-DD_{topic}_{type}.yml
-#   type: study | shinsa | goal_shinsa
+# kiroku_nikki.yml
+# Schema for kiroku/nikki/YYYY-MM-DD_{topic}_{type}.yml files.
+# Giskard validates that every nikki file contains these keys.
 
-date: "{date}"
-topic: "{topic}"
-type: "{type}"                    # study | shinsa | goal_shinsa
-session_number: {session_number}  # incremental per topic
-
-summary: |
-  {summary}
-
-weak_spots:
-  - {weak_spot}
-
-randori_score:
-  correct: {correct}
-  total: {total}
-  pct: {pct}
-
-notes: |
-  {notes}
+_format: yaml
+_required:
+  date: string           # YYYY-MM-DD
+  topic: string          # must match a key in .gakusei.yml topics
+  type: string           # enum: study | shinsa | goal_shinsa
+  concepts_taught: list  # list of concept identifiers covered in session
+  weak_spots: list       # list of strings — may be empty
+  randori_results:
+    total: integer
+    correct: integer
+    partial: integer
+    incorrect: integer
+  notes: string
+_optional:
+  goal_slug: string      # present when type == goal_shinsa

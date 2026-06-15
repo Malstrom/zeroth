@@ -1,30 +1,16 @@
-# kata — generato dall'AI, non modificare a mano
-topic: ""
-subject: ""
-level: ""          # valore dalla lista levels in .gakusei.yml
+# kata.yml
+# Schema for kata/{topic}.md files.
+# Giskard validates that every kata file contains these keys.
+#
+# Format: markdown file — validated by heading presence, not YAML keys.
+# Giskard checks:
+#   - file is not empty
+#   - at least one H2 section (## Concept)
+#   - filename matches a topic declared in .gakusei.yml topics
 
-key_concepts:
-  - ""
-
-explanation: |
-  
-
-# sezioni opzionali — generate solo se dichiarate in kata_sections del subject in .gakusei.yml
-
-examples:
-  - prompt: ""
-    answer: ""
-
-exercises:
-  - type: ""        # fill_in | translation | conjugation | problem | multiple_choice
-    prompt: ""
-    answer: ""
-    hint: ""        # opzionale
-
-code:
-  language: ""
-  snippet: |
-    
-
-notes: |
-  
+_format: markdown
+_required:
+  - topic_header: "# {topic}"        # H1 matching filename without .md
+  - min_concepts: 1                   # at least one H2 block
+_optional:
+  - code_blocks: true                 # encouraged but not required
