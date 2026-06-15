@@ -124,13 +124,30 @@ anatomy:
     fields:
       title:
         rule: short, English, may use {placeholder} for runtime values
-        example: "Shinsa: {subject}"
-      body:
-        rule: markdown, use - [ ] for checklist items
-        example: |
-          - [ ] exam conducted
-          - [ ] nikki written
-          - [ ] .gakusei.yml updated
+        example: "Topic shinsa: {topic}"
+      from:
+        rule: required — path to markdown template for the issue body
+        format: relative path from framework root
+        example: "templates/issue_topic_shinsa.md"
+        note: |
+          inline body: is not allowed — template file is the single source of truth.
+          The template may contain {placeholder} values, checklist items, and sections.
+      update:
+        rule: required — defines how mid-scenario issue steps update the issue
+        values:
+          check: |
+            issue: check: "item" steps edit the issue body and tick the matching checkbox.
+            Use when issue.from template contains - [ ] checklist items.
+          comment: |
+            issue: comment: "text" steps add a comment to the issue.
+            The body is never edited after creation.
+        default: check
+      approval:
+        rule: required
+        values:
+          none: create issue immediately — do not ask for confirmation under any circumstance
+        default: none
+        note: none is the only valid value — there is no approval flow for issue creation.
       on_complete:
         values: [close]
         default: close
@@ -198,17 +215,27 @@ anatomy:
         description: write a file — behavior declared via access field
         syntax: |
           - write:
-              path: "folder/"           # folder path OR exact file path
+              path: "folder/"              # folder path OR exact file path
               filename: "YYYY-MM-DD_{slug}.yml"  # required when path is a folder
-              from: templates/file.yml  # template to use — required for new files
-              fields: [field1, field2]  # optional — limit write to specific fields
-              access: append-only       # required — see access values below
-              via: PR                   # always PR unless stated otherwise
+              from: templates/file.yml     # required when access is write-once or read-write on new file
+              fields: [field1, field2]     # optional — limit write to specific fields
+              access: append-only          # required — see access values below
+              via: PR                      # always PR — create and merge, no approval needed
+              approval: none               # required — execute immediately, no confirmation
         access_values:
           read-write:   create if missing, overwrite if exists
           append-only:  create if missing, append if exists — never overwrite
           write-once:   create if missing, error if exists
           read-only:    never write — error if attempted
+        from_rule: |
+          from: is required when access is write-once or read-write on a file that may not exist.
+          from: is forbidden when access is append-only.
+        approval:
+          rule: required on every write step
+          values:
+            none: create PR and merge immediately — do not ask for confirmation under any circumstance
+          default: none
+          note: none is the only valid value in this framework.
         note: |
           filename is required when path ends with /.
           filename pattern must match a key in rules/files.yml#filename_patterns.
@@ -234,12 +261,13 @@ anatomy:
         description: mid-scenario issue update — opt-in, only when needed
         syntax: |
           - issue:
-              check: "checklist item text"  # checks that item in issue body
+              check: "checklist item text"  # ticks that checkbox in issue body (requires update: check)
           # OR
           - issue:
-              comment: "free text comment"  # adds a comment to the open issue
+              comment: "free text"          # adds a comment to the open issue (requires update: comment)
         note: |
           Use only for mid-scenario checklist updates or progress comments.
+          Must match the issue.update value declared in the issue block.
           Open and close are automatic — do not replicate with issue steps.
         forbidden_in: [event_triggered, reporter]
 
@@ -291,9 +319,12 @@ validation:
   - unknown_scenario must be present and last
   - every scenario must have: on, creates_issue, read, steps, output
   - on: must be a list (user-triggered) OR have events: key (event-triggered/reporter) — never both
-  - if creates_issue == true, issue: block must be present with title and body
+  - if creates_issue == true, issue: block must be present with title, from, update, approval, on_complete, on_fail
+  - if creates_issue == true, issue.body inline is forbidden — use issue.from
   - if creates_issue == false, issue: block must be absent
-  - every write step must have: path, access, via
+  - every write step must have: path, access, via, approval
+  - every write step where access is write-once or read-write must have: from
+  - every write step where access is append-only must NOT have: from
   - every write step where path ends with / must have filename
   - filename must match a key in rules/files.yml#filename_patterns
   - say, ask, propose, issue steps are forbidden in event_triggered scenarios
@@ -303,3 +334,5 @@ validation:
   - dedup is only valid on event-triggered and reporter scenarios
   - trigger patterns and on: events must be in English
   - type: reporter is required when scenario uses events: on: form AND has say/propose steps
+  - issue: check steps are only valid when issue.update == check
+  - issue: comment steps are only valid when issue.update == comment
