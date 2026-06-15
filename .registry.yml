@@ -18,13 +18,13 @@ connections:
       When a new framework is added, add it to ZEROTH_CHECKLISTS in giskard.py.
 
   - repo: Malstrom/dojo
-    role: reference implementation of zeroth dojo framework spec
+    role: dojo instance — spawned 2026-06-15
+    framework: dojo
     sync_trigger:
       - rule-updated
-      - framework-added
     access: read-write
     note: |
-      When dojo framework rules change in zeroth, propagate to Malstrom/dojo.
+      Onboarding pending — student_name and language not yet filled.
 
   - repo: Malstrom/tensho
     role: registered framework
@@ -37,12 +37,3 @@ connections:
     sync_trigger:
       - rule-updated
     access: read-write
-
-  - repo: Malstrom/Dojo
-    role: dojo instance — spawned 2026-06-14
-    framework: dojo
-    sync_trigger:
-      - rule-updated
-    access: read-write
-    note: |
-      Onboarding pending — .gakusei.yml student_name and language not yet filled.
