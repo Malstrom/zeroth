@@ -149,6 +149,7 @@ required_scenarios:
         - [ ] .agent.yml pushed
         - [ ] structure created
         - [ ] README.md pushed
+        - [ ] giskard workflow pushed
         - [ ] .registry.yml updated in zeroth
       on_complete: close
       on_fail: comment
@@ -159,6 +160,7 @@ required_scenarios:
       - "frameworks/{framework}/.scenarios.yml"
       - "frameworks/{framework}/structure.yml"
       - "frameworks/{framework}/templates/"
+      - templates/workflows/giskard.yml
     steps:
       - ask: "Which framework? (available: {{registered_frameworks}})"
       - ask: "Repo name?"
@@ -199,6 +201,15 @@ required_scenarios:
           via: PR
       - issue:
           check: "README.md pushed"
+      - write:
+          path: "{repo_name}:.github/workflows/giskard.yml"
+          from: templates/workflows/giskard.yml
+          vars:
+            framework: "{framework}"
+          access: write-once
+          via: PR
+      - issue:
+          check: "giskard workflow pushed"
       - write:
           path: .registry.yml
           fields: [connections]
