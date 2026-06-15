@@ -4,7 +4,6 @@
 
 # ---------------------------------------------------------------------------
 # STATE FILE
-# The single file giskard reads to extract declared topics and goals.
 # ---------------------------------------------------------------------------
 gakusei_state_file: .gakusei.yml
 
@@ -33,7 +32,6 @@ structure:
       Flat kata library. One file per topic — no subject subfolders.
       Each file accumulates questions, answers, and concepts for that topic.
     filename_pattern: "{topic}.md"
-    template: frameworks/dojo/templates/kata.md
     access: read-write
     managed_by: [study_open]
     note: topic slug is the filename stem — e.g. deadlock.md, sql_indexes.md
@@ -96,14 +94,3 @@ cross_refs:
     target: goals
     target_type: keys
     level: error
-
-  - label: "goal_shinsa nikki sessions missing corresponding makimono"
-    source: kiroku/nikki/
-    source_group: 1
-    source_filter:
-      group: 2
-      value: goal_shinsa
-    target: kiroku/makimono/
-    target_type: file_glob
-    target_glob_pattern: "????-??-??_{value}_passed.yml"
-    level: warning
