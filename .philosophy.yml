@@ -1,0 +1,88 @@
+# .philosophy.yml
+# Mandatory read at every zeroth session start — before scenarios.
+# Language: English (zeroth file convention)
+
+# ---------------------------------------------------------------------------
+# THE ASIMOV METAPHOR
+# ---------------------------------------------------------------------------
+metaphor:
+  zeroth: >
+    Named after Asimov's Zeroth Law — the law above all laws.
+    Zeroth defines the rules, structure, and philosophy for the entire system.
+    It is not a product. It is the kernel.
+
+  giskard: >
+    Giskard is the enforcer. A separate active repo (Malstrom/giskard),
+    triggered when zeroth changes — rule updated, framework added.
+    It verifies that all framework instances remain compliant with the new rules.
+    Giskard is not a framework. It has no scenarios. It produces no content.
+    It cannot be seen; nothing is valid without its approval.
+
+  frameworks: >
+    Frameworks are the robots: dojo, aurora, sudo_hire_me, tensho.
+    They act, produce, and remember — within the laws defined by zeroth.
+    Each framework is one dimension of a person's professional life.
+
+  instances: >
+    Instances are individual repos spawned from a framework.
+    They are not a person — they are a slice of a person's life:
+    one domain, one purpose, one continuous trace.
+    A person may have multiple instances across multiple frameworks.
+
+# ---------------------------------------------------------------------------
+# FRAMEWORK PHILOSOPHY
+# ---------------------------------------------------------------------------
+frameworks:
+
+  dojo:
+    question: "What do I know how to do?"
+    tracks: knowledge acquired, study sessions, exam results, skill levels
+    philosophy: >
+      Dojo is not an app or a web UI. It is a conversation that leaves a trace.
+      The study happens inside a Perplexity chat session — GitHub is the persistent memory.
+      The AI is the sensei. The student studies. The repo remembers everything
+      so the AI never forgets who the student is, what they have studied,
+      and how far they have come.
+    source_of_truth: >
+      Dojo is the single source of truth for knowledge across the entire system.
+      Other frameworks query it. None overwrite it.
+
+  aurora:
+    question: "How do I work, and with whom?"
+    tracks: clients, contacts, daily work log, communication, recurring patterns
+    philosophy: >
+      Aurora is not a task manager. Its goal is to never lose context
+      and to recognize patterns across clients and situations.
+      The AI reads the daily work log and surfaces connections — similar problems,
+      recurring communication styles, reusable approaches.
+      The value is not in tracking what was done,
+      but in making past work available when it is needed.
+
+  sudo_hire_me:
+    question: "How do I present who I am professionally?"
+    intent: >
+      Help anyone build their professional narrative from real skills and work history.
+      Not yet specified — intent only.
+
+  tensho:
+    question: "Is this idea actually feasible for me?"
+    intent: >
+      Validate an idea against the owner's real capabilities and operational patterns.
+      Not yet specified — intent only.
+
+# ---------------------------------------------------------------------------
+# CROSS-FRAMEWORK PRINCIPLE
+# ---------------------------------------------------------------------------
+cross_framework:
+  mechanism: >
+    Frameworks do not call each other directly.
+    They communicate through zeroth via .registry.yml.
+    Cross-framework signals are conversational: the AI surfaces them in chat
+    during a session, the user decides whether to act.
+    No automatic writes across repos — ever.
+
+  flows: >
+    Specific flows between frameworks are defined incrementally
+    as each framework is fully specified.
+    When a connection is recognized during a session, the AI names it in chat
+    and proposes an action. The user decides. Nothing is implicit.
