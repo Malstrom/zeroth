@@ -21,7 +21,7 @@ work_rules:
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
-# false = execute immediately, no confirmation needed
+# false = execute immediately, no exceptions — irreversibility is not a reason to ask
 # true  = always ask before executing
 # ---------------------------------------------------------------------------
 tool_approval:
