@@ -45,7 +45,6 @@ structure:
     filename_groups:
       1: topic
       2: type
-    type_values: [study, shinsa, goal_shinsa, gap_review]
     template: frameworks/dojo/templates/kiroku_nikki.yml
     access: write-once
     managed_by: [study_open, topic_shinsa, goal_shinsa]
