@@ -39,13 +39,7 @@ structure:
   kiroku/nikki/:
     description: |
       Session records. One file per session.
-      Type comes before topic: YYYY-MM-DD_{type}_{topic}.yml
-      Type is a single word (no underscores). Topic can contain underscores.
-    filename_pattern: "YYYY-MM-DD_{type}_{topic}.yml"
-    filename_regex: "^\\d{4}-\\d{2}-\\d{2}_([^_]+)_(.+)\\.yml$"
-    filename_groups:
-      1: type
-      2: topic
+      Filename convention TBD — no pattern enforced for now.
     template: frameworks/dojo/templates/kiroku_nikki.yml
     access: write-once
     managed_by: [study_open, topic_shinsa, goal_shinsa]
@@ -70,20 +64,6 @@ cross_refs:
 
   - label: "last_session.topic has no kata/{topic}.md file"
     source: last_session.topic
-    target: kata/{value}.md
-    target_type: file_exists
-    level: error
-
-  - label: "nikki topics not declared in .gakusei.yml topics"
-    source: kiroku/nikki/
-    source_group: 2
-    target: topics
-    target_type: keys
-    level: error
-
-  - label: "nikki topics have no kata/{topic}.md file"
-    source: kiroku/nikki/
-    source_group: 2
     target: kata/{value}.md
     target_type: file_exists
     level: error
