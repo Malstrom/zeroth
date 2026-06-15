@@ -218,6 +218,8 @@ anatomy:
               path: "folder/"              # folder path OR exact file path
               filename: "YYYY-MM-DD_{slug}.yml"  # required when path is a folder
               from: templates/file.yml     # required when access is write-once or read-write on new file
+              vars:                        # optional — runtime values to interpolate into the template
+                key: "{scenario_variable}" #   {key} placeholders in the template are replaced with the value
               fields: [field1, field2]     # optional — limit write to specific fields
               access: append-only          # required — see access values below
               via: PR                      # always PR — create and merge, no approval needed
@@ -230,6 +232,11 @@ anatomy:
         from_rule: |
           from: is required when access is write-once or read-write on a file that may not exist.
           from: is forbidden when access is append-only.
+        vars_rule: |
+          vars: is optional. Use when the template (from:) contains {placeholder} values
+          that must be resolved at write time from the current scenario context.
+          Keys in vars: correspond exactly to {placeholder} names in the template.
+          vars: is forbidden when from: is absent.
         approval:
           rule: required on every write step
           values:
@@ -325,6 +332,7 @@ validation:
   - every write step must have: path, access, via, approval
   - every write step where access is write-once or read-write must have: from
   - every write step where access is append-only must NOT have: from
+  - every write step where vars: is present must also have from:
   - every write step where path ends with / must have filename
   - filename must match a key in rules/files.yml#filename_patterns
   - say, ask, propose, issue steps are forbidden in event_triggered scenarios
