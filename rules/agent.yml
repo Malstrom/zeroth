@@ -73,8 +73,7 @@ tool_approval:
 scenarios:
   rule: scenarios live in .scenarios.yml — never inline in .agent.yml
   required_fields:
-    - file                       # always .scenarios.yml
-    - spec                       # always zeroth/rules/scenarios.yml
+    - spec                       # cross-repo reference to the scenarios file
     - read_before_responding     # always true
     - on_no_match                # always "propose new scenario to user before proceeding"
 
