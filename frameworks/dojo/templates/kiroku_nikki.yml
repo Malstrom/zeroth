@@ -6,7 +6,7 @@ _format: yaml
 _required:
   date: string           # YYYY-MM-DD
   topic: string          # must match a key in .gakusei.yml topics
-  type: string           # enum: study | shinsa | goal_shinsa
+  type: string           # enum: study | shinsa | goal_shinsa | gap_review
   concepts_taught: list  # list of concept identifiers covered in session
   weak_spots: list       # list of strings — may be empty
   randori_results:
