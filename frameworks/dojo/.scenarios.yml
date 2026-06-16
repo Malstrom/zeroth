@@ -56,7 +56,12 @@ required_scenarios:
       - user provides a cross-repo source artifact (job offer, project spec, interview feedback)
     creates_issue: true
     issue:
-      title: "🎯 Goal: {goal_slug}"
+      title: "[Goal] {goal_source_emoji} {goal_human_title} ({goal_slug})"
+      # title format: [Goal] + source emoji + human readable title + slug in parentheses
+      # Examples:
+      #   [Goal] 🏢 Pass Umbrellio technical interview (pass_umbrellio_technical_interview)
+      #   [Goal] 🧠 Become senior in Rails (senior_rails)
+      #   [Goal] 🧠 Reach Italian C1 (italian_c1)
       from: Malstrom/zeroth:frameworks/dojo/templates/issue_declare_goal.md
       update: check
       approval: none
@@ -67,7 +72,8 @@ required_scenarios:
       - "kata/"                     # all kata files — AI checks which kata already exist
     steps:
       - ask: "What is your goal? (e.g. senior Rails, Italian B1, understand distributed systems)"
-      - compute: goal_slug
+      - compute: goal_slug           # snake_case machine identifier
+      - compute: goal_human_title    # human readable title, e.g. "Become senior in Rails"
 
       # Source: where does this goal come from?
       # Supported types: self_declared, job_offer, project, interview_feedback, curriculum_gap, cross_repo
@@ -96,7 +102,7 @@ required_scenarios:
       - compute: missing_topics        # required_topics − already_satisfied
 
       - say: |
-          Goal: {{goal_slug}}
+          Goal: {{goal_human_title}} ({{goal_slug}})
           Source: {{goal_source_emoji}} {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
           Already satisfied ({{already_satisfied | count}}): {{already_satisfied | join}}
           Topics to study:
