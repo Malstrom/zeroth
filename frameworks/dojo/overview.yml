@@ -4,42 +4,53 @@ framework: dojo
 purpose: AI-assisted learning framework — the repository is the source of truth, the AI is the sensei, the user is the student
 
 cycle:
-  - study
-  - randori
-  - quiz
-  - shinsa
-  - level_up
+  - study_open       # learn concepts from a source, AI explains and drills with randori
+  - randori          # AI questions during study — immediate feedback, no score
+  - evaluate_readiness  # auto-evaluated after study — checks if topic is ready for shinsa
+  - topic_shinsa     # formal exam on a topic — scored, no feedback during
+  - goal_shinsa      # seniority exam covering all goal topics — produces makimono on pass
 
 vocabulary:
-  kata: unit of knowledge — theory, explanations, examples, and snippets for one topic, organised by subject
+  kata: unit of knowledge — one flat file per topic (kata/{topic}.md), accumulates theory, examples, and Q&A across sessions
   kiroku: (記録) namespace for all session records — contains makimono/ and nikki/
-  makimono: (巻物) living document — the kata that evolves with the student; "maki" = to roll/wrap, "mono" = thing — the scroll the sensei writes knowledge on
-  nikki: (日記) immutable session diary — one file per session; "nichi" = day, "ki" = record — append-only, never overwritten
-  randori: interactive drill during study — the AI asks open questions after each concept, no score, feedback immediate
-  quiz: autonomous practice — multiple choice questions from kata, no state saved, lightweight (metro/break use)
-  shinsa: formal exam — 10 open-ended questions covering the full subject, scored, no feedback during, required before level_up
+  makimono: (巻物) immutable certification snapshot — produced by goal_shinsa on pass only; write-once; one per achieved goal
+  nikki: (日記) immutable session diary — one file per session; append-only, never overwritten
+  randori: interactive drill during study — the AI asks open questions after each concept; no score, feedback immediate
+  shinsa: formal exam — topic_shinsa covers one topic (5–8 questions); goal_shinsa covers all goal topics (15–20 questions)
   gakusei: the student profile
-  .gakusei.yml: machine-readable student profile — the AI reads this at every session start
-  gakusei.md: human-readable student profile — shows current level and what has been learned; created by AI on first session
-  library: conceptual term for the set of study sources (not a directory) — Google Drive, attached files, pasted text, or AI knowledge
+  .gakusei.yml: machine-readable student state — topics, goals, readiness scores, last session; read at every session start
+  goal: a declared learning objective — tracked as a GitHub issue; stays open until goal_shinsa passes
+  goal_slug: snake_case machine identifier for a goal (e.g. senior_rails, italian_c1)
+  goal_human_title: human-readable goal title (e.g. "Become senior in Rails")
 
 key_principles:
   - one repository per student instance
-  - the AI reads .gakusei.yml at session start — no exceptions
+  - the AI reads .gakusei.yml at every session start — no exceptions
   - nikki files are immutable — append-only, never overwrite
-  - makimono files are living documents — updated via PR after each session
+  - makimono files are immutable — write-once certifications produced by goal_shinsa on pass
   - mastery state lives in .gakusei.yml — not in AI memory
   - files for the AI are hidden YAML files; files for the human are Markdown
-  - kata/ is organised by subject subfolder
-  - kiroku/ contains makimono/ (living docs) and nikki/ (session records)
-  - level progression requires completing a book and passing the shinsa
-  - the AI proposes level_up, the student confirms
+  - kata/ is flat — one file per topic slug, no subject subfolders
+  - kiroku/ contains makimono/ (certifications) and nikki/ (session records)
+  - goal progression: declare_goal → study topics → topic_shinsa per topic → goal_shinsa → makimono
+  - the AI never sets [x] on a goal issue topic except at already_satisfied check during declare_goal
+  - only topic_shinsa on pass sets [x] on a goal issue topic
 
-levels:
-  - not_started
-  - beginner
-  - intermediate
-  - advanced
+goal_model:
+  declaration:
+    title_format: "[Goal] {goal_source_emoji} {goal_human_title} ({goal_slug})"
+    source_types: [self_declared, job_offer, project, interview_feedback, curriculum_gap, cross_repo]
+    source_emojis:
+      job_offer: "🏢"
+      self_declared: "🧠"
+      project: "🛠️"
+      interview_feedback: "💬"
+      curriculum_gap: "📚"
+      cross_repo: "🔗"
+    priority_tiers: [critical, important, later]
+    topic_sources: [explicitly_required, ai_inferred]
+    already_satisfied: topics completed in .gakusei.yml at declaration time — rendered [x] immediately
+  kata_links: absolute GitHub URLs only — https://github.com/{owner}/{repo}/blob/main/kata/{slug}.md
 
 default_subjects:
   github:
@@ -52,11 +63,6 @@ library_sources:
   - pasted_text: chapter text pasted inline in chat
   - ai_knowledge: no book provided — the AI teaches from its own knowledge, adapted to the student level
 
-# ---------------------------------------------------------------------------
-# ONBOARDING
-# Read by spawn scenario to collect identity data before creating the repo.
-# creates: identity file generated from identity_template filled with answers.
-# ---------------------------------------------------------------------------
 onboarding:
   questions:
     - field: student_name
