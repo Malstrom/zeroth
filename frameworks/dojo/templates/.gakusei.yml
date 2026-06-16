@@ -1,29 +1,9 @@
-# .gakusei.yml — student state
+# .gakusei.yml — student identity
 # Managed by: dojo framework
-# Flat topic model — no subjects
+# This file contains ONLY non-derivable student metadata.
+# Topic state is derived at runtime from: goal issues + kata files + nikki filenames.
+# DO NOT add topics.*, goals.*, or last_session.* — they are intentionally absent.
 
 student_name: ""
-
-last_session:
-  date: ""
-  topic: ""
-  type: ""                      # study | shinsa | goal_shinsa
-
-topics:
-  # example_topic:
-  #   status: planned           # planned | in_progress | completed
-  #   readiness_status: ""      # ready | gap | loop
-  #   readiness_score:
-  #     randori_pct: 0
-  #     clean_sessions: 0
-  #   readiness_gaps: []
-  #   sessions: []
-
-goals:
-  # goal_slug:
-  #   declared_on: ""
-  #   status: active            # active | achieved
-  #   achieved_on: ""
-  #   shinsa_attempts: 0
-  #   required_topics: []
-  #   completed_topics: []
+language: ""                    # chat language, e.g. italian, english
+issue_language: "english"       # language for issue/PR bodies and file content
