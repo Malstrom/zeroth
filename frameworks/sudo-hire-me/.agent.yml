@@ -1,13 +1,11 @@
 # frameworks/sudo-hire-me/.agent.yml
-# AI manifest for sudo-hire-me framework instances.
-# Spec: zeroth/rules/scenarios.yml
-# Status: STUB — fill following zeroth standard (see frameworks/dojo/.agent.yml)
+# AI-only operational manifest for the sudo-hire-me framework.
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
 # ---------------------------------------------------------------------------
 language:
-  chat: italian                   # TODO: confirm default language for instances
+  chat: italian
   files: english
   filenames: english
 
@@ -22,6 +20,8 @@ work_rules:
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
+# false = execute immediately
+# true  = always ask before executing
 # ---------------------------------------------------------------------------
 tool_approval:
   create_branch: false
@@ -29,23 +29,51 @@ tool_approval:
   create_pr: false
   create_issue: false
   update_issue: false
-  merge_to_main: true           # always ask
-  delete_file: true             # always ask
-  destructive_ops: true         # always ask
+  merge_to_main: false
+  delete_file: true
+  destructive_ops: true
+
+# ---------------------------------------------------------------------------
+# STATE MODEL
+# Single source of truth for each piece of information:
+#   candidate profile  -> igor.yml (skills, stack, targets, gaps)
+#   company state      -> hunt/pipeline/{company_slug}.yml (status, steps, analysis)
+#   event history      -> hunt/pipeline/log/{company_slug}/ (immutable, one .yml per event)
+#   tracking issue     -> GitHub issue in sudo-hire-me (one per company, checkboxes)
+#
+# hunt/pipeline/{company}.yml MUST NOT contain: prep notes, gap analysis, dojo topics
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
+# Read .scenarios.yml BEFORE any reasoning.
+# Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
 scenarios:
-  file: .scenarios.yml
-  spec: zeroth/rules/scenarios.yml
+  spec: Malstrom/zeroth:frameworks/sudo-hire-me/.scenarios.yml
   read_before_responding: true
   on_no_match: propose new scenario to user before proceeding
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
-# TODO: define workspace map for sudo-hire-me instance repos
-# Reference: frameworks/dojo/.agent.yml workspace section
 # ---------------------------------------------------------------------------
 workspace:
-  # TODO
+  igor.yml:
+    role: candidate profile - skills, stack, targets, gaps
+    access: read-only
+
+  .scenarios.yml:
+    role: scenario catalog
+    access: read-only
+
+  .registry.yml:
+    role: cross-repo connections
+    access: read-only
+
+  patterns:
+    - path: "hunt/pipeline/*.yml"
+      role: company pipeline state - one file per company
+      access: read-write
+    - path: "hunt/pipeline/log/**"
+      role: immutable event logs - one .yml per event per company
+      access: write-once
