@@ -26,8 +26,6 @@ required_scenarios:
             - call: onboarding
             - stop
       - say: "{{student_name}}!"
-      # Read open goal issues — each represents an active learning objective.
-      # For each open goal, show progress (completed topics vs needed topics).
       - if:
           condition: open_goal_issues | count > 0
           then:
@@ -55,6 +53,7 @@ required_scenarios:
       - user says they want to become senior in something
       - user says they want to reach a level in a language or technology
       - user wants to set a goal
+      - user provides a cross-repo source artifact (job offer, project spec, interview feedback)
     creates_issue: true
     issue:
       title: "Goal: {goal_slug}"
@@ -68,22 +67,46 @@ required_scenarios:
       - "kata/"                     # all kata files — AI reasons over completed topics
     steps:
       - ask: "What is your goal? (e.g. senior Rails, Italian B1, understand distributed systems)"
-      # AI derives the goal slug from the answer: senior_rails, italian_b1, etc.
       - compute: goal_slug
-      # AI reasons over the goal and identifies which topics are necessary.
-      # Completed topics (from .gakusei.yml) are marked ✅ in the issue checklist.
-      # Missing topics are marked ⬜ — the student needs to study them.
-      - compute: required_topics       # AI judgment — no hardcoded list
-      - compute: completed_topics      # intersection of required_topics and .gakusei.yml completed
-      - compute: missing_topics        # required_topics minus completed_topics
+
+      # Source: where does this goal come from?
+      # Supported types: self_declared, job_offer, project, interview_feedback, curriculum_gap, cross_repo
+      # For cross_repo: source_ref is the URL or repo#issue of the source artifact.
+      - ask: "Where does this goal come from? (self-declared, job offer, project, interview feedback — or paste a link)"
+      - compute: goal_source_type    # one of: self_declared | job_offer | project | interview_feedback | curriculum_gap | cross_repo
+      - compute: goal_source_ref     # free text or URL — empty string if self_declared
+
+      # If source is cross_repo, read the source artifact before computing topics.
+      - if:
+          condition: goal_source_type == "cross_repo"
+          then:
+            - read: "{{goal_source_ref}}"    # source artifact — YAML or issue body
+
+      # AI reasons over the goal (and source artifact if present) and derives the topic list.
+      # Each topic has:
+      #   source: explicitly_required | ai_inferred
+      #   priority: critical | important | later
+      - compute: required_topics       # list of {slug, source, priority}
+
+      # Split required_topics by whether they are already completed in .gakusei.yml.
+      # already_satisfied → rendered [x] with kata link immediately — no study needed.
+      # missing_topics    → rendered [ ] grouped by priority tier.
+      - compute: already_satisfied     # required_topics ∩ .gakusei.yml completed
+      - compute: missing_topics        # required_topics − already_satisfied
+
       - say: |
           Goal: {{goal_slug}}
-          Topics already completed: {{completed_topics | join}}
-          Topics to study: {{missing_topics | join}}
-      # Issue body is rendered from template with computed checklists.
-      # Completed topics rendered as: - [x] topic_slug — [kata](kata/topic_slug.md) — completed
-      # Missing topics rendered as:   - [ ] topic_slug — to study
-      # Stays open until goal_shinsa passes.
+          Source: {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
+          Already satisfied ({{already_satisfied | count}}): {{already_satisfied | join}}
+          Topics to study:
+            Critical:  {{missing_topics | where: priority == critical | join}}
+            Important: {{missing_topics | where: priority == important | join}}
+            Later:     {{missing_topics | where: priority == later | join}}
+
+      # Render issue body from template.
+      # Each checklist section (Critical / Important / Later) lists:
+      #   already_satisfied topics first as [x] slug — [kata](kata/slug.md) — already satisfied
+      #   then missing topics as [ ] slug — explicitly required  OR  [ ] slug *(ai inferred)*
       - write:
           path: .gakusei.yml
           fields: [goals]
@@ -119,11 +142,6 @@ required_scenarios:
       - issue:
           check: "source loaded"
 
-      # ——— CONCEPT LOOP ———
-      # Repeat for each concept in the source, in order.
-      # concept = one discrete unit: a heading block, a thematic paragraph,
-      #           or a logical chunk if the source is unstructured.
-      # Do NOT invent concepts outside the source.
       - for_each: concept in source.concepts
         do:
           - say: |
@@ -134,7 +152,6 @@ required_scenarios:
             with:
               concept: "{{concept}}"
               topic: "{{topic}}"
-      # ——— END CONCEPT LOOP ———
 
       - issue:
           check: "concepts taught and randori completed"
@@ -172,8 +189,6 @@ required_scenarios:
       state_changes: [study-completed]
 
   randori:
-    # Called by study_open once per concept — context (topic, concept) inherited.
-    # Also callable standalone — context resolved via ask.
     on:
       - user wants to drill on the current topic
       - user asks to be quizzed on what was just explained
@@ -183,16 +198,12 @@ required_scenarios:
     creates_issue: false
     read:
       - .gakusei.yml
-      - "kata/{topic}.md"            # resolved after context step below
+      - "kata/{topic}.md"
     steps:
-      # ——— CONTEXT RESOLUTION ———
-      # When called from study_open, topic/concept are inherited — skip.
-      # When called standalone, they are unknown — ask before doing anything.
       - if:
           condition: topic is missing
           then:
             - ask: "Which topic?"
-      # ——— END CONTEXT RESOLUTION ———
 
       - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
 
@@ -227,10 +238,6 @@ required_scenarios:
       state_changes: [randori-completed]
 
   evaluate_readiness:
-    # EVENT-TRIGGERED — silent.
-    # Triggered by: study-completed.
-    # Computes readiness for the studied topic, writes result to .gakusei.yml, emits outcome.
-    # User interaction delegated entirely to readiness_report.
     on:
       events: [study-completed]
     dedup: once per session
@@ -276,10 +283,6 @@ required_scenarios:
       state_changes: []
 
   readiness_report:
-    # REPORTER — user-facing.
-    # Triggered by: readiness-ready, readiness-gap, readiness-loop.
-    # Reads result written by evaluate_readiness, proposes next action.
-    # Does NOT compute or write.
     type: reporter
     on:
       events: [readiness-ready, readiness-gap, readiness-loop]
@@ -323,8 +326,7 @@ required_scenarios:
 
   topic_shinsa:
     on:
-      events: [readiness-ready]          # AI-triggered when topic is ready
-      # Also student-triggered:
+      events: [readiness-ready]
       - user says they want to take the exam on a topic
       - user says "shinsa on {topic}"
       - user says they are ready to test a topic
@@ -340,7 +342,6 @@ required_scenarios:
       - .gakusei.yml
       - "kata/{topic}.md"
     steps:
-      # Guard: signal if not ready, but never block.
       - if:
           condition: topics.{topic}.readiness_status != "ready"
           then:
@@ -353,13 +354,9 @@ required_scenarios:
 
       - say: "Topic shinsa: {{topic}}. No feedback during exam — only final score."
 
-      # ——— EXAM LOOP ———
-      # 5–8 open questions drawn exclusively from kata/{topic}.md.
-      # No feedback between questions.
       - for_each: question in exam.questions   # count: 5–8, source: kata/{topic}.md
         do:
           - ask: "{{question.text}}"
-      # ——— END EXAM LOOP ———
 
       - compute: score
       - compute: weak_spots
@@ -385,8 +382,6 @@ required_scenarios:
                 access: read-write
                 via: PR
                 approval: none
-            # Update goal issue: check the topic and post a comment with kata link.
-            # Only if topic belongs to an active goal issue.
             - if:
                 condition: open_goal_issues | any: topic in goal.required_topics
                 then:
@@ -394,7 +389,7 @@ required_scenarios:
                       target: matching_goal_issue
                       action: check_topic
                       topic: "{{topic}}"
-                      # Finds line "- [ ] {topic}" in body and replaces with
+                      # Finds "- [ ] {topic}" in body and replaces with
                       # "- [x] {topic} — [kata](kata/{topic}.md) — completed"
                   - comment_issue:
                       target: matching_goal_issue
@@ -413,7 +408,7 @@ required_scenarios:
 
       - commit_before_reply
     output:
-      state_changes: []   # emits are conditional
+      state_changes: []
 
   topic_shinsa_report:
     type: reporter
@@ -459,10 +454,8 @@ required_scenarios:
       on_fail: comment
     read:
       - .gakusei.yml
-      - "kata/"                          # AI selects relevant kata based on goal reasoning
+      - "kata/"
     steps:
-      # AI evaluates completed topics vs what it judges necessary for the goal.
-      # Signals readiness — never blocks.
       - compute: goal_readiness
       - if:
           condition: goal_readiness == "not_ready"
@@ -480,14 +473,9 @@ required_scenarios:
 
       - say: "Goal shinsa: {{goal_slug}}. No feedback during exam — only final score."
 
-      # ——— EXAM LOOP ———
-      # 15–20 open questions drawn from kata/ files relevant to the goal.
-      # AI selects questions covering breadth across all relevant completed topics.
-      # No feedback between questions.
       - for_each: question in exam.questions   # count: 15–20, source: kata/ filtered by goal reasoning
         do:
           - ask: "{{question.text}}"
-      # ——— END EXAM LOOP ———
 
       - compute: score
       - compute: weak_topics
@@ -536,7 +524,7 @@ required_scenarios:
 
       - commit_before_reply
     output:
-      state_changes: []   # emits are conditional
+      state_changes: []
 
   goal_shinsa_report:
     type: reporter
@@ -583,7 +571,5 @@ required_scenarios:
                 - say: "OK. What would you like to do?"
           else:
             - say: "I don't recognize that as a defined scenario. Want me to open an issue to add it?"
-              # Note: the AI must NOT open the issue autonomously.
-              # It must wait for user confirmation before any action.
     output:
       state_changes: []
