@@ -1,34 +1,23 @@
-# frameworks/sudo-hire-me/overview.yml
-# Human and AI-readable description of the sudo-hire-me framework.
-# Used by zeroth spawn scenario to generate README.md for new instances.
-# Status: STUB — fill before using in spawn
-
 framework: sudo-hire-me
 version: 0.1.0
-status: stub
 
-# TODO: one-sentence description
-description: "TODO"
+description: |
+  Job hunt operating system. Tracks offers, interviews, and outcomes
+  for a single candidate across multiple companies and markets.
 
-# TODO: who uses this framework and why
-target_user: "TODO"
+target_user: |
+  Individual engineer managing an active job search.
+  One instance per person.
 
-# TODO: list the core concepts of the framework
 key_concepts:
-  # - job pipeline tracking
-  # - offer analysis
-  # - CV and cover letter generation
-  # - interview preparation
-  # - project forge
+  - pipeline: one YAML file per company, tracks state and links to logs
+  - log: immutable event record per interaction with a company (YAML)
+  - issue: one GitHub issue per company, tracks process with checkboxes (MD - GitHub requirement)
 
-# TODO: list the main outputs the framework produces
 outputs:
-  # - hunt/tracker.md
-  # - hunt/pipeline/{company}.md
-  # - hunt/cv/{role}/{lang}.md
-  # - hunt/letters/sent/YYYY-MM-DD_{company}_{role}.md
-  # - forge/{project}.md
+  - hunt/pipeline/{company}.yml
+  - hunt/pipeline/log/{company}/YYYY-MM-DD_{event}.yml
 
-# TODO: cross-repo artifact format (needed for #193 — declare_goal in dojo)
 artifact_format:
-  # TODO
+  status: not_yet_defined
+  note: cross-repo artifact for dojo declare_goal - TBD when zeroth #193 is reopened

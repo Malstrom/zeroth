@@ -1,26 +1,27 @@
-# frameworks/sudo-hire-me/structure.yml
-# Directory structure for sudo-hire-me instance repos.
-# Used by zeroth spawn scenario to scaffold a new instance.
-# Status: STUB — verify against actual Malstrom/sudo-hire-me layout
-
 framework: sudo-hire-me
 
-# TODO: confirm and complete this map against the real repo structure
+root_files:
+  - .agent.yml
+  - .scenarios.yml
+  - .registry.yml
+  - README.md
+  - igor.yml
+
 directories:
   hunt/:
     role: active job search
     subdirs:
-      pipeline/: per-company logs
-      cv/: CVs by role and language
-      letters/sent/: sent cover letters
+      pipeline/:
+        role: one YAML file per company - current state
+        files: "{company_slug}.yml"
+        subdirs:
+          log/{company_slug}/:
+            role: immutable event logs - one YAML per event
+            files: "YYYY-MM-DD_{event_slug}.yml"
+            access: write-once
 
-  forge/:
-    role: project portfolio work
+  assets/:
+    role: profile photos and attachments
+    access: read-only
 
-  idea/:
-    role: raw ideas and notes
-
-# TODO: define required files at root level
-root_files:
-  - igor.md           # full profile — TODO: generalize to profile.md for non-Igor instances
-  - hunt/tracker.md   # active pipeline dashboard
+note: templates live in Malstrom/zeroth:frameworks/sudo-hire-me/templates/ - read cross-repo, never copied to instance
