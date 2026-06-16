@@ -56,7 +56,7 @@ required_scenarios:
       - user provides a cross-repo source artifact (job offer, project spec, interview feedback)
     creates_issue: true
     issue:
-      title: "Goal: {goal_slug}"
+      title: "🎯 Goal: {goal_slug}"
       from: Malstrom/zeroth:frameworks/dojo/templates/issue_declare_goal.md
       update: check
       approval: none
@@ -64,17 +64,18 @@ required_scenarios:
       on_fail: comment
     read:
       - .gakusei.yml
-      - "kata/"                     # all kata files — AI reasons over completed topics
+      - "kata/"                     # all kata files — AI checks which kata already exist
     steps:
       - ask: "What is your goal? (e.g. senior Rails, Italian B1, understand distributed systems)"
       - compute: goal_slug
 
       # Source: where does this goal come from?
       # Supported types: self_declared, job_offer, project, interview_feedback, curriculum_gap, cross_repo
-      # For cross_repo: source_ref is the URL or repo#issue of the source artifact.
       - ask: "Where does this goal come from? (self-declared, job offer, project, interview feedback — or paste a link)"
       - compute: goal_source_type    # one of: self_declared | job_offer | project | interview_feedback | curriculum_gap | cross_repo
       - compute: goal_source_ref     # free text or URL — empty string if self_declared
+      - compute: goal_source_emoji
+        # 🏢 job_offer | 🧠 self_declared | 🛠️ project | 💬 interview_feedback | 📚 curriculum_gap | 🔗 cross_repo
 
       # If source is cross_repo, read the source artifact before computing topics.
       - if:
@@ -82,31 +83,36 @@ required_scenarios:
           then:
             - read: "{{goal_source_ref}}"    # source artifact — YAML or issue body
 
-      # AI reasons over the goal (and source artifact if present) and derives the topic list.
+      # AI derives required_topics from goal + source artifact.
       # Each topic has:
       #   source: explicitly_required | ai_inferred
       #   priority: critical | important | later
       - compute: required_topics       # list of {slug, source, priority}
 
-      # Split required_topics by whether they are already completed in .gakusei.yml.
-      # already_satisfied → rendered [x] with kata link immediately — no study needed.
-      # missing_topics    → rendered [ ] grouped by priority tier.
+      # already_satisfied: topics in required_topics already completed in .gakusei.yml.
+      # Rendered in issue as [x] immediately — no study needed.
+      # missing_topics: rendered [ ] grouped by priority.
       - compute: already_satisfied     # required_topics ∩ .gakusei.yml completed
       - compute: missing_topics        # required_topics − already_satisfied
 
       - say: |
           Goal: {{goal_slug}}
-          Source: {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
+          Source: {{goal_source_emoji}} {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
           Already satisfied ({{already_satisfied | count}}): {{already_satisfied | join}}
           Topics to study:
-            Critical:  {{missing_topics | where: priority == critical | join}}
-            Important: {{missing_topics | where: priority == important | join}}
-            Later:     {{missing_topics | where: priority == later | join}}
+            🔴 Critical:  {{missing_topics | where: priority == critical | join}}
+            🟡 Important: {{missing_topics | where: priority == important | join}}
+            🟢 Later:     {{missing_topics | where: priority == later | join}}
 
-      # Render issue body from template.
-      # Each checklist section (Critical / Important / Later) lists:
-      #   already_satisfied topics first as [x] slug — [kata](kata/slug.md) — already satisfied
-      #   then missing topics as [ ] slug — explicitly required  OR  [ ] slug *(ai inferred)*
+      # Issue body rendering rules:
+      # already_satisfied topics:
+      #   kata exists    → - [x] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
+      #   kata missing   → - [x] `slug` — description — already satisfied
+      # missing topics:
+      #   kata exists    → - [ ] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
+      #   kata missing   → - [ ] `slug` — description              (explicitly required)
+      #   kata missing   → - [ ] `slug` — description *(ai inferred)*
+      # ALL kata links must use absolute GitHub URLs (blob/main/), never relative paths.
       - write:
           path: .gakusei.yml
           fields: [goals]
@@ -389,11 +395,12 @@ required_scenarios:
                       target: matching_goal_issue
                       action: check_topic
                       topic: "{{topic}}"
-                      # Finds "- [ ] {topic}" in body and replaces with
-                      # "- [x] {topic} — [kata](kata/{topic}.md) — completed"
+                      # Finds "- [ ] `{topic}`" in goal issue body and replaces with:
+                      # "- [x] `{topic}` — {description} — [kata](https://github.com/{owner}/{repo}/blob/main/kata/{topic}.md)"
+                      # kata link is ALWAYS absolute (blob/main/), never relative.
                   - comment_issue:
                       target: matching_goal_issue
-                      body: "✅ {{topic}} passed {{date}} — [kata](kata/{{topic}}.md) — [nikki](kiroku/nikki/{{date}}_{{topic}}_shinsa.yml)"
+                      body: "✅ `{{topic}}` passed {{date}} — [kata](https://github.com/{{repo_owner}}/{{repo_name}}/blob/main/kata/{{topic}}.md) — [nikki](https://github.com/{{repo_owner}}/{{repo_name}}/blob/main/kiroku/nikki/{{date}}_{{topic}}_shinsa.yml)"
             - emit: topic-shinsa-passed
           else:
             - write:
