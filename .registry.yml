@@ -33,7 +33,11 @@ connections:
     access: read-write
 
   - repo: Malstrom/sudo-hire-me
-    role: registered framework
+    role: sudo-hire-me instance
+    framework: sudo-hire-me
     sync_trigger:
       - rule-updated
     access: read-write
+    note: |
+      Framework scaffold created 2026-06-17.
+      Instance .agent.yml and .scenarios.yml to be aligned in a follow-up issue.
