@@ -66,15 +66,6 @@ workspace:
     role: cross-repo connections
     access: read-only
 
-  goal_issues:
-    role: active learning objectives — GitHub issues with title format "[Goal] {emoji} {human_title} ({slug})"
-    access: read-write
-    note: |
-      Read at session_start to show active goals and progress.
-      [x] on a topic is set ONLY by topic_shinsa on pass.
-      declare_goal sets [x] only for already_satisfied topics (completed in .gakusei.yml at declaration time).
-      ALL kata links in goal issues must use absolute GitHub URLs (blob/main/), never relative paths.
-
   templates/:
     role: file templates for kata, nikki, makimono, shinsa
     access: read-only
