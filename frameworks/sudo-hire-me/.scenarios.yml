@@ -1,17 +1,6 @@
 # frameworks/sudo-hire-me/.scenarios.yml
 # Scenario catalog for sudo-hire-me framework instances.
 # Syntax: zeroth/rules/scenarios.yml
-# Model: GitHub Actions workflows — on: trigger, steps: logic, output: state
-# Status: STUB — scenarios listed, bodies to be filled
-
-# Known scenarios (from current sudo-hire-me/.agent.yml inline definitions):
-#   session_start
-#   job_offer_received
-#   round_completed
-#   write_cv
-#   write_cover_letter
-#   forge_project_review
-#   unknown_scenario
 
 required_scenarios:
 
@@ -20,67 +9,171 @@ required_scenarios:
       - session opens automatically
     creates_issue: false
     read:
-      # TODO
+      - "hunt/pipeline/*.yml"
     steps:
-      # TODO
+      - if:
+          condition: active_applications | count > 0
+          then:
+            - say: |
+                Pipeline attiva ({{active_applications | count}}):
+                {{active_applications | each: "- {{company}} — {{role}} — {{status}}"}}
+            - propose: "Aggiorno qualche candidatura?"
+              on_confirm:
+                - ask: "Quale azienda?"
+                - call: round_completed
+              on_reject:
+                - say: "Ok. Nuova offerta o altro?"
+          else:
+            - say: "Nessuna candidatura attiva."
+            - propose: "Hai ricevuto una nuova offerta?"
+              on_confirm:
+                - call: job_offer_received
+              on_reject:
+                - say: "Ok. Dimmi come posso aiutarti."
     output:
       state_changes: []
 
   job_offer_received:
     on:
       - user pastes or describes a job offer
+      - user says they received a job offer
+      - user shares recruiter communication
     creates_issue: true
+    issue:
+      title: "{company_slug} — {role_slug}"
+      from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/issue_pipeline.md
+      update: check
+      approval: none
+      on_complete: close
+      on_fail: comment
     read:
-      # TODO
+      - igor.yml
+      - Malstrom/zeroth:frameworks/sudo-hire-me/templates/pipeline.yml
+      - Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
     steps:
-      # TODO
+      - compute: company_slug
+      - compute: role_slug
+      - compute: fit_pct
+      - compute: recommendation
+      - compute: red_flags
+      - compute: strengths
+      - compute: stack_required
+      - compute: stack_nice_to_have
+      - compute: contact
+      - compute: company_info
+      - compute: offer_conditions
+      - compute: communication_language
+      - say: |
+          **Analisi offerta — {{company_slug}}**
+
+          Fit: {{fit_pct}}% — Raccomandazione: {{recommendation}}
+
+          Punti di forza:
+          {{strengths | each: "- {{item}}"}}
+
+          Red flags:
+          {{red_flags | each: "- {{item}}"}}
+
+          Stack richiesto: {{stack_required | join: ", "}}
+          Stack nice-to-have: {{stack_nice_to_have | join: ", "}}
+      - write:
+          path: "hunt/pipeline/"
+          filename: "{{company_slug}}.yml"
+          from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/pipeline.yml
+          vars:
+            company_slug: "{{company_slug}}"
+            role_slug: "{{role_slug}}"
+            fit_pct: "{{fit_pct}}"
+            recommendation: "{{recommendation}}"
+            red_flags: "{{red_flags}}"
+            strengths: "{{strengths}}"
+            stack_required: "{{stack_required}}"
+            stack_nice_to_have: "{{stack_nice_to_have}}"
+            contact: "{{contact}}"
+            company_info: "{{company_info}}"
+            offer_conditions: "{{offer_conditions}}"
+            communication_language: "{{communication_language}}"
+          access: write-once
+          via: PR
+          approval: none
+      - issue:
+          check: "pipeline file created"
+      - write:
+          path: "hunt/pipeline/log/{{company_slug}}/"
+          filename: "{{date}}_offer_received.yml"
+          from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
+          vars:
+            company_slug: "{{company_slug}}"
+            event: offer_received
+            participants: "Igor + {{contact.name}}"
+            channel: "{{contact.channel}}"
+            outcome: completed
+            raw_communication: "{{raw_offer_text}}"
+          access: write-once
+          via: PR
+          approval: none
+      - issue:
+          check: "log entry written"
+      - commit_before_reply
+      - say: "Candidatura {{company_slug}} aperta. Issue: {{issue.url}}"
     output:
       state_changes: [pipeline-created]
 
   round_completed:
     on:
-      - user reports outcome of an interview round
+      - user reports outcome of an interview round or screening
+      - user shares new information about an active application
+      - user says a round passed or failed
     creates_issue: false
     read:
-      # TODO
+      - "hunt/pipeline/*.yml"
+      - Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
     steps:
-      # TODO
+      - if:
+          condition: company_slug is missing
+          then:
+            - ask: "Per quale azienda?"
+      - compute: company_slug
+      - compute: event_slug
+      - compute: outcome
+      - compute: participants
+      - compute: channel
+      - write:
+          path: "hunt/pipeline/log/{{company_slug}}/"
+          filename: "{{date}}_{{event_slug}}.yml"
+          from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
+          vars:
+            company_slug: "{{company_slug}}"
+            event: "{{event_slug}}"
+            participants: "{{participants}}"
+            channel: "{{channel}}"
+            outcome: "{{outcome}}"
+            raw_communication: "{{raw_communication}}"
+          access: write-once
+          via: PR
+          approval: none
+      - write:
+          path: "hunt/pipeline/{{company_slug}}.yml"
+          fields: [status, last_updated, steps]
+          access: read-write
+          via: PR
+          approval: none
+      - issue:
+          check: "round logged"
+      - commit_before_reply
+      - if:
+          condition: outcome == passed
+          then:
+            - say: "{{company_slug}} — {{event_slug}} passato. Pipeline aggiornata."
+          else:
+            - if:
+                condition: outcome == failed
+                then:
+                  - say: "{{company_slug}} — {{event_slug}} non passato. Pipeline aggiornata."
+                else:
+                  - say: "{{company_slug}} — {{event_slug}} registrato. Outcome: {{outcome}}."
     output:
-      state_changes: [pipeline-updated, round-logged]
-
-  write_cv:
-    on:
-      - user asks for a CV
-    creates_issue: false
-    read:
-      # TODO
-    steps:
-      # TODO
-    output:
-      state_changes: [cv-written]
-
-  write_cover_letter:
-    on:
-      - user asks for a cover letter
-    creates_issue: false
-    read:
-      # TODO
-    steps:
-      # TODO
-    output:
-      state_changes: [letter-written]
-
-  forge_project_review:
-    on:
-      - user mentions a project
-      - user says "forge"
-    creates_issue: false
-    read:
-      # TODO
-    steps:
-      # TODO
-    output:
-      state_changes: [forge-updated]
+      state_changes: [pipeline-updated]
 
   unknown_scenario:
     on:
@@ -88,6 +181,15 @@ required_scenarios:
     creates_issue: false
     read: []
     steps:
-      - say: "Scenario non definito. Vuoi che lo aggiungo?"
+      - if:
+          condition: closest_scenario exists
+          then:
+            - propose: "Intendevi: {{closest_scenario}}?"
+              on_confirm:
+                - call: "{{closest_scenario}}"
+              on_reject:
+                - say: "Ok. Cosa vuoi fare?"
+          else:
+            - say: "Scenario non definito. Vuoi che lo aggiunga?"
     output:
       state_changes: []
