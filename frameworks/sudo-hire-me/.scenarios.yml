@@ -1,0 +1,93 @@
+# frameworks/sudo-hire-me/.scenarios.yml
+# Scenario catalog for sudo-hire-me framework instances.
+# Syntax: zeroth/rules/scenarios.yml
+# Model: GitHub Actions workflows — on: trigger, steps: logic, output: state
+# Status: STUB — scenarios listed, bodies to be filled
+
+# Known scenarios (from current sudo-hire-me/.agent.yml inline definitions):
+#   session_start
+#   job_offer_received
+#   round_completed
+#   write_cv
+#   write_cover_letter
+#   forge_project_review
+#   unknown_scenario
+
+required_scenarios:
+
+  session_start:
+    on:
+      - session opens automatically
+    creates_issue: false
+    read:
+      # TODO
+    steps:
+      # TODO
+    output:
+      state_changes: []
+
+  job_offer_received:
+    on:
+      - user pastes or describes a job offer
+    creates_issue: true
+    read:
+      # TODO
+    steps:
+      # TODO
+    output:
+      state_changes: [pipeline-created]
+
+  round_completed:
+    on:
+      - user reports outcome of an interview round
+    creates_issue: false
+    read:
+      # TODO
+    steps:
+      # TODO
+    output:
+      state_changes: [pipeline-updated, round-logged]
+
+  write_cv:
+    on:
+      - user asks for a CV
+    creates_issue: false
+    read:
+      # TODO
+    steps:
+      # TODO
+    output:
+      state_changes: [cv-written]
+
+  write_cover_letter:
+    on:
+      - user asks for a cover letter
+    creates_issue: false
+    read:
+      # TODO
+    steps:
+      # TODO
+    output:
+      state_changes: [letter-written]
+
+  forge_project_review:
+    on:
+      - user mentions a project
+      - user says "forge"
+    creates_issue: false
+    read:
+      # TODO
+    steps:
+      # TODO
+    output:
+      state_changes: [forge-updated]
+
+  unknown_scenario:
+    on:
+      - any message that does not match any other scenario
+    creates_issue: false
+    read: []
+    steps:
+      - say: "Scenario non definito. Vuoi che lo aggiungo?"
+    output:
+      state_changes: []

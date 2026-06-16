@@ -1,0 +1,34 @@
+# frameworks/sudo-hire-me/overview.yml
+# Human and AI-readable description of the sudo-hire-me framework.
+# Used by zeroth spawn scenario to generate README.md for new instances.
+# Status: STUB — fill before using in spawn
+
+framework: sudo-hire-me
+version: 0.1.0
+status: stub
+
+# TODO: one-sentence description
+description: "TODO"
+
+# TODO: who uses this framework and why
+target_user: "TODO"
+
+# TODO: list the core concepts of the framework
+key_concepts:
+  # - job pipeline tracking
+  # - offer analysis
+  # - CV and cover letter generation
+  # - interview preparation
+  # - project forge
+
+# TODO: list the main outputs the framework produces
+outputs:
+  # - hunt/tracker.md
+  # - hunt/pipeline/{company}.md
+  # - hunt/cv/{role}/{lang}.md
+  # - hunt/letters/sent/YYYY-MM-DD_{company}_{role}.md
+  # - forge/{project}.md
+
+# TODO: cross-repo artifact format (needed for #193 — declare_goal in dojo)
+artifact_format:
+  # TODO

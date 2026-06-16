@@ -1,0 +1,11 @@
+# frameworks/sudo-hire-me/onboarding.yml
+# Onboarding steps for a new sudo-hire-me instance.
+# Executed by spawn scenario after repo creation.
+# Status: STUB — define steps before enabling spawn for this framework
+
+framework: sudo-hire-me
+
+# TODO: define onboarding steps
+# Reference: frameworks/dojo/onboarding.yml
+steps:
+  # TODO
