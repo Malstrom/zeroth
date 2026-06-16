@@ -81,6 +81,8 @@ required_scenarios:
           Topics already completed: {{completed_topics | join}}
           Topics to study: {{missing_topics | join}}
       # Issue body is rendered from template with computed checklists.
+      # Completed topics rendered as: - [x] topic_slug — [kata](kata/topic_slug.md) — completed
+      # Missing topics rendered as:   - [ ] topic_slug — to study
       # Stays open until goal_shinsa passes.
       - write:
           path: .gakusei.yml
@@ -383,6 +385,20 @@ required_scenarios:
                 access: read-write
                 via: PR
                 approval: none
+            # Update goal issue: check the topic and post a comment with kata link.
+            # Only if topic belongs to an active goal issue.
+            - if:
+                condition: open_goal_issues | any: topic in goal.required_topics
+                then:
+                  - update_issue:
+                      target: matching_goal_issue
+                      action: check_topic
+                      topic: "{{topic}}"
+                      # Finds line "- [ ] {topic}" in body and replaces with
+                      # "- [x] {topic} — [kata](kata/{topic}.md) — completed"
+                  - comment_issue:
+                      target: matching_goal_issue
+                      body: "✅ {{topic}} passed {{date}} — [kata](kata/{{topic}}.md) — [nikki](kiroku/nikki/{{date}}_{{topic}}_shinsa.yml)"
             - emit: topic-shinsa-passed
           else:
             - write:
@@ -411,7 +427,6 @@ required_scenarios:
           condition: event == "topic-shinsa-passed"
           then:
             - say: "Topic shinsa passed. Score: {{score}}%. {{topic}} is now completed."
-            # If topic is part of an active goal, check it in the goal issue.
             - if:
                 condition: open_goal_issues | any: topic in goal.required_topics
                 then:

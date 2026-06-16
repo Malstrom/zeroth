@@ -4,8 +4,9 @@
 
 {required_topics_checklist}
 <!-- AI renders each topic as:
-     - [x] topic_slug — completed
+     - [x] topic_slug — [kata](kata/topic_slug.md) — completed
      - [ ] topic_slug — to study
+     topic_shinsa updates [x] and posts a comment with link on pass.
 -->
 
 ### Notes

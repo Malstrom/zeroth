@@ -15,3 +15,9 @@
 ## Notes
 
 <!-- Free-form notes, code snippets, references -->
+
+## Resources
+
+<!-- Authoritative external links added by AI during study_open.
+     Student may add links manually at any time.
+     Format: - [Title](url) — one line per resource -->
