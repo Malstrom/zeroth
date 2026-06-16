@@ -40,7 +40,7 @@ required_scenarios:
       - user shares recruiter communication
     creates_issue: true
     issue:
-      title: "{company_slug} — {role_slug}"
+      title: "{company_name} — {role_name}"
       from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/issue_pipeline.md
       update: check
       approval: none
@@ -52,7 +52,9 @@ required_scenarios:
       - Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
     steps:
       - compute: company_slug
+      - compute: company_name
       - compute: role_slug
+      - compute: role_name
       - compute: fit_pct
       - compute: recommendation
       - compute: red_flags
@@ -63,8 +65,10 @@ required_scenarios:
       - compute: company_info
       - compute: offer_conditions
       - compute: communication_language
+      - compute: questions_stack    # IT+RU questions derived from stack_required gaps vs igor.yml
+      - compute: questions_red_flags  # IT+RU questions derived from red_flags
       - say: |
-          **Analisi offerta — {{company_slug}}**
+          **Analisi offerta — {{company_name}}**
 
           Fit: {{fit_pct}}% — Raccomandazione: {{recommendation}}
 
@@ -115,7 +119,7 @@ required_scenarios:
       - issue:
           check: "log entry written"
       - commit_before_reply
-      - say: "Candidatura {{company_slug}} aperta. Issue: {{issue.url}}"
+      - say: "Candidatura {{company_name}} aperta. Issue: {{issue.url}}"
     output:
       state_changes: [pipeline-created]
 
@@ -174,6 +178,80 @@ required_scenarios:
                   - say: "{{company_slug}} — {{event_slug}} registrato. Outcome: {{outcome}}."
     output:
       state_changes: [pipeline-updated]
+
+  screening_prep:
+    on:
+      - user wants to prepare for an HR screening
+      - user has a screening scheduled and wants to simulate it
+      - user asks to simulate a recruiter call
+    creates_issue: false
+    read:
+      - "hunt/pipeline/*.yml"
+      - igor.yml
+    steps:
+      - if:
+          condition: company_slug is missing
+          then:
+            - ask: "Per quale azienda prepariamo lo screening?"
+      - compute: company_slug
+      - compute: recruiter_persona   # name + style from hunt/pipeline/{company}.yml
+      - compute: round_name         # next pending step from pipeline steps[]
+      - compute: screening_questions # 4-5 light technical questions calibrated on stack_required + igor.yml
+      - compute: fit_questions       # 1-2 fit questions calibrated on role and company
+      - say: |
+          Simulazione screening — {{company_slug}} | recruiter: {{recruiter_persona.name}}
+          Obiettivo: passare lo screening. Ti do feedback dopo ogni risposta.
+          🔴 = critico da correggere  🟡 = migliorabile
+      - ask: "Sei pronto?"
+      - say: "Raccontami di te — background, esperienza, perché stai cercando ora."
+      - ask: "[risposta]"
+      - compute: feedback  # evaluate: clarity, story arc, strategic alignment with igor.yml; assign story_score/10
+      - say: "{{feedback}}"
+      - loop: screening_questions + fit_questions
+        each:
+          - say: "{{question}}"
+          - ask: "[risposta]"
+          - compute: feedback  # evaluate: correctness, clarity, strategic framing; flag if too honest; suggest reframe
+          - say: "{{feedback}}"
+      - compute: session_summary  # aggregate: story_score/10, technical_table, fit_feedback, improvements with 🔴/🟡
+      - issue:
+          comment: |
+            ## 🎭 Screening prep — {{date}}
+
+            **Round:** {{round_name}} (simulato) | **Recruiter:** {{recruiter_persona.name}} ({{recruiter_persona.role}})
+
+            ---
+
+            ### 📖 Storia personale — {{session_summary.story_score}}/10
+
+            {{session_summary.story_feedback}}
+
+            ---
+
+            ### 🛠️ Domande tecniche
+
+            | # | Domanda | Esito | Note |
+            |---|---|---|---|
+            {{session_summary.technical_table}}
+
+            ---
+
+            ### 🎯 Fit questions
+
+            {{session_summary.fit_feedback}}
+
+            ---
+
+            ### 📋 Da migliorare prima dello screening reale
+
+            {{session_summary.improvements}}
+
+            ---
+
+            _Prep session {{date}}_
+      - say: "Fatto. Commento postato su {{company_slug}}. Priorità critiche: {{session_summary.blockers}}"
+    output:
+      state_changes: []
 
   unknown_scenario:
     on:
