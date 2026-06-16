@@ -1,0 +1,14 @@
+# templates/log_entry.yml
+# Template for hunt/pipeline/log/{company_slug}/YYYY-MM-DD_{event_slug}.yml
+
+company: {company_slug}
+event: {event}
+date: {date}
+participants: {participants}
+channel: {channel}
+outcome: {outcome}   # passed | failed | pending | completed
+
+raw_communication: |
+  {raw_communication}
+
+notes: ~

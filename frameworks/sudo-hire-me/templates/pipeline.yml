@@ -1,0 +1,47 @@
+# templates/pipeline.yml
+# Template for hunt/pipeline/{company_slug}.yml
+
+company: {company_slug}
+role: {role_slug}
+status: offer_received
+opened: {date}
+last_updated: {date}
+
+source: ~                # direct_outreach | job_board | referral
+platform: ~              # hh.ru | habr | linkedin | ~
+language: {communication_language}
+
+contact:
+  name: {contact.name}
+  role: {contact.role}   # HR recruiter | tech lead | founder | ~
+  channel: {contact.channel}  # telegram | email | linkedin | ~
+
+company_info:
+  type: {company_info.type}        # product | outsource | consulting | unknown
+  size: {company_info.size}        # startup | mid | large | unknown
+  location: {company_info.location}
+  internal_language: {company_info.internal_language}  # ru | it | en | mixed
+
+offer:
+  format: {offer_conditions.format}   # remote | hybrid | onsite
+  salary: {offer_conditions.salary}
+  contract: {offer_conditions.contract}
+  schedule: {offer_conditions.schedule}
+  benefits: {offer_conditions.benefits}
+
+analysis:
+  fit_pct: {fit_pct}
+  recommendation: {recommendation}   # pursue | skip | monitor
+  red_flags: {red_flags}
+  strengths: {strengths}
+  stack_required: {stack_required}
+  stack_nice_to_have: {stack_nice_to_have}
+
+steps:
+  - id: 1
+    name: offer_received
+    date: {date}
+    outcome: completed
+    log: log/{company_slug}/{date}_offer_received.yml
+
+issue: ~
