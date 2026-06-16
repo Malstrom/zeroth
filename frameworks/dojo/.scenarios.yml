@@ -196,7 +196,11 @@ required_scenarios:
       - issue:
           check: ".gakusei.yml updated"
 
-      - commit_before_reply
+      - merge:
+          strategy: squash
+          target: main
+          via: PR
+          approval: none
     output:
       state_changes: [study-completed]
 
@@ -338,7 +342,7 @@ required_scenarios:
 
   topic_shinsa:
     on:
-      events: [readiness-ready]
+      - events: [readiness-ready]
       - user says they want to take the exam on a topic
       - user says "shinsa on {topic}"
       - user says they are ready to test a topic
@@ -404,9 +408,6 @@ required_scenarios:
                       # Finds "- [ ] `{topic}`" in goal issue body and replaces with:
                       # "- [x] `{topic}` — {description} — [kata](https://github.com/{owner}/{repo}/blob/main/kata/{topic}.md)"
                       # kata link is ALWAYS absolute (blob/main/), never relative.
-                  - comment_issue:
-                      target: matching_goal_issue
-                      body: "✅ `{{topic}}` passed {{date}} — [kata](https://github.com/{{repo_owner}}/{{repo_name}}/blob/main/kata/{{topic}}.md) — [nikki](https://github.com/{{repo_owner}}/{{repo_name}}/blob/main/kiroku/nikki/{{date}}_{{topic}}_shinsa.yml)"
             - emit: topic-shinsa-passed
           else:
             - write:
@@ -419,7 +420,11 @@ required_scenarios:
       - issue:
           check: ".gakusei.yml updated"
 
-      - commit_before_reply
+      - merge:
+          strategy: squash
+          target: main
+          via: PR
+          approval: none
     output:
       state_changes: []
 
@@ -535,7 +540,11 @@ required_scenarios:
       - issue:
           check: ".gakusei.yml updated"
 
-      - commit_before_reply
+      - merge:
+          strategy: squash
+          target: main
+          via: PR
+          approval: none
     output:
       state_changes: []
 
@@ -583,6 +592,6 @@ required_scenarios:
               on_reject:
                 - say: "OK. What would you like to do?"
           else:
-            - say: "I don't recognize that as a defined scenario. Want me to open an issue to add it?"
+            - say: "I don't recognize that as a defined scenario. Want me to add it?"
     output:
       state_changes: []
