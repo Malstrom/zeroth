@@ -54,27 +54,38 @@ scenarios:
 # ---------------------------------------------------------------------------
 workspace:
   .gakusei.yml:
-    role: student identity, progress, and language
+    role: student identity, progress, goals, and language
     access: read-write
+    note: read at every session start — no exceptions
+
   .scenarios.yml:
     role: scenario catalog
     access: read-only
+
   .registry.yml:
     role: cross-repo connections
     access: read-only
-  gakusei.md:
-    role: human-readable student profile
+
+  goal_issues:
+    role: active learning objectives — GitHub issues with title format "[Goal] {emoji} {human_title} ({slug})"
     access: read-write
+    note: |
+      Read at session_start to show active goals and progress.
+      [x] on a topic is set ONLY by topic_shinsa on pass.
+      declare_goal sets [x] only for already_satisfied topics (completed in .gakusei.yml at declaration time).
+      ALL kata links in goal issues must use absolute GitHub URLs (blob/main/), never relative paths.
+
   templates/:
     role: file templates for kata, nikki, makimono, shinsa
     access: read-only
+
   patterns:
     - path: "kata/**"
-      role: practice exercises
+      role: flat kata library — one file per topic slug, no subject subfolders
       access: read-write
     - path: "kiroku/nikki/**"
       role: immutable session logs
       access: append-only
     - path: "kiroku/makimono/**"
-      role: study scrolls
-      access: read-write
+      role: immutable certification snapshots — write-once, produced by goal_shinsa on pass
+      access: write-once
