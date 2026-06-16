@@ -4,11 +4,14 @@
 # Syntax: rules/scenarios.yml
 # Spec: github.com/Malstrom/zeroth/issues/162
 #
-# CORE MODEL:
-# - Topics are flat. kata/{topic}.md — no subject prefix, no subject field.
-# - Goals are declared by the student. A goal issue stays open until the exam passes.
-# - session_start reads open goal issues and orients the session.
-# - Makimono is an immutable certification produced by goal_shinsa on pass.
+# STATE MODEL (see .agent.yml for full reference):
+# - .gakusei.yml         → student identity only
+# - open goal issues     → active goals + topic checklist ([ ] / [x])
+# - kata/{topic}.md      → topic knowledge + ## Current gaps
+# - kiroku/nikki/        → immutable session history
+# - kiroku/makimono/     → immutable certifications
+#
+# INVARIANT: .gakusei.yml is NEVER written with topics.* or goals.*
 
 required_scenarios:
 
@@ -17,7 +20,8 @@ required_scenarios:
       - session opens automatically
     creates_issue: false
     read:
-      - .gakusei.yml
+      - .gakusei.yml                          # identity only
+      - github:issues:open:[Goal]              # all open goal issues
     steps:
       - if:
           condition: gakusei_missing OR student_name == ""
@@ -30,20 +34,25 @@ required_scenarios:
           condition: open_goal_issues | count > 0
           then:
             - say: |
-                Active goals:
-                {{open_goal_issues | each: "- {{goal.title}}: {{goal.completed_count}}/{{goal.total_count}} topics"}}
-            - propose: "Continue working toward {{open_goal_issues.first.title}}?"
+                Goal attivo: {{open_goal_issues.first.title}}
+                Progressi:
+                {{open_goal_issues.first | topics_with_kata_status}}
+                # topics_with_kata_status renders each topic as:
+                # - `slug` — in progress (kata exists, gaps: X) | not started | [x] passed
+                # kata existence check: kata/{slug}.md exists?
+                # gap count: ## Current gaps section in kata/{slug}.md, non-empty lines
+            - propose: "Continuiamo su {{open_goal_issues.first.title}}?"
               on_confirm:
                 - call: study_open
               on_reject:
-                - say: "What would you like to do? study, randori, topic shinsa, or declare a new goal."
+                - say: "Cosa vuoi fare? study, randori, topic shinsa, o dichiara un nuovo goal."
           else:
-            - say: "No active goals. Last session: {{last_session.topic}} — {{last_session.date}}."
-            - propose: "Declare a learning goal?"
+            - say: "Nessun goal attivo."
+            - propose: "Dichiari un goal?"
               on_confirm:
                 - call: declare_goal
               on_reject:
-                - say: "What would you like to do? study, randori, or topic shinsa."
+                - say: "Cosa vuoi fare? study, randori, o topic shinsa."
     output:
       state_changes: []
 
@@ -57,11 +66,6 @@ required_scenarios:
     creates_issue: true
     issue:
       title: "[Goal] {goal_source_emoji} {goal_human_title} ({goal_slug})"
-      # title format: [Goal] + source emoji + human readable title + slug in parentheses
-      # Examples:
-      #   [Goal] 🏢 Pass Umbrellio technical interview (pass_umbrellio_technical_interview)
-      #   [Goal] 🧠 Become senior in Rails (senior_rails)
-      #   [Goal] 🧠 Reach Italian C1 (italian_c1)
       from: Malstrom/zeroth:frameworks/dojo/templates/issue_declare_goal.md
       update: check
       approval: none
@@ -69,38 +73,22 @@ required_scenarios:
       on_fail: comment
     read:
       - .gakusei.yml
-      - "kata/"                     # all kata files — AI checks which kata already exist
+      - "kata/"                     # list filenames only — AI checks which kata already exist
     steps:
-      - ask: "What is your goal? (e.g. senior Rails, Italian B1, understand distributed systems)"
-      - compute: goal_slug           # snake_case machine identifier
-      - compute: goal_human_title    # human readable title, e.g. "Become senior in Rails"
-
-      # Source: where does this goal come from?
-      # Supported types: self_declared, job_offer, project, interview_feedback, curriculum_gap, cross_repo
-      - ask: "Where does this goal come from? (self-declared, job offer, project, interview feedback — or paste a link)"
-      - compute: goal_source_type    # one of: self_declared | job_offer | project | interview_feedback | curriculum_gap | cross_repo
-      - compute: goal_source_ref     # free text or URL — empty string if self_declared
+      - ask: "Qual è il tuo goal?"
+      - compute: goal_slug
+      - compute: goal_human_title
+      - ask: "Da dove viene questo goal? (self-declared, job offer, project, interview feedback — o incolla un link)"
+      - compute: goal_source_type
+      - compute: goal_source_ref
       - compute: goal_source_emoji
-        # 🏢 job_offer | 🧠 self_declared | 🛠️ project | 💬 interview_feedback | 📚 curriculum_gap | 🔗 cross_repo
-
-      # If source is cross_repo, read the source artifact before computing topics.
       - if:
           condition: goal_source_type == "cross_repo"
           then:
-            - read: "{{goal_source_ref}}"    # source artifact — YAML or issue body
-
-      # AI derives required_topics from goal + source artifact.
-      # Each topic has:
-      #   source: explicitly_required | ai_inferred
-      #   priority: critical | important | later
-      - compute: required_topics       # list of {slug, source, priority}
-
-      # already_satisfied: topics in required_topics already completed in .gakusei.yml.
-      # Rendered in issue as [x] immediately — no study needed.
-      # missing_topics: rendered [ ] grouped by priority.
-      - compute: already_satisfied     # required_topics ∩ .gakusei.yml completed
+            - read: "{{goal_source_ref}}"
+      - compute: required_topics
+      - compute: already_satisfied     # required_topics where kata/{slug}.md exists AND ## Current gaps is empty
       - compute: missing_topics        # required_topics − already_satisfied
-
       - say: |
           Goal: {{goal_human_title}} ({{goal_slug}})
           Source: {{goal_source_emoji}} {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
@@ -109,22 +97,10 @@ required_scenarios:
             🔴 Critical:  {{missing_topics | where: priority == critical | join}}
             🟡 Important: {{missing_topics | where: priority == important | join}}
             🟢 Later:     {{missing_topics | where: priority == later | join}}
-
-      # Issue body rendering rules:
-      # already_satisfied topics:
-      #   kata exists    → - [x] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
-      #   kata missing   → - [x] `slug` — description — already satisfied
-      # missing topics:
-      #   kata exists    → - [ ] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
-      #   kata missing   → - [ ] `slug` — description              (explicitly required)
-      #   kata missing   → - [ ] `slug` — description *(ai inferred)*
-      # ALL kata links must use absolute GitHub URLs (blob/main/), never relative paths.
-      - write:
-          path: .gakusei.yml
-          fields: [goals]
-          access: read-write
-          via: PR
-          approval: none
+      # Issue body rendering:
+      # kata exists    → - [ ] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
+      # kata missing   → - [ ] `slug` — description  (or *(ai inferred)*)
+      # ALL kata links: absolute GitHub URLs (blob/main/), never relative.
     output:
       state_changes: [goal-declared]
 
@@ -143,7 +119,7 @@ required_scenarios:
       on_fail: comment
     read:
       - .gakusei.yml
-      - "kata/{topic}.md"
+      - "kata/{topic}.md"            # read if exists — contains current gaps
     input_sources:
       - attached_file
       - url
@@ -168,15 +144,7 @@ required_scenarios:
       - issue:
           check: "concepts taught and randori completed"
 
-      - write:
-          path: "kata/"
-          filename: "{topic}.md"
-          access: read-write
-          via: PR
-          approval: none
-      - issue:
-          check: "kata updated"
-
+      # Write nikki FIRST — immutable record of the session
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{topic}_study.yml"
@@ -187,14 +155,31 @@ required_scenarios:
       - issue:
           check: "nikki written"
 
+      # Update kata: add new concepts + refresh ## Current gaps
       - write:
-          path: .gakusei.yml
-          fields: [topics.{topic}.status, topics.{topic}.sessions, last_session]
+          path: "kata/{topic}.md"
           access: read-write
           via: PR
           approval: none
+          note: |
+            Append new concepts to kata.
+            Replace ## Current gaps section with gaps identified during this session's randori.
+            If no gaps: write '- None recorded yet.' under ## Current gaps.
       - issue:
-          check: ".gakusei.yml updated"
+          check: "kata updated"
+
+      # Update goal issue if topic is in checklist — add kata link, do NOT check yet
+      - if:
+          condition: open_goal_issues | any: topic in goal.unchecked_topics
+          then:
+            - update_issue:
+                target: matching_goal_issue
+                action: add_kata_link
+                topic: "{{topic}}"
+                # Finds '- [ ] `{topic}`' line and appends kata link if not already present:
+                # '- [ ] `{topic}` — {description} — [kata](https://github.com/{owner}/{repo}/blob/main/kata/{topic}.md)'
+      - issue:
+          check: "goal issue updated"
 
       - merge:
           strategy: squash
@@ -213,8 +198,7 @@ required_scenarios:
       - user wants to practice without studying first
     creates_issue: false
     read:
-      - .gakusei.yml
-      - "kata/{topic}.md"
+      - "kata/{topic}.md"            # gaps come from ## Current gaps section
     steps:
       - if:
           condition: topic is missing
@@ -231,25 +215,22 @@ required_scenarios:
             - say: "Not quite — {{gap_explanation}}"
             - ask: "{{simpler_followup_on_same_concept_using_only_source_or_prior_kata}}"
             - if:
-                condition: followup_correct
+                condition: followup_correct OR followup_substantially_correct
                 then:
                   - say: "Good. {{brief_explanation_of_gap}}"
-                  - write:
-                      path: "kiroku/nikki/"
-                      filename: "YYYY-MM-DD_{topic}_study.yml"
-                      fields: [weak_spots]
-                      access: append-only
-                      via: PR
-                      approval: none
                 else:
                   - say: "{{full_re_explanation_of_concept}}"
-                  - write:
-                      path: "kiroku/nikki/"
-                      filename: "YYYY-MM-DD_{topic}_study.yml"
-                      fields: [weak_spots]
-                      access: append-only
-                      via: PR
-                      approval: none
+            # In both gap cases: update ## Current gaps in kata
+            - write:
+                path: "kata/{topic}.md"
+                fields: [current_gaps]
+                access: read-write
+                via: PR
+                approval: none
+                note: |
+                  Replace ## Current gaps section only.
+                  Add new gap if not already listed.
+                  Format: - `concept` — description of specific gap
     output:
       state_changes: [randori-completed]
 
@@ -259,41 +240,22 @@ required_scenarios:
     dedup: once per session
     creates_issue: false
     read:
-      - .gakusei.yml
-      - "kiroku/nikki/"
+      - "kata/{topic}.md"            # ## Current gaps is the gap source
     steps:
       - compute: randori_score
-      - compute: sessions_without_gaps
-      - compute: session_weak_spots
+      - compute: sessions_without_gaps   # count nikki files for topic with empty ## Current gaps at time of writing
+      - compute: has_gaps                # ## Current gaps in kata non-empty
       - if:
           condition: randori_score >= readiness_thresholds.min_randori_score
                      AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
           then:
-            - write:
-                path: .gakusei.yml
-                fields: [topics.{topic}.readiness_status, topics.{topic}.readiness_score]
-                access: read-write
-                via: PR
-                approval: none
             - emit: readiness-ready
           else:
             - if:
-                condition: session_weak_spots | count > 0
+                condition: has_gaps
                 then:
-                  - write:
-                      path: .gakusei.yml
-                      fields: [topics.{topic}.readiness_status, topics.{topic}.readiness_score, topics.{topic}.readiness_gaps]
-                      access: read-write
-                      via: PR
-                      approval: none
                   - emit: readiness-gap
                 else:
-                  - write:
-                      path: .gakusei.yml
-                      fields: [topics.{topic}.readiness_status, topics.{topic}.readiness_score]
-                      access: read-write
-                      via: PR
-                      approval: none
                   - emit: readiness-loop
     output:
       state_changes: []
@@ -304,39 +266,39 @@ required_scenarios:
       events: [readiness-ready, readiness-gap, readiness-loop]
     creates_issue: false
     read:
-      - .gakusei.yml
+      - "kata/{topic}.md"
     steps:
       - if:
-          condition: readiness_status == "ready"
+          condition: event == "readiness-ready"
           then:
-            - say: "Score: {{readiness_score.randori_pct}}% correct, {{readiness_score.clean_sessions}} clean sessions. You look ready for topic shinsa."
-            - propose: "Take the topic shinsa for {{topic}} now?"
+            - say: "Score: {{randori_score}}% correct, {{sessions_without_gaps}} clean sessions. Ready for topic shinsa."
+            - propose: "Fai la topic shinsa per {{topic}} adesso?"
               on_confirm:
                 - call: topic_shinsa
               on_reject:
-                - say: "OK. Come back when you're ready."
+                - say: "OK. Torna quando sei pronto."
           else:
             - if:
-                condition: readiness_status == "gap"
+                condition: event == "readiness-gap"
                 then:
-                  - say: "Gaps found: {{readiness_gaps | join}}. Let's work on them."
-                  - propose: "Study the weak spots now?"
+                  - say: "Gaps: {{current_gaps | join}}. Studiamoli."
+                  - propose: "Studio i weak spots adesso?"
                     on_confirm:
                       - call: study_open
                         with:
-                          topic: "{{readiness_gaps_as_topic}}"
-                          source: gaps_from_nikki
+                          topic: "{{topic}}"
+                          source: gaps_from_kata
                     on_reject:
-                      - say: "OK. Weak spots saved. We'll revisit them next session."
+                      - say: "OK. I gap sono nel kata. Li rivediamo la prossima sessione."
                 else:
-                  - say: "No gaps today, but not enough clean sessions yet ({{readiness_score.clean_sessions}}/{{readiness_thresholds.min_sessions_without_gaps}}). Keep going."
-                  - propose: "Study a new concept in {{topic}}?"
+                  - say: "Nessun gap oggi, ma non abbastanza sessioni pulite ({{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}}). Continua."
+                  - propose: "Studia un nuovo concetto in {{topic}}?"
                     on_confirm:
                       - call: study_open
                         with:
                           topic: "{{next_concept_not_yet_in_kata}}"
                     on_reject:
-                      - say: "OK. See you next session."
+                      - say: "OK. Alla prossima sessione."
     output:
       state_changes: []
 
@@ -355,22 +317,21 @@ required_scenarios:
       on_complete: close
       on_fail: comment
     read:
-      - .gakusei.yml
       - "kata/{topic}.md"
     steps:
       - if:
-          condition: topics.{topic}.readiness_status != "ready"
+          condition: kata/{topic}.md current_gaps | count > 0
           then:
-            - say: "Randori score: {{readiness_score.randori_pct}}%, {{readiness_score.clean_sessions}} clean sessions. You may not be ready yet."
-            - propose: "Proceed anyway?"
+            - say: "Ci sono ancora gap aperti: {{current_gaps | join}}. Potresti non essere pronto."
+            - propose: "Procedi comunque?"
               on_reject:
                 - stop
               on_confirm:
                 - continue
 
-      - say: "Topic shinsa: {{topic}}. No feedback during exam — only final score."
+      - say: "Topic shinsa: {{topic}}. Nessun feedback durante l'esame — solo score finale."
 
-      - for_each: question in exam.questions   # count: 5–8, source: kata/{topic}.md
+      - for_each: question in exam.questions   # 5–8 questions from kata/{topic}.md
         do:
           - ask: "{{question.text}}"
 
@@ -379,6 +340,7 @@ required_scenarios:
       - issue:
           check: "exam conducted"
 
+      # Write nikki FIRST
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{topic}_shinsa.yml"
@@ -392,33 +354,31 @@ required_scenarios:
       - if:
           condition: score >= 80
           then:
-            - write:
-                path: .gakusei.yml
-                fields: [topics.{topic}.status, topics.{topic}.sessions]
-                access: read-write
-                via: PR
-                approval: none
+            # Update goal issue: check the topic + add kata and nikki links
             - if:
-                condition: open_goal_issues | any: topic in goal.required_topics
+                condition: open_goal_issues | any: topic in goal.unchecked_topics
                 then:
                   - update_issue:
                       target: matching_goal_issue
                       action: check_topic
                       topic: "{{topic}}"
-                      # Finds "- [ ] `{topic}`" in goal issue body and replaces with:
-                      # "- [x] `{topic}` — {description} — [kata](https://github.com/{owner}/{repo}/blob/main/kata/{topic}.md)"
-                      # kata link is ALWAYS absolute (blob/main/), never relative.
+                      nikki: "{{nikki_url}}"
+                      # Finds '- [ ] `{topic}`' and replaces with:
+                      # '- [x] `{topic}` — {description} — [kata](...) — [nikki](...)'
+                      # Both links are absolute GitHub URLs (blob/main/).
             - emit: topic-shinsa-passed
           else:
+            # Update ## Current gaps in kata from weak_spots
             - write:
-                path: .gakusei.yml
-                fields: [topics.{topic}.sessions]
+                path: "kata/{topic}.md"
+                fields: [current_gaps]
                 access: read-write
                 via: PR
                 approval: none
+                note: Replace ## Current gaps with weak_spots from this shinsa.
             - emit: topic-shinsa-failed
       - issue:
-          check: ".gakusei.yml updated"
+          check: "artifacts updated"
 
       - merge:
           strategy: squash
@@ -434,26 +394,26 @@ required_scenarios:
       events: [topic-shinsa-passed, topic-shinsa-failed]
     creates_issue: false
     read:
-      - .gakusei.yml
+      - github:issues:open:[Goal]    # to show updated progress
     steps:
       - if:
           condition: event == "topic-shinsa-passed"
           then:
-            - say: "Topic shinsa passed. Score: {{score}}%. {{topic}} is now completed."
+            - say: "Topic shinsa passata. Score: {{score}}%. {{topic}} completato."
             - if:
                 condition: open_goal_issues | any: topic in goal.required_topics
                 then:
-                  - say: "Progress toward {{matching_goal.title}}: {{matching_goal.completed_count}}/{{matching_goal.total_count}} topics."
+                  - say: "Progresso verso {{matching_goal.title}}: {{matching_goal.checked_count}}/{{matching_goal.total_count}} topic."
           else:
-            - say: "Topic shinsa not passed. Score: {{score}}%. Weak spots: {{weak_spots | join}}."
-            - propose: "Study the weak spots now?"
+            - say: "Topic shinsa non passata. Score: {{score}}%. Gap aggiornati nel kata."
+            - propose: "Studia i weak spots adesso?"
               on_confirm:
                 - call: study_open
                   with:
                     topic: "{{topic}}"
-                    source: gaps_from_nikki
+                    source: gaps_from_kata
               on_reject:
-                - say: "OK. Review when you're ready and try again."
+                - say: "OK. I gap sono nel kata. Riprova quando sei pronto."
     output:
       state_changes: []
 
@@ -471,27 +431,27 @@ required_scenarios:
       on_complete: close
       on_fail: comment
     read:
-      - .gakusei.yml
-      - "kata/"
+      - github:issues:open:[Goal]    # goal issue — checked topics = completed topics
+      - "kata/"                      # list all kata filenames
     steps:
-      - compute: goal_readiness
+      - compute: goal_readiness      # from goal issue checked count vs total
       - if:
           condition: goal_readiness == "not_ready"
           then:
             - say: |
-                Based on your completed topics, you may not be ready for {{goal_slug}} yet.
-                Completed: {{completed_relevant_topics | join}}.
-                Missing: {{missing_relevant_topics | join}}.
-            - propose: "Proceed anyway?"
+                Non sei ancora pronto per {{goal_slug}}.
+                Completati: {{checked_topics | join}}.
+                Mancanti: {{unchecked_topics | join}}.
+            - propose: "Procedi comunque?"
               on_reject:
-                - say: "OK. Keep studying and come back when ready."
+                - say: "OK. Continua a studiare."
                 - stop
               on_confirm:
                 - continue
 
-      - say: "Goal shinsa: {{goal_slug}}. No feedback during exam — only final score."
+      - say: "Goal shinsa: {{goal_slug}}. Nessun feedback durante l'esame — solo score finale."
 
-      - for_each: question in exam.questions   # count: 15–20, source: kata/ filtered by goal reasoning
+      - for_each: question in exam.questions   # 15–20 questions from kata/ filtered by goal
         do:
           - ask: "{{question.text}}"
 
@@ -500,6 +460,7 @@ required_scenarios:
       - issue:
           check: "exam conducted"
 
+      # Write nikki FIRST
       - write:
           path: "kiroku/nikki/"
           filename: "YYYY-MM-DD_{goal_slug}_goal_shinsa.yml"
@@ -522,23 +483,16 @@ required_scenarios:
                 approval: none
             - issue:
                 check: "makimono written"
-            - write:
-                path: .gakusei.yml
-                fields: [goals.{goal_slug}.status, goals.{goal_slug}.achieved_on]
-                access: read-write
-                via: PR
-                approval: none
+            - update_issue:
+                target: matching_goal_issue
+                action: close
+                makimono: "{{makimono_url}}"
+                # Closes the goal issue with a comment: makimono link
             - emit: goal-shinsa-passed
           else:
-            - write:
-                path: .gakusei.yml
-                fields: [goals.{goal_slug}.shinsa_attempts]
-                access: read-write
-                via: PR
-                approval: none
             - emit: goal-shinsa-failed
       - issue:
-          check: ".gakusei.yml updated"
+          check: "artifacts updated"
 
       - merge:
           strategy: squash
@@ -553,27 +507,26 @@ required_scenarios:
     on:
       events: [goal-shinsa-passed, goal-shinsa-failed]
     creates_issue: false
-    read:
-      - .gakusei.yml
+    read: []
     steps:
       - if:
           condition: event == "goal-shinsa-passed"
           then:
             - say: |
-                Goal shinsa passed. Score: {{score}}%.
-                {{goal_slug}} achieved — makimono written.
+                Goal shinsa passata. Score: {{score}}%.
+                {{goal_slug}} raggiunto — makimono scritto.
           else:
             - say: |
-                Goal shinsa not passed. Score: {{score}}%.
+                Goal shinsa non passata. Score: {{score}}%.
                 Weak topics: {{weak_topics | join}}.
-            - propose: "Study the weak topics now?"
+            - propose: "Studia i weak topics adesso?"
               on_confirm:
                 - call: study_open
                   with:
                     topic: "{{weak_topics.first}}"
-                    source: gaps_from_nikki
+                    source: gaps_from_kata
               on_reject:
-                - say: "OK. Review when you're ready and try again."
+                - say: "OK. Riprova quando sei pronto."
     output:
       state_changes: []
 

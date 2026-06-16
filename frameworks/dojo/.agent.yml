@@ -37,6 +37,20 @@ tool_approval:
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# STATE MODEL
+# Single source of truth for each piece of information:
+#   student identity    → .gakusei.yml (student_name, language, issue_language)
+#   active goals        → open goal issues [Goal] — checklist of [ ] / [x] topics
+#   topic started       → kata/{topic}.md exists
+#   current gaps        → kata/{topic}.md ## Current gaps section
+#   session history     → kiroku/nikki/ filenames + content
+#   topic passed        → [x] in goal issue + kata link + nikki link
+#   goal completed      → goal issue closed + makimono written
+#
+# .gakusei.yml MUST NOT contain: topics.*, goals.*, last_session.*
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # Read .scenarios.yml BEFORE any reasoning.
 # Every user message must be matched against scenarios first.
@@ -48,15 +62,12 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
-# Exact paths: named keys
-# Glob patterns: under patterns list
-# Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
 workspace:
   .gakusei.yml:
-    role: student identity, progress, goals, and language
+    role: student identity only (student_name, language, issue_language)
     access: read-write
-    note: read at every session start — no exceptions
+    note: read at every session start — contains NO topic or goal state
 
   .scenarios.yml:
     role: scenario catalog
@@ -72,7 +83,7 @@ workspace:
 
   patterns:
     - path: "kata/**"
-      role: flat kata library — one file per topic slug, no subject subfolders
+      role: flat kata library — one file per topic slug; ## Current gaps section is authoritative for gap state
       access: read-write
     - path: "kiroku/nikki/**"
       role: immutable session logs

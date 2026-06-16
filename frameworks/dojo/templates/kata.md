@@ -21,3 +21,10 @@
 <!-- Authoritative external links added by AI during study_open.
      Student may add links manually at any time.
      Format: - [Title](url) — one line per resource -->
+
+## Current gaps
+
+<!-- Updated after every randori or shinsa where gaps are identified.
+     Format: - `concept` — description of the specific gap
+     Remove entries when the gap is resolved.
+     Empty = no known gaps. -->
