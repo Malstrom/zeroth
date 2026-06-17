@@ -260,17 +260,25 @@ required_scenarios:
             rule: per topic touched in session, compare Igor's answers vs stories.yml
                   flag only if Igor added concepts or was more precise
                   ignore if Igor said less
+                  for new topics not in stories.yml, always include
 
         - if stories_delta exists:
-            say: proposed update per topic, ask approval per topic
-            on_approval:
+            say: |
+              ## Stories delta
+
+              | Topic | Tipo | Storia attuale (sintesi) | Proposta (sintesi) |
+              |---|---|---|---|
+              {{stories_delta | each: "| {{topic}} | {{change_type}} | {{current_summary | default: '—'}} | {{proposed_summary}} |"}}
+            ask: "Approvi tutti i delta? Dimmi quali topic approvare."
+            # approval here = content approval by Igor before any write
+            on_approval_per_topic:
               write:
                 path: stories.yml
                 action: update_topic
                 topic: "{{delta.topic}}"
                 content: "{{delta.proposed_story}}"
                 via: PR
-                approval: none
+                approval: none  # GitHub PR approval — merge automatically, no manual intervention
 
     output:
       state_changes: []
