@@ -28,9 +28,9 @@
 
 ---
 
-### 📋 Da migliorare prima dello screening reale
+### 📋 Risposte finali da usare domani ({language})
 
-{improvements}
+{final_answers}
 
 ---
 
