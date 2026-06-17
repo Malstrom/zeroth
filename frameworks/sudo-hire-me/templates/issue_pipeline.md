@@ -10,6 +10,7 @@
 | Status | {status_emoji} {status} |
 | Format | 🌍 {format} |
 | Contract | {contract} |
+| Language | {communication_language} |
 | Pipeline file | [hunt/pipeline/{company_slug}.yml](hunt/pipeline/{company_slug}.yml) |
 
 ## 👤 Contacts
@@ -66,6 +67,12 @@
 - [x] offer_received — {date} — [log](hunt/pipeline/log/{company_slug}/{date}_offer_received.yml)
 
 _Steps added as they happen._
+
+## 📌 Attenzione
+
+| Priority | Nota |
+|---|---|
+| | |
 
 ## 📝 Notes
 
