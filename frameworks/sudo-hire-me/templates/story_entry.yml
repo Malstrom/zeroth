@@ -1,0 +1,19 @@
+# Template: story entry for stories.yml
+# Language: Italian (default). Always write stories in Italian.
+# Used by screening_prep scenario when writing stories_delta to stories.yml.
+
+- topic: {topic_slug}
+  linked_experience: {experience_slug}  # e.g. megafon, insurance_arena, humanitas
+  keywords: [{keyword_1}, {keyword_2}]  # used to match questions to stories at runtime
+  story: |
+    {story_it}
+    # Full story in Italian. Plain language, first person.
+    # Structure: context → problem → solution → result.
+    # Include numbers where available (scale, users, % improvement).
+    # Length: 3-6 sentences for the main story.
+  context: |
+    {context_it}
+    # Optional. Technical or business detail that adds depth.
+    # Use for cross-field rules, architectural decisions, tradeoffs.
+    # Omit if nothing meaningful to add.
+  validated_on: "{YYYY-MM-DD}"  # date Igor confirmed this story is accurate
