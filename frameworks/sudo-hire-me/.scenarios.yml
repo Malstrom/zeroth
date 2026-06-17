@@ -186,70 +186,92 @@ required_scenarios:
       - user asks to simulate a recruiter call
     creates_issue: false
     read:
-      - "hunt/pipeline/*.yml"
+      - stories.yml
       - igor.yml
+      - issues in sudo-hire-me (open, ordered by updated_at desc)
     steps:
-      - if:
-          condition: company_slug is missing
-          then:
-            - ask: "Per quale azienda prepariamo lo screening?"
-      - compute: company_slug
-      - compute: recruiter_persona   # name + style from hunt/pipeline/{company}.yml
-      - compute: round_name         # next pending step from pipeline steps[]
-      - compute: screening_questions # 4-5 light technical questions calibrated on stack_required + igor.yml
-      - compute: fit_questions       # 1-2 fit questions calibrated on role and company
+      - compute: target_issue
+          rule: pick most recently updated open issue where Status field indicates
+                a scheduled round (e.g. round_1_scheduled, round_2_scheduled)
+          fallback:
+            say: "Nessuno screening schedulato. Hai ricevuto una nuova offerta?"
+            on_confirm: call job_offer_received
+            on_reject: stop
+
+      - read: target_issue
+          extract: [company_slug, role, language, recruiter_persona, stack_required]
+
+      - read: target_issue comments
+          rule: find most recent comment matching screening prep format
+          extract: last_prep_questions  # questions already asked in previous sessions
+
+      - compute: questions
+          personal_story: 1     # "raccontami di te"
+          recruiter: 7          # background, CV gaps, motivations, salary, expectations,
+                                # availability, role fit — simulating recruiter with CV in hand
+          technical: 4          # calibrated on stack_required vs igor.yml
+          order: personal_story → recruiter → technical
+          rule: must not repeat questions from last_prep_questions
+
       - say: |
-          Simulazione screening — {{company_slug}} | recruiter: {{recruiter_persona.name}}
-          Obiettivo: passare lo screening. Ti do feedback dopo ogni risposta.
-          🔴 = critico da correggere  🟡 = migliorabile
-      - ask: "Sei pronto?"
-      - say: "Raccontami di te — background, esperienza, perché stai cercando ora."
-      - ask: "[risposta]"
-      - compute: feedback  # evaluate: clarity, story arc, strategic alignment with igor.yml; assign story_score/10
-      - say: "{{feedback}}"
-      - loop: screening_questions + fit_questions
-        each:
-          - say: "{{question}}"
-          - ask: "[risposta]"
-          - compute: feedback  # evaluate: correctness, clarity, strategic framing; flag if too honest; suggest reframe
-          - say: "{{feedback}}"
-      - compute: session_summary  # aggregate: story_score/10, technical_table, fit_feedback, improvements with 🔴/🟡
-      - issue:
-          comment: |
-            ## 🎭 Screening prep — {{date}}
+          Prepariamo lo screening per {{company_slug}} — {{role}}.
+          Recruiter: {{recruiter_persona.name}} | Lingua risposta: {{language}}
+          Confermo?
 
-            **Round:** {{round_name}} (simulato) | **Recruiter:** {{recruiter_persona.name}} ({{recruiter_persona.role}})
+      - on_confirm:
 
-            ---
+        - ask: "Sei pronto?"
 
-            ### 📖 Storia personale — {{session_summary.story_score}}/10
+        - loop: personal_story + recruiter_questions + technical_questions
+          each:
+            - say: "{{question}}"
+            - if stories.yml has matching topic:
+                say: "💡 {{matching_story.story}}"
+            - ask: "[risposta]"
+            - compute: feedback + corrected_version
+            - say: "{{feedback}}\n\n✅ {{corrected_version}}"
 
-            {{session_summary.story_feedback}}
+        - compute: session_summary
+            # story_score/10, technical_table, fit_feedback
 
-            ---
+        - issue:
+            target: target_issue in sudo-hire-me
+            comment:
+              from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_screening_prep.md
+              vars:
+                date: "{{date}}"
+                round_name: "{{round_name}}"
+                recruiter_name: "{{recruiter_persona.name}}"
+                recruiter_role: "{{recruiter_persona.role}}"
+                story_score: "{{session_summary.story_score}}"
+                story_feedback: "{{session_summary.story_feedback}}"
+                technical_table: "{{session_summary.technical_table}}"
+                fit_feedback: "{{session_summary.fit_feedback}}"
+                language: "{{language}}"
+                final_answers: "{{corrected_versions | translate: language}}"
 
-            ### 🛠️ Domande tecniche
+        - issue:
+            target: target_issue in sudo-hire-me
+            update_section: "## 📌 Attenzione"
+            content: "{{session_summary.attenzione_table}}"
+            # overwrites previous Attenzione table — current state only, not history
 
-            | # | Domanda | Esito | Note |
-            |---|---|---|---|
-            {{session_summary.technical_table}}
+        - compute: stories_delta
+            rule: per topic touched in session, compare Igor's answers vs stories.yml
+                  flag only if Igor added concepts or was more precise
+                  ignore if Igor said less
 
-            ---
+        - if stories_delta exists:
+            say: proposed update per topic, ask approval per topic
+            on_approval:
+              write:
+                path: stories.yml
+                action: update_topic
+                topic: "{{delta.topic}}"
+                content: "{{delta.proposed_story}}"
+                via: PR
+                approval: none
 
-            ### 🎯 Fit questions
-
-            {{session_summary.fit_feedback}}
-
-            ---
-
-            ### 📋 Da migliorare prima dello screening reale
-
-            {{session_summary.improvements}}
-
-            ---
-
-            _Prep session {{date}}_
-      - say: "Fatto. Commento postato su {{company_slug}}. Priorità critiche: {{session_summary.blockers}}"
     output:
       state_changes: []
 
