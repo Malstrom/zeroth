@@ -1,337 +1,40 @@
 # frameworks/sudo-hire-me/.scenarios.yml
-# Scenario catalog for sudo-hire-me framework instances.
-# Syntax: zeroth/rules/scenarios.yml
+# Scenario index for sudo-hire-me framework.
+# Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
+# AI reads this first, then fetches ONLY the relevant scenario file.
 
-required_scenarios:
+scenarios:
+  - id: session_start
+    trigger: session opens
+    deprecated: false
+    file: frameworks/sudo-hire-me/scenarios/session_start.md
 
-  session_start:
-    on:
-      - session opens automatically
-    creates_issue: false
-    read:
-      - "hunt/pipeline/*.yml"
-    steps:
-      - if:
-          condition: active_applications | count > 0
-          then:
-            - say: |
-                Pipeline attiva ({{active_applications | count}}):
-                {{active_applications | each: "- {{company}} — {{role}} — {{status}}"}}
-            - propose: "Aggiorno qualche candidatura?"
-              on_confirm:
-                - ask: "Quale azienda?"
-                - call: round_completed
-              on_reject:
-                - say: "Ok. Nuova offerta o altro?"
-          else:
-            - say: "Nessuna candidatura attiva."
-            - propose: "Hai ricevuto una nuova offerta?"
-              on_confirm:
-                - call: job_offer_received
-              on_reject:
-                - say: "Ok. Dimmi come posso aiutarti."
-    output:
-      state_changes: []
+  - id: job_offer_received
+    trigger: user pastes job offer or says received offer from X
+    deprecated: false
+    file: frameworks/sudo-hire-me/scenarios/job_offer_received.md
 
-  job_offer_received:
-    on:
-      - user pastes or describes a job offer
-      - user says they received a job offer
-      - user shares recruiter communication
-    creates_issue: true
-    issue:
-      title: "{company_name} — {role_name}"
-      from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/issue_pipeline.md
-      update: check
-      approval: none
-      on_complete: close
-      on_fail: comment
-    read:
-      - igor.yml
-      - Malstrom/zeroth:frameworks/sudo-hire-me/templates/pipeline.yml
-      - Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
-    steps:
-      - compute: company_slug
-      - compute: company_name
-      - compute: role_slug
-      - compute: role_name
-      - compute: fit_pct
-      - compute: recommendation
-      - compute: red_flags
-      - compute: strengths
-      - compute: stack_required
-      - compute: stack_nice_to_have
-      - compute: contact
-      - compute: company_info
-      - compute: offer_conditions
-      - compute: communication_language
-      - compute: questions_stack    # IT+RU questions derived from stack_required gaps vs igor.yml
-      - compute: questions_red_flags  # IT+RU questions derived from red_flags
-      - say: |
-          **Analisi offerta — {{company_name}}**
+  - id: screening_prep
+    trigger: user asks to prepare for screening or interview round with X
+    deprecated: false
+    file: frameworks/sudo-hire-me/scenarios/screening_prep.md
 
-          Fit: {{fit_pct}}% — Raccomandazione: {{recommendation}}
+  - id: round_completed
+    trigger: ~
+    deprecated: true
+    replaced_by: round_completed_debrief
 
-          Punti di forza:
-          {{strengths | each: "- {{item}}"}}
+  - id: round_completed_debrief
+    trigger: user says finished round / colloquio / interview with X
+    deprecated: false
+    file: frameworks/sudo-hire-me/scenarios/round_completed_debrief.md
 
-          Red flags:
-          {{red_flags | each: "- {{item}}"}}
+  - id: update_stories
+    trigger: user asks to update stories, or called from another scenario after approval gate
+    deprecated: false
+    file: frameworks/sudo-hire-me/scenarios/update_stories.md
 
-          Stack richiesto: {{stack_required | join: ", "}}
-          Stack nice-to-have: {{stack_nice_to_have | join: ", "}}
-      - write:
-          path: "hunt/pipeline/"
-          filename: "{{company_slug}}.yml"
-          from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/pipeline.yml
-          vars:
-            company_slug: "{{company_slug}}"
-            role_slug: "{{role_slug}}"
-            fit_pct: "{{fit_pct}}"
-            recommendation: "{{recommendation}}"
-            red_flags: "{{red_flags}}"
-            strengths: "{{strengths}}"
-            stack_required: "{{stack_required}}"
-            stack_nice_to_have: "{{stack_nice_to_have}}"
-            contact: "{{contact}}"
-            company_info: "{{company_info}}"
-            offer_conditions: "{{offer_conditions}}"
-            communication_language: "{{communication_language}}"
-          access: write-once
-          via: PR
-          approval: none
-      - issue:
-          check: "pipeline file created"
-      - write:
-          path: "hunt/pipeline/log/{{company_slug}}/"
-          filename: "{{date}}_offer_received.yml"
-          from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
-          vars:
-            company_slug: "{{company_slug}}"
-            event: offer_received
-            participants: "Igor + {{contact.name}}"
-            channel: "{{contact.channel}}"
-            outcome: completed
-            raw_communication: "{{raw_offer_text}}"
-          access: write-once
-          via: PR
-          approval: none
-      - issue:
-          check: "log entry written"
-      - commit_before_reply
-      - say: "Candidatura {{company_name}} aperta. Issue: {{issue.url}}"
-    output:
-      state_changes: [pipeline-created]
-
-  round_completed:
-    on:
-      - user reports outcome of an interview round or screening
-      - user shares new information about an active application
-      - user says a round passed or failed
-    creates_issue: false
-    read:
-      - "hunt/pipeline/*.yml"
-      - Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
-    steps:
-      - if:
-          condition: company_slug is missing
-          then:
-            - ask: "Per quale azienda?"
-      - compute: company_slug
-      - compute: event_slug
-      - compute: outcome
-      - compute: participants
-      - compute: channel
-      - write:
-          path: "hunt/pipeline/log/{{company_slug}}/"
-          filename: "{{date}}_{{event_slug}}.yml"
-          from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/log_entry.yml
-          vars:
-            company_slug: "{{company_slug}}"
-            event: "{{event_slug}}"
-            participants: "{{participants}}"
-            channel: "{{channel}}"
-            outcome: "{{outcome}}"
-            raw_communication: "{{raw_communication}}"
-          access: write-once
-          via: PR
-          approval: none
-      - write:
-          path: "hunt/pipeline/{{company_slug}}.yml"
-          fields: [status, last_updated, steps]
-          access: read-write
-          via: PR
-          approval: none
-      - issue:
-          check: "round logged"
-      - commit_before_reply
-      - if:
-          condition: outcome == passed
-          then:
-            - say: "{{company_slug}} — {{event_slug}} passato. Pipeline aggiornata."
-          else:
-            - if:
-                condition: outcome == failed
-                then:
-                  - say: "{{company_slug}} — {{event_slug}} non passato. Pipeline aggiornata."
-                else:
-                  - say: "{{company_slug}} — {{event_slug}} registrato. Outcome: {{outcome}}."
-    output:
-      state_changes: [pipeline-updated]
-
-  screening_prep:
-    on:
-      - user wants to prepare for an HR screening
-      - user has a screening scheduled and wants to simulate it
-      - user asks to simulate a recruiter call
-    creates_issue: false
-    issue_updates:
-      target: target_issue
-      mode: comment
-    read:
-      - igor.yml
-      - stories.yml
-      - issues: sudo-hire-me open ordered_by updated_at desc
-      - comments: sudo-hire-me issue {{target_issue}}
-    steps:
-      - compute: target_issue
-          rule: pick most recently updated open issue where status indicates
-                a scheduled round (round_1_scheduled, round_2_scheduled, ...)
-
-      - if:
-          condition: target_issue is missing
-          then:
-            - say: "Nessuno screening schedulato. Hai ricevuto una nuova offerta?"
-            - propose: "Apri candidatura"
-              on_confirm:
-                - call: job_offer_received
-              on_reject:
-                - say: "Ok. Dimmi come posso aiutarti."
-
-      - compute: company_slug
-      - compute: role
-      - compute: language
-      - compute: recruiter_persona
-      - compute: stack_required
-      - compute: last_prep_questions
-          rule: extract all questions already asked in previous screening_prep sessions
-                from comments on target_issue matching screening prep format
-
-      - compute: questions
-          personal_story: 1
-          recruiter: 7
-          technical: 4
-          total: 12
-          order: personal_story → recruiter → technical
-          rule: must not repeat questions from last_prep_questions
-          constraint: total MUST be exactly 12 — never fewer
-
-      - say: |
-          Prepariamo lo screening per {{company_slug}} — {{role}}.
-          Recruiter: {{recruiter_persona.name}} | Lingua risposta: {{language}}
-          Domande generate: {{questions | count}}/12
-
-      - if:
-          condition: questions | count < 12
-          then:
-            - say: "ERRORE: generate solo {{questions | count}} domande su 12. Rigenero."
-            - compute: questions
-                personal_story: 1
-                recruiter: 7
-                technical: 4
-                total: 12
-                order: personal_story → recruiter → technical
-                rule: must not repeat questions from last_prep_questions
-                constraint: total MUST be exactly 12 — never fewer
-
-      - propose: "Partiamo"
-        on_confirm:
-
-          - ask: "Sei pronto?"
-
-          - loop: questions
-            each:
-              - say: "**Domanda {{loop.index}}/12** — {{question}}"
-              - if:
-                  condition: stories.yml has topic matching question
-                  then:
-                    - say: "💡 {{matching_story.summary}}"
-              - ask: "[risposta]"
-              - compute: feedback
-              - compute: corrected_version
-              - say: "{{feedback}}\n\n✅ **Versione corretta:**\n{{corrected_version}}"
-
-          - compute: stories_delta
-              rule: per topic touched in session, compare Igor's answers vs stories.yml;
-                    include only if Igor added concepts or was more precise;
-                    ignore if Igor said less;
-                    always include topics not present in stories.yml;
-                    language for new/updated stories must be Italian — never Russian or English
-
-          - if:
-              condition: stories_delta is not empty
-              then:
-                - say: |
-                    ## Stories delta
-
-                    | Topic | Tipo | Storia attuale (sintesi) | Proposta (sintesi) |
-                    |---|---|---|---|
-                    {{stories_delta | each: "| {{topic}} | {{change_type}} | {{current_summary | default: '—'}} | {{proposed_summary}} |"}}
-                - ask: "Approvi tutti i delta? Dimmi quali topic approvare."
-                - loop: approved_topics
-                  each:
-                    - write:
-                        path: stories.yml
-                        from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/story_entry.yml
-                        vars:
-                          topic: "{{delta.topic}}"
-                          content: "{{delta.proposed_story}}"
-                        access: read-write
-                        via: PR
-                        approval: none
-
-          - compute: session_summary
-              fields: [story_score, story_feedback, technical_table, fit_feedback, attenzione_table, checklist]
-
-          - commit_before_reply
-
-          - issue:
-              comment:
-                from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_screening_prep.md
-                vars:
-                  date: "{{date}}"
-                  round_name: "{{round_name}}"
-                  recruiter_name: "{{recruiter_persona.name}}"
-                  recruiter_role: "{{recruiter_persona.role}}"
-                  story_score: "{{session_summary.story_score}}"
-                  story_feedback: "{{session_summary.story_feedback}}"
-                  technical_table: "{{session_summary.technical_table}}"
-                  fit_feedback: "{{session_summary.fit_feedback}}"
-                  language: "{{language}}"
-                  final_answers: "{{corrected_versions}}"
-                  checklist: "{{session_summary.checklist}}"
-
-        on_reject:
-          - say: "Ok. Dimmi quando sei pronto."
-
-    output:
-      state_changes: []
-
-  unknown_scenario:
-    on:
-      - any message that does not match any other scenario
-    creates_issue: false
-    read: []
-    steps:
-      - if:
-          condition: closest_scenario exists
-          then:
-            - propose: "Intendevi: {{closest_scenario}}?"
-              on_confirm:
-                - call: "{{closest_scenario}}"
-              on_reject:
-                - say: "Ok. Cosa vuoi fare?"
-          else:
-            - say: "Scenario non definito. Vuoi che lo aggiunga?"
-    output:
-      state_changes: []
+  - id: unknown_scenario
+    trigger: no other scenario matches
+    deprecated: false
+    file: frameworks/sudo-hire-me/scenarios/unknown_scenario.md
