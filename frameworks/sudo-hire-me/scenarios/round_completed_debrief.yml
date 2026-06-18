@@ -1,0 +1,119 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/scenarios/round_completed_debrief.yml
+
+id: round_completed_debrief
+on:
+  - user says finished round with X
+  - user says colloquio finito
+  - user says appena finito lo screening
+  - user says fatto il tech interview
+creates_issue: false
+read:
+  - hunt/pipeline/{{company_slug}}.yml
+  - issues: sudo-hire-me issue {{main_issue}}
+  - comments: sudo-hire-me issue {{sub_issue}}
+steps:
+  - compute:
+    - company_slug
+    - round_name
+  - if:
+      condition: company_slug is missing
+      then:
+        - ask: "Con quale azienda?"
+  - if:
+      condition: round_name is missing
+      then:
+        - ask: "Che tipo di round era? (HR screening / technical / tech lead / ...)"
+  - compute:
+      id: target_pipeline
+      rule: fetch hunt/pipeline/{{company_slug}}.yml from Malstrom/sudo-hire-me
+  - compute:
+      id: main_issue
+      rule: target_pipeline.main_issue
+  - compute:
+      id: sub_issue
+      rule: |
+        target_pipeline.rounds[round_name].sub_issue
+        if missing: create sub-issue from issue_round.md template,
+        write number back to pipeline.yml in same PR
+  - compute:
+      id: topic_list
+      sources:
+        - target_pipeline.analysis.stack_required
+        - prep comments on sub_issue matching screening_prep format
+        - target_pipeline.open_gaps
+  - loop: topic_list
+    each:
+      - ask: "Ti hanno chiesto qualcosa su **{{topic}}**?"
+      - if:
+          condition: answer is yes
+          then:
+            - ask: "Come hai risposto?"
+            - compute:
+                id: assessment
+                values: [solid, partial, weak]
+            - if:
+                condition: assessment in [partial, weak]
+                then:
+                  - compute: gap_entry
+  - ask: "C'è qualcosa che non ho coperto? Argomenti che hanno toccato e non sono nella lista?"
+  - loop: extra_topics
+    each:
+      - ask: "Come hai risposto a {{topic}}?"
+      - compute:
+          id: assessment
+          values: [solid, partial, weak]
+      - if:
+          condition: assessment in [partial, weak]
+          then:
+            - compute: gap_entry
+  - compute:
+      id: open_gaps_merged
+      rule: |
+        merge gap_entries with target_pipeline.open_gaps:
+        - topic already exists: update description + priority
+        - topic now solid: remove
+        - new topic: append
+        priority rules:
+          high: weak assessment OR topic is core to next round stack
+          medium: partial assessment, secondary topic
+          low: partial assessment, nice-to-have
+  - call: update_stories
+  - write:
+      path: hunt/pipeline/{{company_slug}}.yml
+      fields:
+        - status
+        - last_updated
+        - open_gaps: "{{open_gaps_merged}}"
+        - rounds[round_name].outcome
+        - rounds[round_name].sub_issue
+      access: read-write
+      via: PR
+      approval: none
+  - issue:
+      update:
+        number: "{{main_issue}}"
+        body_from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/issue_pipeline.md
+        vars_from: target_pipeline
+  - issue:
+      comment:
+        number: "{{sub_issue}}"
+        from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_round_debrief.md
+        vars:
+          date: "{{date}}"
+          round_name: "{{round_name}}"
+          topics_table: "{{topics_assessed}}"
+          open_gaps: "{{open_gaps_merged}}"
+  - commit_before_reply
+  - say: |
+      PR: {{pr.url}}
+
+      Gap aperti:
+      {{open_gaps_merged | each: "- {{priority_icon}} **{{topic}}** — {{description}}"}}
+  - if:
+      condition: round outcome == passed
+      then:
+        - propose: "Creo la sub-issue per il prossimo round?"
+          on_confirm:
+            - call: create_next_round_sub_issue
+output:
+  state_changes: [pipeline-updated]
