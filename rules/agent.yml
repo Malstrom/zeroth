@@ -9,6 +9,7 @@ structure:
     - language
     - work_rules
     - tool_approval
+    - hard_rules
     - scenarios
     - workspace
   forbidden_blocks:
@@ -68,14 +69,55 @@ tool_approval:
     destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# HARD RULES
+# Propagated to ALL frameworks. Never override, never skip.
+# ---------------------------------------------------------------------------
+hard_rules:
+
+  stories_delta:
+    rule: never modify stories without explicit user approval
+    gate: |
+      Before any write to stories.yml:
+      1. Build diff table: story_id | current | proposed
+      2. Show table to user
+      3. Wait for explicit yes — "approvi?"
+      4. Only then write
+    skip_condition: none — even if delta is empty, say "nessuna storia da aggiornare" explicitly
+    applies_to: all frameworks that have a stories file
+    violation: writing stories without showing the diff table first is a hard error
+
+  scenario_file_header:
+    rule: every scenario file in a scenarios/ folder must start with a source comment
+    format: "<!-- source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path} -->"
+    purpose: allows AI to fetch the file directly if MCP access is unavailable
+    applies_to: all frameworks using index-based scenarios
+    violation: scenario files without source header must not be created
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # ---------------------------------------------------------------------------
 scenarios:
   rule: scenarios live in .scenarios.yml — never inline in .agent.yml
+  format:
+    monolithic:
+      description: all scenarios in one .scenarios.yml file
+      status: legacy — allowed, not recommended for frameworks with more than 4 scenarios
+    index:
+      description: |
+        .scenarios.yml is a lightweight index.
+        Each scenario has its own file under scenarios/.
+        AI reads the index first, identifies the relevant scenario,
+        then fetches ONLY that file — never loads all scenarios at once.
+      spec_entry_required_fields: [id, trigger, file]
+      spec_entry_optional_fields: [deprecated, replaced_by]
+      fetch_pattern: get_file_contents(owner, repo, path=entry.file)
+      fallback: fetch source URL from <!-- source: --> header if MCP unavailable
   required_fields:
     - spec                       # cross-repo reference to the scenarios file
     - read_before_responding     # always true
     - on_no_match                # always "propose new scenario to user before proceeding"
+  optional_fields:
+    - format                     # monolithic | index — document which one is in use
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
@@ -101,12 +143,13 @@ workspace:
 # VALIDATION
 # ---------------------------------------------------------------------------
 validation:
-  - all five required blocks present in order
+  - all five required blocks present in order (language, work_rules, tool_approval, hard_rules, scenarios, workspace)
   - no forbidden blocks present
   - language.files == english
   - language.filenames == english
   - work_rules has all four required keys
-  - tool_approval matches mapping exactly
+  - tool_approval matches mapping exactly — all nine keys present
+  - hard_rules block present — never omit even if empty
   - scenarios.read_before_responding == true
   - workspace declares .scenarios.yml, .registry.yml, templates/ as read-only
   - workspace declares identity file
