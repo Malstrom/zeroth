@@ -28,29 +28,45 @@ tool_approval:
   push_files: false
   create_pr: false
   create_issue: false
+  create_sub_issue: false
   update_issue: false
   merge_to_main: false
   delete_file: true
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# HARD RULES
+# Inherited from zeroth rules/agent.yml — never override.
+# ---------------------------------------------------------------------------
+hard_rules:
+  ref: Malstrom/zeroth:rules/agent.yml#hard_rules
+  stories_delta:
+    enforced: true   # show diff table, wait approval, never skip — see ref for full spec
+  scenario_file_header:
+    enforced: true   # every scenarios/*.md must start with <!-- source: {raw_url} -->
+
+# ---------------------------------------------------------------------------
 # STATE MODEL
 # Single source of truth for each piece of information:
-#   candidate profile  -> igor.yml (skills, stack, targets, gaps)
-#   company state      -> hunt/pipeline/{company_slug}.yml (status, steps, analysis)
-#   event history      -> hunt/pipeline/log/{company_slug}/ (immutable, one .yml per event)
-#   tracking issue     -> GitHub issue in sudo-hire-me (one per company, checkboxes)
+#   candidate profile  -> igor.yml (skills, stack, targets)
+#   company state      -> hunt/pipeline/{company_slug}.yml
+#                         fields: status, rounds, open_gaps, analysis, offer
+#   interview history  -> GitHub issues in sudo-hire-me:
+#                           main issue (one per company) — body regenerated from pipeline.yml
+#                           sub-issues (one per round) — comments = prep sessions + debrief
 #
-# hunt/pipeline/{company}.yml MUST NOT contain: prep notes, gap analysis, dojo topics
+# hunt/pipeline/{company}.yml MUST NOT contain: prep notes, story text, verbatim Q&A
+# GitHub issues MUST NOT be the source of truth for structured data — pipeline.yml is
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
-# Read .scenarios.yml BEFORE any reasoning.
-# Every user message must be matched against scenarios first.
+# Read .scenarios.yml index BEFORE any reasoning.
+# Fetch only the relevant scenario file — never load all at once.
 # ---------------------------------------------------------------------------
 scenarios:
   spec: Malstrom/zeroth:frameworks/sudo-hire-me/.scenarios.yml
+  format: index   # .scenarios.yml is a lightweight index — each scenario has its own .md file
   read_before_responding: true
   on_no_match: propose new scenario to user before proceeding
 
@@ -59,21 +75,29 @@ scenarios:
 # ---------------------------------------------------------------------------
 workspace:
   igor.yml:
-    role: candidate profile - skills, stack, targets, gaps
+    role: candidate profile — skills, stack, targets
     access: read-only
 
   .scenarios.yml:
-    role: scenario catalog
+    role: scenario index — list of scenarios with trigger + file path
     access: read-only
 
   .registry.yml:
     role: cross-repo connections
     access: read-only
 
+  stories.yml:
+    role: candidate stories — source of truth for personal narratives
+    access: read-write   # only after explicit user approval (hard_rules.stories_delta)
+
+  templates/:
+    role: issue and comment templates — read from zeroth
+    access: read-only
+
   patterns:
     - path: "hunt/pipeline/*.yml"
-      role: company pipeline state - one file per company
+      role: company pipeline state — one file per company
       access: read-write
-    - path: "hunt/pipeline/log/**"
-      role: immutable event logs - one .yml per event per company
-      access: write-once
+    - path: "scenarios/*.md"
+      role: scenario files — one per scenario, fetched on demand from zeroth
+      access: read-only
