@@ -185,104 +185,134 @@ required_scenarios:
       - user has a screening scheduled and wants to simulate it
       - user asks to simulate a recruiter call
     creates_issue: false
+    issue_updates:
+      target: target_issue
+      mode: comment
     read:
-      - stories.yml
       - igor.yml
-      - issues in sudo-hire-me (open, ordered by updated_at desc)
+      - stories.yml
+      - issues: sudo-hire-me open ordered_by updated_at desc
+      - comments: sudo-hire-me issue {{target_issue}}
     steps:
       - compute: target_issue
-          rule: pick most recently updated open issue where Status field indicates
-                a scheduled round (e.g. round_1_scheduled, round_2_scheduled)
-          fallback:
-            say: "Nessuno screening schedulato. Hai ricevuto una nuova offerta?"
-            on_confirm: call job_offer_received
-            on_reject: stop
+          rule: pick most recently updated open issue where status indicates
+                a scheduled round (round_1_scheduled, round_2_scheduled, ...)
 
-      - read: target_issue
-          extract: [company_slug, role, language, recruiter_persona, stack_required]
+      - if:
+          condition: target_issue is missing
+          then:
+            - say: "Nessuno screening schedulato. Hai ricevuto una nuova offerta?"
+            - propose: "Apri candidatura"
+              on_confirm:
+                - call: job_offer_received
+              on_reject:
+                - say: "Ok. Dimmi come posso aiutarti."
 
-      - read: target_issue comments
-          rule: find most recent comment matching screening prep format
-          extract: last_prep_questions  # questions already asked in previous sessions
+      - compute: company_slug
+      - compute: role
+      - compute: language
+      - compute: recruiter_persona
+      - compute: stack_required
+      - compute: last_prep_questions
+          rule: extract all questions already asked in previous screening_prep sessions
+                from comments on target_issue matching screening prep format
 
       - compute: questions
-          personal_story: 1     # "raccontami di te"
-          recruiter: 7          # background, CV gaps, motivations, salary, expectations,
-                                # availability, role fit — simulating recruiter with CV in hand
-          technical: 4          # calibrated on stack_required vs igor.yml
+          personal_story: 1
+          recruiter: 7
+          technical: 4
+          total: 12
           order: personal_story → recruiter → technical
           rule: must not repeat questions from last_prep_questions
+          constraint: total MUST be exactly 12 — never fewer
 
       - say: |
           Prepariamo lo screening per {{company_slug}} — {{role}}.
           Recruiter: {{recruiter_persona.name}} | Lingua risposta: {{language}}
-          Confermo?
+          Domande generate: {{questions | count}}/12
 
-      - on_confirm:
+      - if:
+          condition: questions | count < 12
+          then:
+            - say: "ERRORE: generate solo {{questions | count}} domande su 12. Rigenero."
+            - compute: questions
+                personal_story: 1
+                recruiter: 7
+                technical: 4
+                total: 12
+                order: personal_story → recruiter → technical
+                rule: must not repeat questions from last_prep_questions
+                constraint: total MUST be exactly 12 — never fewer
 
-        - ask: "Sei pronto?"
+      - propose: "Partiamo"
+        on_confirm:
 
-        - loop: personal_story + recruiter_questions + technical_questions
-          each:
-            - say: "{{question}}"
-            - if stories.yml has matching topic:
-                say: "💡 {{matching_story.story}}"
-            - ask: "[risposta]"
-            - compute: feedback + corrected_version
-            - say: "{{feedback}}\n\n✅ {{corrected_version}}"
+          - ask: "Sei pronto?"
 
-        - compute: session_summary
-            # story_score/10, technical_table, fit_feedback
+          - loop: questions
+            each:
+              - say: "**Domanda {{loop.index}}/12** — {{question}}"
+              - if:
+                  condition: stories.yml has topic matching question
+                  then:
+                    - say: "💡 {{matching_story.summary}}"
+              - ask: "[risposta]"
+              - compute: feedback
+              - compute: corrected_version
+              - say: "{{feedback}}\n\n✅ **Versione corretta:**\n{{corrected_version}}"
 
-        - issue:
-            target: target_issue in sudo-hire-me
-            comment:
-              from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_screening_prep.md
-              vars:
-                date: "{{date}}"
-                round_name: "{{round_name}}"
-                recruiter_name: "{{recruiter_persona.name}}"
-                recruiter_role: "{{recruiter_persona.role}}"
-                story_score: "{{session_summary.story_score}}"
-                story_feedback: "{{session_summary.story_feedback}}"
-                technical_table: "{{session_summary.technical_table}}"
-                fit_feedback: "{{session_summary.fit_feedback}}"
-                language: "{{language}}"
-                final_answers: "{{corrected_versions | translate: language}}"
+          - compute: stories_delta
+              rule: per topic touched in session, compare Igor's answers vs stories.yml;
+                    include only if Igor added concepts or was more precise;
+                    ignore if Igor said less;
+                    always include topics not present in stories.yml;
+                    language for new/updated stories must be Italian — never Russian or English
 
-        - issue:
-            target: target_issue in sudo-hire-me
-            update_section: "## 📌 Attenzione"
-            content: "{{session_summary.attenzione_table}}"
-            # overwrites previous Attenzione table — current state only, not history
+          - if:
+              condition: stories_delta is not empty
+              then:
+                - say: |
+                    ## Stories delta
 
-        - compute: stories_delta
-            rule: per topic touched in session, compare Igor's answers vs stories.yml
-                  flag only if Igor added concepts or was more precise
-                  ignore if Igor said less
-                  for new topics not in stories.yml, always include
+                    | Topic | Tipo | Storia attuale (sintesi) | Proposta (sintesi) |
+                    |---|---|---|---|
+                    {{stories_delta | each: "| {{topic}} | {{change_type}} | {{current_summary | default: '—'}} | {{proposed_summary}} |"}}
+                - ask: "Approvi tutti i delta? Dimmi quali topic approvare."
+                - loop: approved_topics
+                  each:
+                    - write:
+                        path: stories.yml
+                        from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/story_entry.yml
+                        vars:
+                          topic: "{{delta.topic}}"
+                          content: "{{delta.proposed_story}}"
+                        access: read-write
+                        via: PR
+                        approval: none
 
-        - if stories_delta exists:
-            say: |
-              ## Stories delta
+          - compute: session_summary
+              fields: [story_score, story_feedback, technical_table, fit_feedback, attenzione_table, checklist]
 
-              | Topic | Tipo | Storia attuale (sintesi) | Proposta (sintesi) |
-              |---|---|---|---|
-              {{stories_delta | each: "| {{topic}} | {{change_type}} | {{current_summary | default: '—'}} | {{proposed_summary}} |"}}
-            ask: "Approvi tutti i delta? Dimmi quali topic approvare."
-            # approval here = content approval by Igor before any write
-            on_approval_per_topic:
-              write:
-                path: stories.yml
-                action: update_topic
-                topic: "{{delta.topic}}"
-                content: "{{delta.proposed_story}}"
-                from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/story_entry.yml
-                # LANGUAGE RULE: stories MUST be written in Italian.
-                # Never write stories in Russian or English.
-                # story_entry.yml template enforces Italian as default language.
-                via: PR
-                approval: none  # GitHub PR — merge automatically, no manual intervention
+          - commit_before_reply
+
+          - issue:
+              comment:
+                from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_screening_prep.md
+                vars:
+                  date: "{{date}}"
+                  round_name: "{{round_name}}"
+                  recruiter_name: "{{recruiter_persona.name}}"
+                  recruiter_role: "{{recruiter_persona.role}}"
+                  story_score: "{{session_summary.story_score}}"
+                  story_feedback: "{{session_summary.story_feedback}}"
+                  technical_table: "{{session_summary.technical_table}}"
+                  fit_feedback: "{{session_summary.fit_feedback}}"
+                  language: "{{language}}"
+                  final_answers: "{{corrected_versions}}"
+                  checklist: "{{session_summary.checklist}}"
+
+        on_reject:
+          - say: "Ok. Dimmi quando sei pronto."
 
     output:
       state_changes: []

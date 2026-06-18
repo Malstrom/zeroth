@@ -155,6 +155,25 @@ anatomy:
         values: [comment]
         default: comment
 
+  # --- issue_updates (creates_issue == false only) ---
+  issue_updates:
+    rule: |
+      Optional. Declare when a scenario with creates_issue == false needs to add
+      comments to an existing issue identified via compute.
+      Forbidden when creates_issue == true — use the issue: block instead.
+    fields:
+      target:
+        rule: name of the compute variable holding the issue identifier
+        example: target_issue
+      mode:
+        values: [comment]
+        default: comment
+        note: only comment is supported — check is not allowed on external issues
+    note: |
+      When issue_updates is declared, issue: comment steps in the steps list are valid
+      and target the issue identified by issue_updates.target.
+      The target variable must be computed before any issue: step.
+
   # --- dedup (event-triggered and reporter only) ---
   dedup:
     rule: optional, event-triggered and reporter scenarios only
@@ -168,6 +187,24 @@ anatomy:
     format: block sequence
     empty: use read: [] — never omit
     note: use glob patterns for directories (e.g. "kata/{subject}/")
+    special_sources:
+      issues:
+        syntax: "issues: {repo} {state} ordered_by {field} {direction}"
+        examples:
+          - "issues: sudo-hire-me open ordered_by updated_at desc"
+        description: |
+          Makes the list of issues (title, body, status fields) from the given repo
+          available to compute steps. Use for picking target_issue, deriving company_slug,
+          role, language, and similar fields from the issue body.
+      comments:
+        syntax: "comments: {repo} issue {{variable}}"
+        examples:
+          - "comments: sudo-hire-me issue {{target_issue}}"
+        description: |
+          Makes all comments for the given issue available to compute steps.
+          Use to extract data from previous sessions (e.g. last_prep_questions).
+          The variable in {{}} must be computed before this source is consumed.
+          Declare it in read: — the AI resolves it after computing the variable.
 
   input_sources:
     rule: optional — declare when scenario accepts multiple input types
@@ -271,11 +308,18 @@ anatomy:
               check: "checklist item text"  # ticks that checkbox in issue body (requires update: check)
           # OR
           - issue:
-              comment: "free text"          # adds a comment to the open issue (requires update: comment)
+              comment:
+                from: templates/comment.md
+                vars:
+                  key: "{{value}}"
         note: |
-          Use only for mid-scenario checklist updates or progress comments.
-          Must match the issue.update value declared in the issue block.
-          Open and close are automatic — do not replicate with issue steps.
+          Two valid uses:
+          1. creates_issue == true: issue: steps target the scenario's own issue
+             (issue: check requires issue.update == check;
+              issue: comment requires issue.update == comment)
+          2. creates_issue == false + issue_updates declared: issue: comment steps
+             target the external issue identified by issue_updates.target.
+             issue: check is forbidden in this case.
         forbidden_in: [event_triggered, reporter]
 
       if:
@@ -329,6 +373,10 @@ validation:
   - if creates_issue == true, issue: block must be present with title, from, update, approval, on_complete, on_fail
   - if creates_issue == true, issue.body inline is forbidden — use issue.from
   - if creates_issue == false, issue: block must be absent
+  - if creates_issue == false and issue: steps are present, issue_updates block must be declared
+  - if issue_updates is declared, issue_updates.target must be a computed variable available before any issue: step
+  - if creates_issue == false, issue: check steps are forbidden
+  - if creates_issue == false, issue: comment steps require issue_updates to be declared
   - every write step must have: path, access, via, approval
   - every write step where access is write-once or read-write must have: from
   - every write step where access is append-only must NOT have: from
@@ -342,5 +390,6 @@ validation:
   - dedup is only valid on event-triggered and reporter scenarios
   - trigger patterns and on: events must be in English
   - type: reporter is required when scenario uses events: on: form AND has say/propose steps
-  - issue: check steps are only valid when issue.update == check
-  - issue: comment steps are only valid when issue.update == comment
+  - issue: check steps are only valid when issue.update == check (creates_issue == true)
+  - issue: comment steps are only valid when issue.update == comment (creates_issue == true) OR issue_updates is declared (creates_issue == false)
+  - read: entries may be file paths, glob patterns, or special sources (issues:, comments:) as declared in read.special_sources
