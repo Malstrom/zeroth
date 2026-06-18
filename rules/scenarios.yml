@@ -353,6 +353,40 @@ anatomy:
           Do not list conditional events here — only unconditional ones.
 
 # ---------------------------------------------------------------------------
+# FILE FORMAT
+# Monolithic vs index. New frameworks should use index.
+# ---------------------------------------------------------------------------
+file_format:
+
+  monolithic:
+    description: all scenarios declared inline in .scenarios.yml
+    status: legacy — allowed, not recommended for frameworks with more than 4 scenarios
+    root_key: scenarios (named keys) or required_scenarios
+
+  index:
+    description: |
+      .scenarios.yml is a lightweight index.
+      Each scenario has its own .md file under scenarios/.
+      AI reads index → identifies relevant scenario → fetches ONLY that file.
+      Never loads all scenario files at once.
+    root_key: scenarios (list of entries)
+    entry_required_fields:
+      - id          # snake_case, matches filename
+      - trigger     # English, semantic description of when this scenario runs
+      - file        # relative path from zeroth root, e.g. frameworks/sudo-hire-me/scenarios/job_offer_received.md
+    entry_optional_fields:
+      - deprecated  # true | false
+      - replaced_by # id of the replacing scenario — required when deprecated: true
+    scenario_file_rules:
+      - must start with: "<!-- source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path} -->"
+      - filename: snake_case, lowercase, .md extension
+      - location: scenarios/{scenario_id}.md relative to framework root
+      - content: free-form Markdown — steps, rules, examples as needed
+    fetch_pattern: |
+      get_file_contents(owner=Malstrom, repo=zeroth, path=entry.file)
+      fallback: fetch entry source URL directly if MCP unavailable
+
+# ---------------------------------------------------------------------------
 # REQUIRED SCENARIOS
 # Every .scenarios.yml must have these two, in this order.
 # ---------------------------------------------------------------------------
@@ -365,7 +399,7 @@ required_scenarios:
 # Rules enforced by giskard.
 # ---------------------------------------------------------------------------
 validation:
-  - root key must be required_scenarios
+  - root key must be required_scenarios (monolithic) or scenarios (index)
   - session_start must be present
   - unknown_scenario must be present and last
   - every scenario must have: on, creates_issue, read, steps, output
@@ -393,3 +427,8 @@ validation:
   - issue: check steps are only valid when issue.update == check (creates_issue == true)
   - issue: comment steps are only valid when issue.update == comment (creates_issue == true) OR issue_updates is declared (creates_issue == false)
   - read: entries may be file paths, glob patterns, or special sources (issues:, comments:) as declared in read.special_sources
+  # index-specific
+  - if file_format is index: every entry must have id, trigger, file
+  - if file_format is index: deprecated entries must have replaced_by
+  - if file_format is index: every scenario file must start with <!-- source: --> header
+  - if file_format is index: file path must match frameworks/{framework}/scenarios/{id}.md

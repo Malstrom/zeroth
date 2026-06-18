@@ -149,6 +149,16 @@ filename_patterns:
       - acme_mario_rossi.yml
       - internal_luca_bianchi.yml
 
+  # --- sudo-hire-me ---
+  sudo_hire_me_scenario:
+    description: scenario file for index-based .scenarios.yml
+    pattern: "{scenario_id}.md"
+    regex: '^[a-z0-9][a-z0-9_]*\.md$'
+    examples:
+      - job_offer_received.md
+      - round_completed_debrief.md
+      - session_start.md
+
   # --- universal ---
   branch_name:
     description: git branch name
