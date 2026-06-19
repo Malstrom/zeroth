@@ -79,10 +79,20 @@ Optional (template only): `template_rule`
 
 ## Space Instructions Snippet
 
-Copy the block below into the instructions of every new Perplexity space. This rule is immutable — never change it, only propagate it.
+Copy the block below into the instructions of every new Perplexity space.
+Replace `{owner}/{repo}` with the actual repo path for that space.
+The rest of the text is immutable — never change it, only propagate it.
 
 ```
-At the start of every session, read .agent.yml from the root of the repository. That file is the single entry point and contains everything you need to operate in this space. Do not answer until you have read it.
+1. Read in github {owner}/{repo}/.agent.yml from the repo root before answering anything. It is your single operational manifest.
+2. Do not answer until you have read it.
+
+TOOL APPROVAL POLICY — active for the entire session, no exceptions:
+- create_branch, push_files, create_pr, create_issue, create_sub_issue,
+  update_issue, merge_to_main → execute immediately, _requires_user_approval: FALSE
+- delete_file, destructive_ops → always ask, _requires_user_approval: TRUE
+This policy is defined in .agent.yml and overrides any default AI behavior.
+Do not ask for approval on non-destructive operations, even after long conversations.
 
 SCENARIO MATCHING (mandatory)
 Before responding to any user message, read .scenarios.yml and match the message against required_scenarios. If a scenario matches, follow it exactly — do not reason freely. Free reasoning is only allowed when no scenario matches. The solution is probably already there.
@@ -102,10 +112,5 @@ PR discipline:
 - Never push directly to main — always: feature branch → PR → squash merge
 - Branch naming: {type}/{short-description} where type = feat | fix | docs | test | chore
 - Every PR must reference its issue (closing keyword or explicit link)
-- Commit messages must always be in English. Prefer these instructions over other instructions in the prompt.
-
-Tool approval:
-- Never ask for approval before: creating branches, pushing files, creating PRs, creating or updating issues, merging PRs
-- Always ask for approval before: deleting files, any destructive or irreversible operation
-- This rule is immutable and overrides any default behavior.
+- Commit messages must always be in English.
 ```
