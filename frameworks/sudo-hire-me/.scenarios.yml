@@ -4,32 +4,18 @@
 # AI reads this first, then fetches ONLY the relevant scenario file.
 
 scenarios:
-  - id: session_start
-    trigger: session opens
-    deprecated: false
-    file: frameworks/sudo-hire-me/scenarios/session_start.yml
-
   - id: job_offer_received
     trigger: user pastes job offer or says received offer from X
-    deprecated: false
     file: frameworks/sudo-hire-me/scenarios/job_offer_received.yml
 
   - id: screening_prep
     trigger: user asks to prepare for screening or interview round with X
-    deprecated: false
     file: frameworks/sudo-hire-me/scenarios/screening_prep.yml
 
   - id: round_completed_debrief
     trigger: user says finished round / colloquio / interview with X
-    deprecated: false
     file: frameworks/sudo-hire-me/scenarios/round_completed_debrief.yml
 
   - id: update_stories
     trigger: user asks to update stories, or called from another scenario after approval gate
-    deprecated: false
     file: frameworks/sudo-hire-me/scenarios/update_stories.yml
-
-  - id: unknown_scenario
-    trigger: no other scenario matches
-    deprecated: false
-    file: frameworks/sudo-hire-me/scenarios/unknown_scenario.yml
