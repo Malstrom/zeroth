@@ -88,6 +88,9 @@ workspace:
     role: base templates for new framework files
     access: read-write
   patterns:
+    - path: "scenarios/*.yml"
+      role: zeroth scenario files — one per scenario, referenced by .scenarios.yml index
+      access: read-write
     - path: "rules/*.yml"
       role: individual rule files
       access: read-write
