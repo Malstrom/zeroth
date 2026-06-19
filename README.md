@@ -68,14 +68,14 @@ zeroth/
 5. All files read or written by the AI must be in **English** (README excluded)
 6. Small files per domain — never monoliths (~150 lines max)
 7. Never push directly to main — always feature branch → PR → squash merge
-8. `post_action_hook` and `handlers` are mandatory blocks in every `.agent.yml`, even when empty
+8. `hard_rules` block mandatory in every `.agent.yml` — even when empty
 9. **Commit messages must always be in English** — regardless of the language used in chat
 
 ## .agent.yml Block Order
 
-Required (in order): `connector_check` → `scenarios` → `global` → `repo_map` → `file_access` → `tool_approval` → `write_ahead` → `post_action_hook` → `handlers`
+Required (in order): `language` → `work_rules` → `tool_approval` → `hard_rules` → `scenarios` → `workspace`
 
-Optional (template only): `template_rule`
+Forbidden blocks (never use): `connector_check`, `global`, `repo_map`, `file_access`, `write_ahead`, `post_action_hook`, `handlers`
 
 ## Space Instructions Snippet
 
