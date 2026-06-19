@@ -10,13 +10,13 @@
 # How the AI picks a scenario before executing anything.
 # ---------------------------------------------------------------------------
 routing:
-  rule: read ALL on: patterns before picking a scenario
+  rule: read ALL triggers before picking a scenario
   match: first semantic match wins — pick the most specific
   on_no_match: call unknown_scenario
   order: scenarios evaluated top to bottom
   note: |
     The AI resolves the user's language, then matches intent.
-    on: patterns are always written in English — language-independent.
+    triggers are always written in English — language-independent.
 
 # ---------------------------------------------------------------------------
 # SCENARIO TYPES
@@ -366,22 +366,22 @@ file_format:
   index:
     description: |
       .scenarios.yml is a lightweight index.
-      Each scenario has its own .md file under scenarios/.
+      Each scenario has its own .yml file under scenarios/.
       AI reads index → identifies relevant scenario → fetches ONLY that file.
       Never loads all scenario files at once.
     root_key: scenarios (list of entries)
     entry_required_fields:
       - id          # snake_case, matches filename
-      - trigger     # English, semantic description of when this scenario runs
-      - file        # relative path from zeroth root, e.g. frameworks/sudo-hire-me/scenarios/job_offer_received.md
+      - triggers    # list of English semantic descriptions of when this scenario runs
+      - file        # relative path from zeroth root, e.g. frameworks/sudo-hire-me/scenarios/job_offer_received.yml
     entry_optional_fields:
       - deprecated  # true | false
       - replaced_by # id of the replacing scenario — required when deprecated: true
     scenario_file_rules:
-      - must start with: "<!-- source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path} -->"
-      - filename: snake_case, lowercase, .md extension
-      - location: scenarios/{scenario_id}.md relative to framework root
-      - content: free-form Markdown — steps, rules, examples as needed
+      - must start with: "# source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
+      - filename: snake_case, lowercase, .yml extension
+      - location: scenarios/{scenario_id}.yml relative to framework root
+      - content: structured YAML — id, creates_issue, read, steps, output
     fetch_pattern: |
       get_file_contents(owner=Malstrom, repo=zeroth, path=entry.file)
       fallback: fetch entry source URL directly if MCP unavailable
@@ -422,13 +422,13 @@ validation:
   - commit_before_reply is forbidden in event_triggered and reporter scenarios
   - output.state_changes must never be omitted
   - dedup is only valid on event-triggered and reporter scenarios
-  - trigger patterns and on: events must be in English
+  - triggers must be in English
   - type: reporter is required when scenario uses events: on: form AND has say/propose steps
   - issue: check steps are only valid when issue.update == check (creates_issue == true)
   - issue: comment steps are only valid when issue.update == comment (creates_issue == true) OR issue_updates is declared (creates_issue == false)
   - read: entries may be file paths, glob patterns, or special sources (issues:, comments:) as declared in read.special_sources
   # index-specific
-  - if file_format is index: every entry must have id, trigger, file
+  - if file_format is index: every entry must have id, triggers, file
   - if file_format is index: deprecated entries must have replaced_by
-  - if file_format is index: every scenario file must start with <!-- source: --> header
-  - if file_format is index: file path must match frameworks/{framework}/scenarios/{id}.md
+  - if file_format is index: every scenario file must start with # source: comment header
+  - if file_format is index: file path must match scenarios/{id}.yml (zeroth root) or frameworks/{framework}/scenarios/{id}.yml
