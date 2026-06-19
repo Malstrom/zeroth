@@ -3,26 +3,61 @@
 id: round_completed_debrief
 on:
   - user says finished round with X
-  - user says colloquio finito
-  - user says appena finito lo screening
-  - user says fatto il tech interview
+  - user says finished interview
+  - user says just finished the screening
+  - user says done with tech interview
 creates_issue: false
 read:
   - hunt/pipeline/{{company_slug}}.yml
   - issues: sudo-hire-me issue {{main_issue}}
   - comments: sudo-hire-me issue {{sub_issue}}
-steps:
+
+# ---------------------------------------------------------------------------
+# PREPROCESS
+# Run before steps. Try to infer company_slug and round_name from user message
+# so the steps block does not need to ask unless inference fails.
+# ---------------------------------------------------------------------------
+preprocess:
   - compute:
-    - company_slug
-    - round_name
+      id: company_slug
+      rule: |
+        Extract company name from user message:
+        - look for noun after "con" / "da" / "per" / "with" / "at" / "by"
+        - normalize against existing hunt/pipeline/*.yml slugs in Malstrom/sudo-hire-me
+          (lowercase, strip spaces/dots, e.g. "Umbrellio" -> "umbrellio")
+        - if no slug match found: leave missing (steps block will ask)
+  - compute:
+      id: round_name
+      rule: |
+        Map keywords from user message to internal label:
+        - contains "screening"              -> "screening"
+        - contains "tech" or "technical"    -> "technical"
+        - contains "lead" or "tech lead"    -> "lead_round"
+        - contains "cto"                    -> "cto_round"
+        - contains "pair" or "pair prog"    -> "pair_round"
+        - contains "hr"                     -> "hr_screening"
+        - no match                          -> leave missing (steps block will ask)
+
+steps:
+  # --- always-on debug header (Step 3b) ---
+  - say:
+      mode: debug
+      always: true
+      text: |
+        **Scenario:** round_completed_debrief
+        **Company:** {{company_slug | default: "unknown"}}
+        **Round:** {{round_name | default: "unknown"}}
+
+  # --- guard: ask only if preprocess failed ---
   - if:
       condition: company_slug is missing
       then:
-        - ask: "Con quale azienda?"
+        - ask: "Which company?"
   - if:
       condition: round_name is missing
       then:
-        - ask: "Che tipo di round era? (HR screening / technical / tech lead / ...)"
+        - ask: "What type of round was it? (HR screening / technical / tech lead / ...)"
+
   - compute:
       id: target_pipeline
       rule: fetch hunt/pipeline/{{company_slug}}.yml from Malstrom/sudo-hire-me
@@ -43,11 +78,11 @@ steps:
         - target_pipeline.open_gaps
   - loop: topic_list
     each:
-      - ask: "Ti hanno chiesto qualcosa su **{{topic}}**?"
+      - ask: "Did they ask you anything about **{{topic}}**?"
       - if:
           condition: answer is yes
           then:
-            - ask: "Come hai risposto?"
+            - ask: "How did you answer?"
             - compute:
                 id: assessment
                 values: [solid, partial, weak]
@@ -55,10 +90,10 @@ steps:
                 condition: assessment in [partial, weak]
                 then:
                   - compute: gap_entry
-  - ask: "C'è qualcosa che non ho coperto? Argomenti che hanno toccato e non sono nella lista?"
+  - ask: "Anything I didn't cover? Topics they raised that are not in this list?"
   - loop: extra_topics
     each:
-      - ask: "Come hai risposto a {{topic}}?"
+      - ask: "How did you answer on {{topic}}?"
       - compute:
           id: assessment
           values: [solid, partial, weak]
@@ -107,12 +142,12 @@ steps:
   - say: |
       PR: {{pr.url}}
 
-      Gap aperti:
+      Open gaps:
       {{open_gaps_merged | each: "- {{priority_icon}} **{{topic}}** — {{description}}"}}
   - if:
       condition: round outcome == passed
       then:
-        - propose: "Creo la sub-issue per il prossimo round?"
+        - propose: "Shall I create the sub-issue for the next round?"
           on_confirm:
             - call: create_next_round_sub_issue
 output:
