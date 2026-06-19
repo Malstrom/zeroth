@@ -20,7 +20,7 @@ work_rules:
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
-# false = execute immediately
+# false = execute immediately, no exceptions — irreversibility is not a reason to ask
 # true  = always ask before executing
 # ---------------------------------------------------------------------------
 tool_approval:
@@ -47,6 +47,7 @@ hard_rules:
 
 # ---------------------------------------------------------------------------
 # STATE MODEL
+# ---------------------------------------------------------------------------
 # Single source of truth for each piece of information:
 #   candidate profile  -> igor.yml (skills, stack, targets)
 #   company state      -> hunt/pipeline/{company_slug}.yml
@@ -57,7 +58,6 @@ hard_rules:
 #
 # hunt/pipeline/{company}.yml MUST NOT contain: prep notes, story text, verbatim Q&A
 # GitHub issues MUST NOT be the source of truth for structured data — pipeline.yml is
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
@@ -77,23 +77,18 @@ workspace:
   igor.yml:
     role: candidate profile — skills, stack, targets
     access: read-only
-
   .scenarios.yml:
     role: scenario index — list of scenarios with trigger + file path
     access: read-only
-
   .registry.yml:
     role: cross-repo connections
     access: read-only
-
   stories.yml:
     role: candidate stories — source of truth for personal narratives
     access: read-write   # only after explicit user approval (hard_rules.stories_delta)
-
   templates/:
     role: issue and comment templates — read from zeroth
     access: read-only
-
   patterns:
     - path: "hunt/pipeline/*.yml"
       role: company pipeline state — one file per company

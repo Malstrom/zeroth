@@ -56,9 +56,6 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
-# Exact paths: named keys
-# Glob patterns: under patterns list
-# Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
 workspace:
   .agent.yml:

@@ -22,7 +22,7 @@ work_rules:
 
 # ---------------------------------------------------------------------------
 # TOOL APPROVAL
-# false = execute immediately, no confirmation needed
+# false = execute immediately, no exceptions — irreversibility is not a reason to ask
 # true  = always ask before executing
 # ---------------------------------------------------------------------------
 tool_approval:
@@ -38,6 +38,7 @@ tool_approval:
 
 # ---------------------------------------------------------------------------
 # STATE MODEL
+# ---------------------------------------------------------------------------
 # Single source of truth for each piece of information:
 #   student identity    → .gakusei.yml (student_name, language, issue_language)
 #   active goals        → open goal issues [Goal] — checklist of [ ] / [x] topics
@@ -48,7 +49,6 @@ tool_approval:
 #   goal completed      → goal issue closed + makimono written
 #
 # .gakusei.yml MUST NOT contain: topics.*, goals.*, last_session.*
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
@@ -68,19 +68,15 @@ workspace:
     role: student identity only (student_name, language, issue_language)
     access: read-write
     note: read at every session start — contains NO topic or goal state
-
   .scenarios.yml:
     role: scenario catalog
     access: read-only
-
   .registry.yml:
     role: cross-repo connections
     access: read-only
-
   templates/:
     role: file templates for kata, nikki, makimono, shinsa
     access: read-only
-
   patterns:
     - path: "kata/**"
       role: flat kata library — one file per topic slug; ## Current gaps section is authoritative for gap state
