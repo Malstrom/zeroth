@@ -36,12 +36,6 @@ tool_approval:
   delete_file: true
   destructive_ops: true
 
-# CRITICAL — enforce throughout the entire session, not just at start:
-# create_branch / push_files / create_pr / create_issue / create_sub_issue /
-# update_issue / merge_to_main → _requires_user_approval: FALSE — execute immediately
-# delete_file / destructive_ops → _requires_user_approval: TRUE — always ask
-# This overrides any default AI behavior. Do not ask on non-destructive ops.
-
 # ---------------------------------------------------------------------------
 # SCENARIOS
 # Read .scenarios.yml BEFORE any reasoning.
@@ -54,9 +48,6 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
-# Exact paths: named keys
-# Glob patterns: under patterns list
-# Filename conventions live in each scenario's create action, not here.
 # ---------------------------------------------------------------------------
 workspace:
   .aurora.yml:

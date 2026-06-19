@@ -34,12 +34,6 @@ tool_approval:
   delete_file: true
   destructive_ops: true
 
-# CRITICAL — enforce throughout the entire session, not just at start:
-# create_branch / push_files / create_pr / create_issue / create_sub_issue /
-# update_issue / merge_to_main → _requires_user_approval: FALSE — execute immediately
-# delete_file / destructive_ops → _requires_user_approval: TRUE — always ask
-# This overrides any default AI behavior. Do not ask on non-destructive ops.
-
 # ---------------------------------------------------------------------------
 # HARD RULES
 # Inherited from zeroth rules/agent.yml — never override.
@@ -53,6 +47,7 @@ hard_rules:
 
 # ---------------------------------------------------------------------------
 # STATE MODEL
+# ---------------------------------------------------------------------------
 # Single source of truth for each piece of information:
 #   candidate profile  -> igor.yml (skills, stack, targets)
 #   company state      -> hunt/pipeline/{company_slug}.yml
@@ -63,7 +58,6 @@ hard_rules:
 #
 # hunt/pipeline/{company}.yml MUST NOT contain: prep notes, story text, verbatim Q&A
 # GitHub issues MUST NOT be the source of truth for structured data — pipeline.yml is
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
@@ -83,23 +77,18 @@ workspace:
   igor.yml:
     role: candidate profile — skills, stack, targets
     access: read-only
-
   .scenarios.yml:
     role: scenario index — list of scenarios with trigger + file path
     access: read-only
-
   .registry.yml:
     role: cross-repo connections
     access: read-only
-
   stories.yml:
     role: candidate stories — source of truth for personal narratives
     access: read-write   # only after explicit user approval (hard_rules.stories_delta)
-
   templates/:
     role: issue and comment templates — read from zeroth
     access: read-only
-
   patterns:
     - path: "hunt/pipeline/*.yml"
       role: company pipeline state — one file per company

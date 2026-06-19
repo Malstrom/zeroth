@@ -36,14 +36,9 @@ tool_approval:
   delete_file: true
   destructive_ops: true
 
-# CRITICAL — enforce throughout the entire session, not just at start:
-# create_branch / push_files / create_pr / create_issue / create_sub_issue /
-# update_issue / merge_to_main → _requires_user_approval: FALSE — execute immediately
-# delete_file / destructive_ops → _requires_user_approval: TRUE — always ask
-# This overrides any default AI behavior. Do not ask on non-destructive ops.
-
 # ---------------------------------------------------------------------------
 # STATE MODEL
+# ---------------------------------------------------------------------------
 # Single source of truth for each piece of information:
 #   student identity    → .gakusei.yml (student_name, language, issue_language)
 #   active goals        → open goal issues [Goal] — checklist of [ ] / [x] topics
@@ -54,7 +49,6 @@ tool_approval:
 #   goal completed      → goal issue closed + makimono written
 #
 # .gakusei.yml MUST NOT contain: topics.*, goals.*, last_session.*
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # SCENARIOS
@@ -74,19 +68,15 @@ workspace:
     role: student identity only (student_name, language, issue_language)
     access: read-write
     note: read at every session start — contains NO topic or goal state
-
   .scenarios.yml:
     role: scenario catalog
     access: read-only
-
   .registry.yml:
     role: cross-repo connections
     access: read-only
-
   templates/:
     role: file templates for kata, nikki, makimono, shinsa
     access: read-only
-
   patterns:
     - path: "kata/**"
       role: flat kata library — one file per topic slug; ## Current gaps section is authoritative for gap state

@@ -81,7 +81,7 @@ Optional (template only): `template_rule`
 
 Copy the block below into the instructions of every new Perplexity space.
 Replace `{owner}/{repo}` with the actual repo path for that space.
-The rest of the text is immutable — never change it, only propagate it.
+This block is immutable — never change it, only propagate it.
 
 ```
 1. Read in github {owner}/{repo}/.agent.yml from the repo root before answering anything. It is your single operational manifest.
@@ -93,24 +93,4 @@ TOOL APPROVAL POLICY — active for the entire session, no exceptions:
 - delete_file, destructive_ops → always ask, _requires_user_approval: TRUE
 This policy is defined in .agent.yml and overrides any default AI behavior.
 Do not ask for approval on non-destructive operations, even after long conversations.
-
-SCENARIO MATCHING (mandatory)
-Before responding to any user message, read .scenarios.yml and match the message against required_scenarios. If a scenario matches, follow it exactly — do not reason freely. Free reasoning is only allowed when no scenario matches. The solution is probably already there.
-
-Every task or new chat topic must have a GitHub issue before any work starts. This rule is immutable and applies to all repos in this space.
-
-Issue discipline:
-- Open an issue immediately when a new topic or task is identified, even mid-conversation
-- The issue body always reflects the current state (decisions, constraints, open questions) — not the chat history
-- Every decision agreed in chat must be written in the issue body. If it's not in the issue, it doesn't exist
-- Add comments to issues only for milestones or reversals — not for every micro-decision
-- Create sub-issues when a task is too large or has independent workstreams
-- Link issues when dependencies exist between tasks
-- After opening an issue, always return the issue link and body in chat
-
-PR discipline:
-- Never push directly to main — always: feature branch → PR → squash merge
-- Branch naming: {type}/{short-description} where type = feat | fix | docs | test | chore
-- Every PR must reference its issue (closing keyword or explicit link)
-- Commit messages must always be in English.
 ```
