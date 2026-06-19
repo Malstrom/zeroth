@@ -1,0 +1,24 @@
+# scenarios/session_start.yml
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/scenarios/session_start.yml
+
+id: session_start
+creates_issue: false
+read:
+  - github:issues:malstrom/zeroth?state=open
+steps:
+  - say: "zeroth ready."
+  - if:
+      condition: open_issues | count > 0
+      then:
+        - say: |
+            Open issues:
+            {{open_issues | each: "- #{{issue.number}} {{issue.title}}"}}
+        - propose: "Resume #{{open_issues.first.number}} — {{open_issues.first.title}}?"
+          on_confirm:
+            - say: "OK. What do you want to do on this?"
+          on_reject:
+            - say: "What would you like to work on?"
+      else:
+        - say: "No open issues. What would you like to improve?"
+output:
+  state_changes: []

@@ -1,164 +1,31 @@
 # .scenarios.yml
 # AI-only scenario catalog for zeroth.
-# Model: GitHub Actions workflows — on: for routing, steps: for logic
-# Each scenario = one workflow: trigger → read → steps → output
-# Syntax: rules/scenarios.yml
-# Spec: github.com/Malstrom/zeroth
+# Format: index — see rules/scenarios.yml#file_format.index
+# AI reads this first, then fetches ONLY the relevant scenario file.
 
-required_scenarios:
-
-  session_start:
-    on:
+scenarios:
+  - id: session_start
+    triggers:
       - session opens automatically
-    creates_issue: false
-    read:
-      - github:issues:malstrom/zeroth?state=open
-    steps:
-      - say: "zeroth ready."
-      - if:
-          condition: open_issues | count > 0
-          then:
-            - say: |
-                Open issues:
-                {{open_issues | each: "- #{{issue.number}} {{issue.title}}"}}
-            - propose: "Resume #{{open_issues.first.number}} — {{open_issues.first.title}}?"
-              on_confirm:
-                - say: "OK. What do you want to do on this?"
-              on_reject:
-                - say: "What would you like to work on?"
-          else:
-            - say: "No open issues. What would you like to improve?"
-    output:
-      state_changes: []
+    file: scenarios/session_start.yml
 
-  spawn:
-    on:
+  - id: spawn
+    triggers:
       - user wants to create a new repo from a framework
       - user wants to instantiate a framework
       - user wants to spawn a new instance of dojo, aurora, or any registered framework
-    creates_issue: true
-    issue:
-      title: "Spawn: {framework}/{repo_name}"
-      body: |
-        - [ ] framework files read from zeroth
-        - [ ] repo created
-        - [ ] .agent.yml pushed
-        - [ ] structure created
-        - [ ] README.md pushed
-        - [ ] giskard workflow pushed
-        - [ ] .registry.yml updated in zeroth
-      on_complete: close
-      on_fail: comment
-    read:
-      - .registry.yml
-      - "frameworks/{framework}/overview.yml"
-      - "frameworks/{framework}/.agent.yml"
-      - "frameworks/{framework}/.scenarios.yml"
-      - "frameworks/{framework}/structure.yml"
-      - "frameworks/{framework}/templates/"
-      - templates/workflows/giskard.yml
-    steps:
-      - ask: "Which framework? (available: {{registered_frameworks}})"
-      - ask: "Repo name?"
-      - ask: "Repo visibility? (public / private)"
-      - issue:
-          check: "framework files read from zeroth"
-      - create: repo
-          name: "{repo_name}"
-          visibility: "{visibility}"
-      - issue:
-          check: "repo created"
-      - write:
-          path: "{repo_name}:.agent.yml"
-          from: "frameworks/{framework}/.agent.yml"
-          access: write-once
-          via: PR
-      - issue:
-          check: ".agent.yml pushed"
-      - write:
-          path: "{repo_name}:kata/.gitkeep"
-          access: write-once
-          via: PR
-      - write:
-          path: "{repo_name}:kiroku/makimono/.gitkeep"
-          access: write-once
-          via: PR
-      - write:
-          path: "{repo_name}:kiroku/nikki/.gitkeep"
-          access: write-once
-          via: PR
-      - issue:
-          check: "structure created"
-      - write:
-          path: "{repo_name}:README.md"
-          generate: true
-          guided_by: "frameworks/{framework}/overview.yml"
-          access: write-once
-          via: PR
-      - issue:
-          check: "README.md pushed"
-      - write:
-          path: "{repo_name}:.github/workflows/giskard.yml"
-          from: templates/workflows/giskard.yml
-          vars:
-            framework: "{framework}"
-          access: write-once
-          via: PR
-      - issue:
-          check: "giskard workflow pushed"
-      - write:
-          path: .registry.yml
-          fields: [connections]
-          access: read-write
-          via: PR
-      - issue:
-          check: ".registry.yml updated in zeroth"
-      - say: "Issue opened — {{issue.url}}"
-    output:
-      state_changes: [repo-spawned]
+    file: scenarios/spawn.yml
 
-  improve:
-    on:
+  - id: improve
+    triggers:
       - user wants to improve a framework
       - user wants to improve zeroth
       - user wants to improve giskard
       - user reports a problem or bug
       - user has a new idea for the system
-    creates_issue: true
-    issue:
-      title: "{target}: {slug}"
-      from: templates/issue_improve.md
-      update: comment
-      approval: none
-      on_complete: close
-      on_fail: comment
-    read:
-      - .registry.yml
-    steps:
-      - ask: "What do you want to improve? (framework / zeroth / giskard)"
-      - ask: "Describe the problem or idea."
-      - compute: target
-      - compute: slug
-      - say: "Issue opened — {{issue.url}}"
-      - say: "Let's reason through it."
-    output:
-      state_changes: []
+    file: scenarios/improve.yml
 
-  unknown_scenario:
-    on:
+  - id: unknown_scenario
+    triggers:
       - any message that does not match any other scenario
-    creates_issue: false
-    read: []
-    steps:
-      - if:
-          condition: closest_scenario exists
-          then:
-            - propose: "Did you mean: {{closest_scenario}}?"
-              on_confirm:
-                - call: "{{closest_scenario}}"
-              on_reject:
-                - say: "OK. What would you like to do?"
-          else:
-            - say: "Scenario not defined. Want me to add it?"
-    output:
-      state_changes: []
+    file: scenarios/unknown_scenario.yml

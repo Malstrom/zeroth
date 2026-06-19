@@ -1,0 +1,23 @@
+# scenarios/improve.yml
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/scenarios/improve.yml
+
+id: improve
+creates_issue: true
+issue:
+  title: "{target}: {slug}"
+  from: templates/issue_improve.md
+  update: comment
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - .registry.yml
+steps:
+  - ask: "What do you want to improve? (framework / zeroth / giskard)"
+  - ask: "Describe the problem or idea."
+  - compute: target
+  - compute: slug
+  - say: "Issue opened — {{issue.url}}"
+  - say: "Let's reason through it."
+output:
+  state_changes: []
