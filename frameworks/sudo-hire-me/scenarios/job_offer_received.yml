@@ -1,0 +1,76 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/scenarios/job_offer_received.yml
+
+id: job_offer_received
+on:
+  - user pastes or describes a job offer
+  - user says they received a job offer
+  - user shares recruiter communication
+creates_issue: true
+issue:
+  title: "{company_name} — {role_name}"
+  from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/issue_pipeline.md
+  update: check
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - igor.yml
+  - Malstrom/zeroth:frameworks/sudo-hire-me/templates/pipeline.yml
+steps:
+  - compute:
+    - company_slug
+    - company_name
+    - role_slug
+    - role_name
+    - fit_pct
+    - recommendation
+    - red_flags
+    - strengths
+    - stack_required
+    - stack_nice_to_have
+    - contact
+    - company_info
+    - offer_conditions
+    - communication_language
+    - questions_stack       # IT+RU questions from stack_required gaps vs igor.yml
+    - questions_red_flags   # IT+RU questions from red_flags
+  - say: |
+      **Analisi offerta — {{company_name}}**
+
+      Fit: {{fit_pct}}% — Raccomandazione: {{recommendation}}
+
+      Punti di forza:
+      {{strengths | each: "- {{item}}"}}
+
+      Red flags:
+      {{red_flags | each: "- {{item}}"}}
+
+      Stack richiesto: {{stack_required | join: ", "}}
+      Stack nice-to-have: {{stack_nice_to_have | join: ", "}}
+  - write:
+      path: hunt/pipeline/
+      filename: "{{company_slug}}.yml"
+      from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/pipeline.yml
+      vars:
+        company_slug: "{{company_slug}}"
+        role_slug: "{{role_slug}}"
+        fit_pct: "{{fit_pct}}"
+        recommendation: "{{recommendation}}"
+        red_flags: "{{red_flags}}"
+        strengths: "{{strengths}}"
+        stack_required: "{{stack_required}}"
+        stack_nice_to_have: "{{stack_nice_to_have}}"
+        contact: "{{contact}}"
+        company_info: "{{company_info}}"
+        offer_conditions: "{{offer_conditions}}"
+        communication_language: "{{communication_language}}"
+        main_issue: "{{issue.number}}"
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: pipeline file created
+  - commit_before_reply
+  - say: "Candidatura {{company_name}} aperta. Issue: {{issue.url}}"
+output:
+  state_changes: [pipeline-created]
