@@ -1,0 +1,281 @@
+# rules/checks.yml
+# Schema and contract for frameworks/{framework}/checks.yml.
+#
+# Every framework in zeroth that wants to be validated by giskard --mode zeroth
+# must have a frameworks/{framework}/checks.yml that conforms to this schema.
+# giskard reads it at runtime — no Python code is needed per framework.
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# TOP-LEVEL STRUCTURE
+# ---------------------------------------------------------------------------
+structure:
+  root_key: sections         # required, must be a non-empty list
+  sections:
+    - name: string           # required — used as report.section() label
+      checks: list           # required — list of check entries (see below)
+
+
+# ---------------------------------------------------------------------------
+# CHECK ENTRY — COMMON FIELDS
+# ---------------------------------------------------------------------------
+check_entry:
+
+  required:
+    label:  string    # human-readable description shown in the report
+    proxy:  string    # name of the proxy to invoke (see proxy_registry below)
+
+  always_present:
+    file:   string    # path relative to repo root — used in failure annotations
+    rule:   string    # path to the rule file that motivates this check
+                      # (relative to zeroth root — e.g. "rules/scenarios.yml")
+
+  notes:
+    - label and proxy are the only truly mandatory fields
+    - file and rule are optional but should always be included for traceability
+    - all other fields are proxy-specific (see proxy_registry below)
+
+
+# ---------------------------------------------------------------------------
+# PROXY REGISTRY
+# Each entry: required fields beyond label/proxy/file/rule
+# ---------------------------------------------------------------------------
+proxy_registry:
+
+  # --- File and directory presence ---
+
+  file_exists:
+    description: Checks that a file or directory exists (or does not exist) at target.
+    fields:
+      target:     string   # path relative to repo root
+      must_exist: bool     # optional, default true — set false to assert absence
+
+  dir_has_subfolders:
+    description: Checks that a directory contains at least one subdirectory.
+    fields:
+      target: string   # path relative to repo root (trailing slash stripped)
+
+  dir_has_templates:
+    description: Checks that a directory contains all required files by name.
+    fields:
+      target:         string        # path relative to repo root
+      required_files: list[string]  # filenames (not paths) that must be present
+
+  # --- Template integrity ---
+
+  template_matches_zeroth:
+    description: |
+      Fetches frameworks/{framework}/templates/{template} from zeroth (raw GitHub)
+      and checks that it matches the local file line-for-line.
+    fields:
+      framework:  string   # framework name (e.g. dojo)
+      template:   string   # filename (e.g. .gakusei.yml)
+      zeroth_ref: string   # optional git ref, default "main"
+
+  generated_files_match_template:
+    description: |
+      Globs files in the instance repo and verifies that each has at least the
+      root-level keys defined in the template (strips schema-meta keys like
+      _format, _required, _optional, _invariants).
+    fields:
+      template:   string   # path relative to repo root OR a frameworks/ path
+                           # (the latter is fetched from zeroth raw)
+      glob:       string   # glob pattern relative to repo root
+      zeroth_ref: string   # optional git ref, default "main"
+
+  # --- YAML content checks ---
+
+  yaml_key_exists:
+    description: Checks that a top-level key is present in a YAML file.
+    fields:
+      file: string
+      key:  string
+
+  yaml_key_absent:
+    description: Checks that a dotted key path is absent in a YAML file.
+    fields:
+      file: string
+      key:  string   # supports dotted path e.g. "file_access.write"
+
+  yaml_key_equals:
+    description: Checks that a dotted key path equals an expected value.
+    fields:
+      file:     string
+      key:      string
+      expected: any
+
+  yaml_key_contains:
+    description: Checks that a dotted key path value contains a substring.
+    fields:
+      file:     string
+      key:      string
+      contains: string
+
+  yaml_first_key:
+    description: Checks that the first non-comment, non-blank key in a YAML file matches expected.
+    fields:
+      file:     string
+      expected: string
+
+  yaml_levels_valid:
+    description: |
+      Navigates to a dotted key (must resolve to a dict) and checks that all
+      values are in the allowed set.
+    fields:
+      file:    string
+      key:     string         # dotted path to the dict
+      allowed: list[string]   # set of valid values
+
+  yaml_subkeys_exist:
+    description: |
+      Navigates to a dotted key (must resolve to a dict) and checks that all
+      required_subkeys are present.
+    fields:
+      file:             string
+      key:              string          # dotted path
+      required_subkeys: list[string]
+
+  # --- Scenario checks (monolithic format — .scenarios.yml with required_scenarios) ---
+
+  scenario_present:
+    description: Checks that a scenario name appears in required_scenarios.
+    fields:
+      scenario: string
+    note: reads .scenarios.yml at repo root
+
+  scenario_last:
+    description: Checks that a scenario is the last key in required_scenarios.
+    fields:
+      scenario: string
+    note: reads .scenarios.yml at repo root
+
+  scenario_not_present:
+    description: Checks that a scenario name is absent from required_scenarios.
+    fields:
+      scenario: string
+    note: reads .scenarios.yml at repo root
+
+  scenario_input_sources:
+    description: Checks that a scenario has at least min_count input_sources.
+    fields:
+      scenario:  string
+      min_count: int
+    note: reads .scenarios.yml at repo root
+
+  # --- Scenario checks (index format — .scenarios.yml with scenarios list) ---
+
+  scenarios_index_valid:
+    description: |
+      Validates a .scenarios.yml in index format:
+        - root key must be "scenarios"
+        - value must be a non-empty list
+        - every entry must have: id (str), triggers (non-empty list), file (str)
+    fields:
+      file: string   # path to .scenarios.yml relative to repo root
+
+  scenarios_index_files_exist:
+    description: |
+      For every entry in the scenarios index, checks that the referenced
+      file path exists under the repo root.
+    fields:
+      file: string   # path to .scenarios.yml relative to repo root
+
+  # --- .agent.yml checks ---
+
+  scenario_no_forbidden_modules:
+    description: |
+      Checks that no handler in .agent.yml uses forbidden action modules
+      (say, ask, propose).
+    fields: {}   # no extra fields
+
+  handler_present:
+    description: Checks that a named handler exists in .agent.yml handlers.
+    fields:
+      handler: string
+
+  handler_has_key:
+    description: Checks that a named handler in .agent.yml has a specific key.
+    fields:
+      handler: string
+      key:     string
+
+  file_access_mode:
+    description: |
+      Checks that a file pattern is declared under a specific access mode
+      in .agent.yml file_access.
+    fields:
+      pattern: string   # e.g. "kiroku/nikki/*.yml"
+      mode:    string   # e.g. "immutable" or "read-only"
+
+  write_ahead_rule:
+    description: Checks that .agent.yml contains a required string (write-ahead contract).
+    fields:
+      contains: string
+
+  # --- Text checks ---
+
+  text_search:
+    description: Checks that all given terms appear somewhere in a file.
+    fields:
+      file:  string
+      terms: list[string]
+
+  token_count:
+    description: Checks that a specific token appears exactly expected times in a file.
+    fields:
+      file:     string
+      token:    string
+      expected: int
+
+  # --- Cross-reference checks ---
+
+  cross_ref_check:
+    description: |
+      Validates referential integrity across files in an instance repo.
+      Source values (from state file or filenames) must all resolve to
+      a target (key in state file, or file path).
+    fields:
+      source:              string   # dotted state field ("last_session.topic")
+                                    # OR directory path ("kiroku/nikki/")
+      source_regex:        string   # optional — regex with capture groups for dir mode
+      source_group:        int      # optional — which capture group is the value
+      source_filter:       object   # optional — {group: int, value: str} filter
+      gakusei_state_file:  string   # optional — default ".gakusei.yml"
+      target:              string   # key in state file OR path template with {value}
+      target_type:         string   # "keys" | "file_exists" | "file_glob"
+      target_glob_pattern: string   # required when target_type is "file_glob"
+      level:               string   # "error" (default) | "warning"
+
+
+# ---------------------------------------------------------------------------
+# EXAMPLE checks.yml
+# ---------------------------------------------------------------------------
+example: |
+  sections:
+
+    - name: "my-framework@zeroth — structure"
+      checks:
+        - label: "frameworks/my-framework/structure.yml present"
+          proxy: file_exists
+          target: frameworks/my-framework/structure.yml
+          file: frameworks/my-framework/structure.yml
+          rule: rules/structure.yml
+
+        - label: "frameworks/my-framework/.scenarios.yml present"
+          proxy: file_exists
+          target: frameworks/my-framework/.scenarios.yml
+          file: frameworks/my-framework/.scenarios.yml
+          rule: rules/files.yml
+
+    - name: "my-framework@zeroth — scenarios"
+      checks:
+        - label: "frameworks/my-framework/.scenarios.yml index format valid"
+          proxy: scenarios_index_valid
+          file: frameworks/my-framework/.scenarios.yml
+          rule: rules/scenarios.yml
+
+        - label: "frameworks/my-framework/.scenarios.yml scenario files exist"
+          proxy: scenarios_index_files_exist
+          file: frameworks/my-framework/.scenarios.yml
+          rule: rules/scenarios.yml
