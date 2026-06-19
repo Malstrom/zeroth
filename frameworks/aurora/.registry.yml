@@ -1,0 +1,25 @@
+# frameworks/aurora/.registry.yml
+# Cross-repo connection map for aurora instances.
+# Canonical spec — read by the AI agent at session start.
+# Instances inherit this file via zeroth (read cross-repo, never copied).
+
+framework: aurora
+
+# Repos that an aurora instance may reference or read from.
+# Each entry declares the repo, its role, and the access level.
+connections: []
+
+# How to register a connection:
+#   - repo: owner/repo-name
+#     role: description of what this repo provides
+#     access: read-only | read-write
+#     note: optional free-text
+#
+# Example:
+#   connections:
+#     - repo: acme/knowledge-base
+#       role: shared playbooks and templates
+#       access: read-only
+#     - repo: acme/erp-exports
+#       role: raw data exports consumed by aurora
+#       access: read-only

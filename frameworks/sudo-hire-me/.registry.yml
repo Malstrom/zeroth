@@ -1,0 +1,25 @@
+# frameworks/sudo-hire-me/.registry.yml
+# Cross-repo connection map for sudo-hire-me instances.
+# Canonical spec — read by the AI agent at session start.
+# Instances inherit this file via zeroth (read cross-repo, never copied).
+
+framework: sudo-hire-me
+
+# Repos that a sudo-hire-me instance may reference or read from.
+# Each entry declares the repo, its role, and the access level.
+connections: []
+
+# How to register a connection:
+#   - repo: owner/repo-name
+#     role: description of what this repo provides
+#     access: read-only | read-write
+#     note: optional free-text
+#
+# Example:
+#   connections:
+#     - repo: igor/portfolio
+#       role: public portfolio referenced in applications
+#       access: read-only
+#     - repo: igor/cv-assets
+#       role: raw CV and cover letter source files
+#       access: read-only
