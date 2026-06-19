@@ -1,0 +1,134 @@
+# source: frameworks/dojo/scenarios/study.yml
+# Scenarios: study_open, randori
+
+---
+id: study_open
+on:
+  - user wants to study a specific topic
+  - user asks to be taught something
+  - user wants to open a study session on a topic
+creates_issue: true
+issue:
+  title: "Study: {topic}"
+  from: Malstrom/zeroth:frameworks/dojo/templates/issue_study_open.md
+  update: check
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - .gakusei.yml
+  - "kata/{topic}.md"            # read if exists — contains current gaps
+input_sources:
+  - attached_file
+  - url
+  - pasted_text
+  - ai_knowledge
+steps:
+  - say: "{{source_summary}}: {{concept_count}} concepts identified."
+  - issue:
+      check: "source loaded"
+
+  - for_each: concept in source.concepts
+    do:
+      - say: |
+          **{{concept.title}}**
+          {{concept.explanation}}
+          > Source: {{concept.citation}}
+      - call: randori
+        with:
+          concept: "{{concept}}"
+          topic: "{{topic}}"
+
+  - issue:
+      check: "concepts taught and randori completed"
+
+  # Write nikki FIRST — immutable record of the session
+  - write:
+      path: "kiroku/nikki/"
+      filename: "YYYY-MM-DD_{topic}_study.yml"
+      from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: "nikki written"
+
+  # Update kata: add new concepts + refresh ## Current gaps
+  - write:
+      path: "kata/{topic}.md"
+      access: read-write
+      via: PR
+      approval: none
+      note: |
+        Append new concepts to kata.
+        Replace ## Current gaps section with gaps identified during this session's randori.
+        If no gaps: write '- None recorded yet.' under ## Current gaps.
+  - issue:
+      check: "kata updated"
+
+  # Update goal issue if topic is in checklist — add kata link, do NOT check yet
+  - if:
+      condition: open_goal_issues | any: topic in goal.unchecked_topics
+      then:
+        - update_issue:
+            target: matching_goal_issue
+            action: add_kata_link
+            topic: "{{topic}}"
+            # Finds '- [ ] `{topic}`' line and appends kata link if not already present:
+            # '- [ ] `{topic}` — {description} — [kata](https://github.com/{owner}/{repo}/blob/main/kata/{topic}.md)'
+  - issue:
+      check: "goal issue updated"
+
+  - merge:
+      strategy: squash
+      target: main
+      via: PR
+      approval: none
+output:
+  state_changes: [study-completed]
+
+---
+id: randori
+on:
+  - user wants to drill on the current topic
+  - user asks to be quizzed on what was just explained
+  - user wants to practice a concept
+  - user wants to review what they know
+  - user wants to practice without studying first
+creates_issue: false
+read:
+  - "kata/{topic}.md"            # gaps come from ## Current gaps section
+steps:
+  - if:
+      condition: topic is missing
+      then:
+        - ask: "Which topic?"
+
+  - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
+
+  - if:
+      condition: answer_correct OR answer_substantially_correct
+      then:
+        - say: "Correct. {{brief_positive_reinforcement}}"
+      else:
+        - say: "Not quite — {{gap_explanation}}"
+        - ask: "{{simpler_followup_on_same_concept_using_only_source_or_prior_kata}}"
+        - if:
+            condition: followup_correct OR followup_substantially_correct
+            then:
+              - say: "Good. {{brief_explanation_of_gap}}"
+            else:
+              - say: "{{full_re_explanation_of_concept}}"
+        # In both gap cases: update ## Current gaps in kata
+        - write:
+            path: "kata/{topic}.md"
+            fields: [current_gaps]
+            access: read-write
+            via: PR
+            approval: none
+            note: |
+              Replace ## Current gaps section only.
+              Add new gap if not already listed.
+              Format: - `concept` — description of specific gap
+output:
+  state_changes: [randori-completed]
