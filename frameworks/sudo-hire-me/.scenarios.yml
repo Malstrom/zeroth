@@ -5,17 +5,46 @@
 
 scenarios:
   - id: job_offer_received
-    trigger: user pastes job offer or says received offer from X
+    triggers:
+      - "received offer from"
+      - "got an offer from"
+      - "they sent me an offer"
+      - "ho ricevuto un'offerta"
+      - "mi hanno mandato l'offerta"
+      - "offerta ricevuta"
     file: frameworks/sudo-hire-me/scenarios/job_offer_received.yml
 
   - id: screening_prep
-    trigger: user asks to prepare for screening or interview round with X
+    triggers:
+      - "prepare for screening with"
+      - "prepare for interview with"
+      - "prep for the call with"
+      - "devo prepararmi per"
+      - "preparami per il colloquio con"
+      - "ho uno screening con"
+      - "ho un colloquio con"
+      - "ho una call con"
     file: frameworks/sudo-hire-me/scenarios/screening_prep.yml
 
   - id: round_completed_debrief
-    trigger: user says finished round / colloquio / interview with X
+    triggers:
+      - "finished round with"
+      - "just finished the screening"
+      - "done with the interview"
+      - "done with the tech interview"
+      - "ho finito lo screening"
+      - "ho appena finito lo screening"
+      - "ho finito il colloquio"
+      - "ho fatto il tech interview"
+      - "colloquio finito"
+      - "call finita"
+      - "appena finito"
     file: frameworks/sudo-hire-me/scenarios/round_completed_debrief.yml
 
   - id: update_stories
-    trigger: user asks to update stories, or called from another scenario after approval gate
+    triggers:
+      - "update stories"
+      - "update my stories"
+      - "aggiorna le storie"
+      - "aggiorna i miei esempi"
     file: frameworks/sudo-hire-me/scenarios/update_stories.yml
