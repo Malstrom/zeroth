@@ -40,8 +40,7 @@ zeroth/
 │   │   ├── .scenarios.yml  # dojo scenario catalog
 │   │   ├── overview.yml    # purpose, concept, vocabulary
 │   │   ├── structure.yml   # required directory layout
-│   │   └── checklist.yml   # validation: is this repo a valid dojo?
-│   ├── tensho/         # GTM tracker
+│   │   └── checks.yml      # validation: is this repo a valid dojo?
 │   └── sudo-hire-me/   # resume framework
 ├── templates/          # base templates ready to use
 │   ├── .agent.yml
@@ -52,6 +51,8 @@ zeroth/
 ├── .scenarios.yml      # scenario catalog for zeroth
 └── .registry.yml       # registered frameworks
 ```
+
+> **Planned frameworks** (not yet in the repo): `tensho`. See `.philosophy.yml` for intent.
 
 ## How to use this repo
 
