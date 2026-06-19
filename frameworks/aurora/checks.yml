@@ -1,0 +1,65 @@
+# frameworks/aurora/checks.yml
+# Declarative check list for giskard --mode zeroth.
+# giskard reads this file from zeroth at runtime and executes
+# every check using the proxy named in 'proxy'.
+# No logic lives in giskard for this framework.
+
+sections:
+
+  - name: "aurora@zeroth — structure"
+    checks:
+
+      - label: "frameworks/aurora/structure.yml present"
+        proxy: file_exists
+        target: frameworks/aurora/structure.yml
+        file: frameworks/aurora/structure.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/aurora/.agent.yml present"
+        proxy: file_exists
+        target: frameworks/aurora/.agent.yml
+        file: frameworks/aurora/.agent.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/aurora/.scenarios.yml present"
+        proxy: file_exists
+        target: frameworks/aurora/.scenarios.yml
+        file: frameworks/aurora/.scenarios.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/aurora/.registry.yml present"
+        proxy: file_exists
+        target: frameworks/aurora/.registry.yml
+        file: frameworks/aurora/.registry.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/aurora/README.md present"
+        proxy: file_exists
+        target: frameworks/aurora/README.md
+        file: frameworks/aurora/README.md
+        rule: rules/structure.yml
+
+      - label: "frameworks/aurora/scenarios/ present"
+        proxy: file_exists
+        target: frameworks/aurora/scenarios
+        file: frameworks/aurora/scenarios/
+        rule: rules/structure.yml
+
+      - label: "frameworks/aurora/templates/ present"
+        proxy: file_exists
+        target: frameworks/aurora/templates
+        file: frameworks/aurora/templates/
+        rule: rules/structure.yml
+
+  - name: "aurora@zeroth — scenarios"
+    checks:
+
+      - label: "frameworks/aurora/.scenarios.yml index format valid"
+        proxy: scenarios_index_valid
+        file: frameworks/aurora/.scenarios.yml
+        rule: rules/scenarios.yml
+
+      - label: "frameworks/aurora/.scenarios.yml scenario files exist"
+        proxy: scenarios_index_files_exist
+        file: frameworks/aurora/.scenarios.yml
+        rule: rules/scenarios.yml

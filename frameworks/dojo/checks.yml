@@ -1,0 +1,65 @@
+# frameworks/dojo/checks.yml
+# Declarative check list for giskard --mode zeroth.
+# giskard reads this file from zeroth at runtime and executes
+# every check using the proxy named in 'proxy'.
+# No logic lives in giskard for this framework.
+
+sections:
+
+  - name: "dojo@zeroth — structure"
+    checks:
+
+      - label: "frameworks/dojo/structure.yml present"
+        proxy: file_exists
+        target: frameworks/dojo/structure.yml
+        file: frameworks/dojo/structure.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/dojo/.agent.yml present"
+        proxy: file_exists
+        target: frameworks/dojo/.agent.yml
+        file: frameworks/dojo/.agent.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/dojo/.scenarios.yml present"
+        proxy: file_exists
+        target: frameworks/dojo/.scenarios.yml
+        file: frameworks/dojo/.scenarios.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/dojo/onboarding.yml present"
+        proxy: file_exists
+        target: frameworks/dojo/onboarding.yml
+        file: frameworks/dojo/onboarding.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/dojo/overview.yml present"
+        proxy: file_exists
+        target: frameworks/dojo/overview.yml
+        file: frameworks/dojo/overview.yml
+        rule: rules/structure.yml
+
+      - label: "frameworks/dojo/scenarios/ present"
+        proxy: file_exists
+        target: frameworks/dojo/scenarios
+        file: frameworks/dojo/scenarios/
+        rule: rules/structure.yml
+
+      - label: "frameworks/dojo/templates/ present"
+        proxy: file_exists
+        target: frameworks/dojo/templates
+        file: frameworks/dojo/templates/
+        rule: rules/structure.yml
+
+  - name: "dojo@zeroth — scenarios"
+    checks:
+
+      - label: "frameworks/dojo/.scenarios.yml index format valid"
+        proxy: scenarios_index_valid
+        file: frameworks/dojo/.scenarios.yml
+        rule: rules/scenarios.yml
+
+      - label: "frameworks/dojo/.scenarios.yml scenario files exist"
+        proxy: scenarios_index_files_exist
+        file: frameworks/dojo/.scenarios.yml
+        rule: rules/scenarios.yml
