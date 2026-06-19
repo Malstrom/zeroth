@@ -101,3 +101,16 @@ workspace:
     - path: "templates/*"
       role: template files
       access: read-write
+
+# ---------------------------------------------------------------------------
+# KNOWN REPOS
+# ---------------------------------------------------------------------------
+known_repos:
+  giskard:
+    repo: Malstrom/giskard
+    description: >
+      Universal zeroth rules validator for the Malstrom ecosystem.
+      Validates any repo against zeroth/rules/ (files, agent, scenarios, connections).
+      Runs as GitHub Action on PRs.
+      Entry point: giskard.py. Core logic: core.py. Framework checks: checks/.
+      Two modes: instance (default) and zeroth.
