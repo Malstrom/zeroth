@@ -1,0 +1,19 @@
+# scenarios/unknown_scenario.yml
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/scenarios/unknown_scenario.yml
+
+id: unknown_scenario
+creates_issue: false
+read: []
+steps:
+  - if:
+      condition: closest_scenario exists
+      then:
+        - propose: "Did you mean: {{closest_scenario}}?"
+          on_confirm:
+            - call: "{{closest_scenario}}"
+          on_reject:
+            - say: "OK. What would you like to do?"
+      else:
+        - say: "Scenario not defined. Want me to add it?"
+output:
+  state_changes: []

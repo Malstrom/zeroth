@@ -1,0 +1,86 @@
+# scenarios/spawn.yml
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/scenarios/spawn.yml
+
+id: spawn
+creates_issue: true
+issue:
+  title: "Spawn: {framework}/{repo_name}"
+  from: templates/issue_spawn.md
+  update: check
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - .registry.yml
+  - "frameworks/{framework}/overview.yml"
+  - "frameworks/{framework}/.agent.yml"
+  - "frameworks/{framework}/.scenarios.yml"
+  - "frameworks/{framework}/structure.yml"
+  - "frameworks/{framework}/templates/"
+  - templates/workflows/giskard.yml
+steps:
+  - ask: "Which framework? (available: {{registered_frameworks}})"
+  - ask: "Repo name?"
+  - ask: "Repo visibility? (public / private)"
+  - issue:
+      check: "framework files read from zeroth"
+  - create: repo
+      name: "{repo_name}"
+      visibility: "{visibility}"
+  - issue:
+      check: "repo created"
+  - write:
+      path: "{repo_name}:.agent.yml"
+      from: "frameworks/{framework}/.agent.yml"
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: ".agent.yml pushed"
+  - write:
+      path: "{repo_name}:kata/.gitkeep"
+      access: write-once
+      via: PR
+      approval: none
+  - write:
+      path: "{repo_name}:kiroku/makimono/.gitkeep"
+      access: write-once
+      via: PR
+      approval: none
+  - write:
+      path: "{repo_name}:kiroku/nikki/.gitkeep"
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: "structure created"
+  - write:
+      path: "{repo_name}:README.md"
+      generate: true
+      guided_by: "frameworks/{framework}/overview.yml"
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: "README.md pushed"
+  - write:
+      path: "{repo_name}:.github/workflows/giskard.yml"
+      from: templates/workflows/giskard.yml
+      vars:
+        framework: "{framework}"
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: "giskard workflow pushed"
+  - write:
+      path: .registry.yml
+      fields: [connections]
+      access: read-write
+      via: PR
+      approval: none
+  - issue:
+      check: ".registry.yml updated in zeroth"
+  - say: "Issue opened — {{issue.url}}"
+output:
+  state_changes: [repo-spawned]
