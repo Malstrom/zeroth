@@ -48,6 +48,7 @@ zeroth/
 │   ├── .scenarios.yml
 │   ├── .registry.yml
 │   └── overview.yml
+├── scenarios/          # zeroth scenario files (index format)
 ├── .agent.yml          # AI manifest for zeroth itself
 ├── .scenarios.yml      # scenario catalog for zeroth
 └── .registry.yml       # registered frameworks
