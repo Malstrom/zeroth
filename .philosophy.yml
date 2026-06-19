@@ -35,6 +35,7 @@ metaphor:
 frameworks:
 
   dojo:
+    status: active
     question: "What do I know how to do?"
     tracks: knowledge acquired, study sessions, exam results, skill levels
     philosophy: >
@@ -48,6 +49,7 @@ frameworks:
       Other frameworks query it. None overwrite it.
 
   aurora:
+    status: active
     question: "How do I work, and with whom?"
     tracks: clients, contacts, daily work log, communication, recurring patterns
     philosophy: >
@@ -59,16 +61,18 @@ frameworks:
       but in making past work available when it is needed.
 
   sudo_hire_me:
+    status: active
     question: "How do I present who I am professionally?"
     intent: >
       Help anyone build their professional narrative from real skills and work history.
       Not yet specified — intent only.
 
   tensho:
+    status: planned
     question: "Is this idea actually feasible for me?"
     intent: >
       Validate an idea against the owner's real capabilities and operational patterns.
-      Not yet specified — intent only.
+      No repo exists yet — framework definition has not started.
 
 # ---------------------------------------------------------------------------
 # CROSS-FRAMEWORK PRINCIPLE
