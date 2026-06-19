@@ -36,6 +36,12 @@ tool_approval:
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# HARD RULES
+# zeroth is the source of hard_rules — they are defined here, not inherited.
+# ---------------------------------------------------------------------------
+hard_rules: {}
+
+# ---------------------------------------------------------------------------
 # PHILOSOPHY
 # Read .philosophy.yml BEFORE scenarios at every session start.
 # ---------------------------------------------------------------------------

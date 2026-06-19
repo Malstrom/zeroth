@@ -37,6 +37,13 @@ tool_approval:
   destructive_ops: true
 
 # ---------------------------------------------------------------------------
+# HARD RULES
+# Inherited from zeroth rules/agent.yml — never override.
+# ---------------------------------------------------------------------------
+hard_rules:
+  ref: Malstrom/zeroth:rules/agent.yml#hard_rules
+
+# ---------------------------------------------------------------------------
 # SCENARIOS
 # Read .scenarios.yml BEFORE any reasoning.
 # Every user message must be matched against scenarios first.
