@@ -39,22 +39,10 @@ sections:
         file: frameworks/sudo-hire-me/README.md
         rule: sudo-hire-me/structure.yml
 
-      - label: "frameworks/sudo-hire-me/igor.yml present"
+      - label: "frameworks/sudo-hire-me/scenarios/ present"
         proxy: file_exists
-        target: frameworks/sudo-hire-me/igor.yml
-        file: frameworks/sudo-hire-me/igor.yml
-        rule: sudo-hire-me/structure.yml
-
-      - label: "frameworks/sudo-hire-me/hunt/ present"
-        proxy: file_exists
-        target: frameworks/sudo-hire-me/hunt
-        file: frameworks/sudo-hire-me/hunt/
-        rule: sudo-hire-me/structure.yml
-
-      - label: "frameworks/sudo-hire-me/assets/ present"
-        proxy: file_exists
-        target: frameworks/sudo-hire-me/assets
-        file: frameworks/sudo-hire-me/assets/
+        target: frameworks/sudo-hire-me/scenarios
+        file: frameworks/sudo-hire-me/scenarios/
         rule: sudo-hire-me/structure.yml
 
   - name: "sudo-hire-me@zeroth — scenarios"

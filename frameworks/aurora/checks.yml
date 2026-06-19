@@ -39,12 +39,6 @@ sections:
         file: frameworks/aurora/README.md
         rule: rules/structure.yml
 
-      - label: "frameworks/aurora/scenarios/ present"
-        proxy: file_exists
-        target: frameworks/aurora/scenarios
-        file: frameworks/aurora/scenarios/
-        rule: rules/structure.yml
-
       - label: "frameworks/aurora/templates/ present"
         proxy: file_exists
         target: frameworks/aurora/templates
@@ -54,6 +48,9 @@ sections:
   - name: "aurora@zeroth — scenarios"
     checks:
 
+      # NOTE: aurora still uses monolithic .scenarios.yml format.
+      # scenarios_index_valid and scenarios_index_files_exist will be
+      # enabled here after aurora is migrated to the index format.
       - label: "frameworks/aurora/.scenarios.yml index format valid"
         proxy: scenarios_index_valid
         file: frameworks/aurora/.scenarios.yml
