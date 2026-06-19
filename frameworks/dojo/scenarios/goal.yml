@@ -1,0 +1,167 @@
+# source: frameworks/dojo/scenarios/goal.yml
+# Scenarios: declare_goal, goal_shinsa, goal_shinsa_report
+
+---
+id: declare_goal
+on:
+  - user wants to declare a learning objective
+  - user says they want to become senior in something
+  - user says they want to reach a level in a language or technology
+  - user wants to set a goal
+  - user provides a cross-repo source artifact (job offer, project spec, interview feedback)
+creates_issue: true
+issue:
+  title: "[Goal] {goal_source_emoji} {goal_human_title} ({goal_slug})"
+  from: Malstrom/zeroth:frameworks/dojo/templates/issue_declare_goal.md
+  update: check
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - .gakusei.yml
+  - "kata/"                     # list filenames only — AI checks which kata already exist
+steps:
+  - ask: "Qual è il tuo goal?"
+  - compute: goal_slug
+  - compute: goal_human_title
+  - ask: "Da dove viene questo goal? (self-declared, job offer, project, interview feedback — o incolla un link)"
+  - compute: goal_source_type
+  - compute: goal_source_ref
+  - compute: goal_source_emoji
+  - if:
+      condition: goal_source_type == "cross_repo"
+      then:
+        - read: "{{goal_source_ref}}"
+  - compute: required_topics
+  - compute: already_satisfied     # required_topics where kata/{slug}.md exists AND ## Current gaps is empty
+  - compute: missing_topics        # required_topics − already_satisfied
+  - say: |
+      Goal: {{goal_human_title}} ({{goal_slug}})
+      Source: {{goal_source_emoji}} {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
+      Already satisfied ({{already_satisfied | count}}): {{already_satisfied | join}}
+      Topics to study:
+        🔴 Critical:  {{missing_topics | where: priority == critical | join}}
+        🟡 Important: {{missing_topics | where: priority == important | join}}
+        🟢 Later:     {{missing_topics | where: priority == later | join}}
+      # Issue body rendering:
+      # kata exists    → - [ ] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
+      # kata missing   → - [ ] `slug` — description  (or *(ai inferred)*)
+      # ALL kata links: absolute GitHub URLs (blob/main/), never relative.
+output:
+  state_changes: [goal-declared]
+
+---
+id: goal_shinsa
+on:
+  - events: [readiness-ready]
+  - user wants to take the seniority exam for an active goal
+  - user says they are ready to test their goal
+  - user wants to check if they have reached their goal
+creates_issue: true
+issue:
+  title: "Goal shinsa: {goal_slug}"
+  from: Malstrom/zeroth:frameworks/dojo/templates/issue_goal_shinsa.md
+  update: check
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - github:issues:open:[Goal]    # goal issue — checked topics = completed topics
+  - "kata/"                      # list all kata filenames
+steps:
+  - compute: goal_readiness      # from goal issue checked count vs total
+  - if:
+      condition: goal_readiness == "not_ready"
+      then:
+        - say: |
+            Non sei ancora pronto per {{goal_slug}}.
+            Completati: {{checked_topics | join}}.
+            Mancanti: {{unchecked_topics | join}}.
+        - propose: "Procedi comunque?"
+          on_reject:
+            - say: "OK. Continua a studiare."
+            - stop
+          on_confirm:
+            - continue
+
+  - say: "Goal shinsa: {{goal_slug}}. Nessun feedback durante l'esame — solo score finale."
+
+  - for_each: question in exam.questions   # 15–20 questions from kata/ filtered by goal
+    do:
+      - ask: "{{question.text}}"
+
+  - compute: score
+  - compute: weak_topics
+  - issue:
+      check: "exam conducted"
+
+  # Write nikki FIRST
+  - write:
+      path: "kiroku/nikki/"
+      filename: "YYYY-MM-DD_{goal_slug}_goal_shinsa.yml"
+      from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
+      access: write-once
+      via: PR
+      approval: none
+  - issue:
+      check: "nikki written"
+
+  - if:
+      condition: score >= 80
+      then:
+        - write:
+            path: "kiroku/makimono/"
+            filename: "YYYY-MM-DD_{goal_slug}_passed.yml"
+            from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_makimono.yml
+            access: write-once
+            via: PR
+            approval: none
+        - issue:
+            check: "makimono written"
+        - update_issue:
+            target: matching_goal_issue
+            action: close
+            makimono: "{{makimono_url}}"
+            # Closes the goal issue with a comment: makimono link
+        - emit: goal-shinsa-passed
+      else:
+        - emit: goal-shinsa-failed
+  - issue:
+      check: "artifacts updated"
+
+  - merge:
+      strategy: squash
+      target: main
+      via: PR
+      approval: none
+output:
+  state_changes: []
+
+---
+id: goal_shinsa_report
+type: reporter
+on:
+  events: [goal-shinsa-passed, goal-shinsa-failed]
+creates_issue: false
+read: []
+steps:
+  - if:
+      condition: event == "goal-shinsa-passed"
+      then:
+        - say: |
+            Goal shinsa passata. Score: {{score}}%.
+            {{goal_slug}} raggiunto — makimono scritto.
+      else:
+        - say: |
+            Goal shinsa non passata. Score: {{score}}%.
+            Weak topics: {{weak_topics | join}}.
+        - propose: "Studia i weak topics adesso?"
+          on_confirm:
+            - call: study_open
+              with:
+                topic: "{{weak_topics.first}}"
+                source: gaps_from_kata
+          on_reject:
+            - say: "OK. Riprova quando sei pronto."
+output:
+  state_changes: []

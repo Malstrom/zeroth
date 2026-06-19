@@ -1,0 +1,42 @@
+# source: frameworks/dojo/scenarios/session.yml
+
+id: session_start
+on:
+  - session opens automatically
+creates_issue: false
+read:
+  - .gakusei.yml                          # identity only
+  - github:issues:open:[Goal]              # all open goal issues
+steps:
+  - if:
+      condition: gakusei_missing OR student_name == ""
+      then:
+        - read: Malstrom/zeroth:frameworks/dojo/onboarding.yml
+        - call: onboarding
+        - stop
+  - say: "{{student_name}}!"
+  - if:
+      condition: open_goal_issues | count > 0
+      then:
+        - say: |
+            Goal attivo: {{open_goal_issues.first.title}}
+            Progressi:
+            {{open_goal_issues.first | topics_with_kata_status}}
+            # topics_with_kata_status renders each topic as:
+            # - `slug` — in progress (kata exists, gaps: X) | not started | [x] passed
+            # kata existence check: kata/{slug}.md exists?
+            # gap count: ## Current gaps section in kata/{slug}.md, non-empty lines
+        - propose: "Continuiamo su {{open_goal_issues.first.title}}?"
+          on_confirm:
+            - call: study_open
+          on_reject:
+            - say: "Cosa vuoi fare? study, randori, topic shinsa, o dichiara un nuovo goal."
+      else:
+        - say: "Nessun goal attivo."
+        - propose: "Dichiari un goal?"
+          on_confirm:
+            - call: declare_goal
+          on_reject:
+            - say: "Cosa vuoi fare? study, randori, o topic shinsa."
+output:
+  state_changes: []
