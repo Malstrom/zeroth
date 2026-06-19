@@ -94,6 +94,9 @@ workspace:
     - path: "rules/*.yml"
       role: individual rule files
       access: read-write
+    - path: "rules/checks.yml"
+      role: giskard validation checks — canonical source of all proxy validation rules used by giskard
+      access: read-write
     - path: "frameworks/**/.agent.yml"
       role: framework AI manifests
       access: read-write
@@ -116,6 +119,7 @@ known_repos:
     description: >
       Universal zeroth rules validator for the Malstrom ecosystem.
       Validates any repo against zeroth/rules/ (files, agent, scenarios, connections).
+      Check definitions live in zeroth/rules/checks.yml — giskard reads them at runtime.
       Runs as GitHub Action on PRs.
       Entry point: giskard.py. Core logic: core.py. Framework checks: checks/.
       Two modes: instance (default) and zeroth.
