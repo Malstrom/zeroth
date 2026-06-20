@@ -14,7 +14,7 @@ The research is clear on why this goes wrong — and what a system needs to fix 
 
 > ***Your pipeline lives everywhere, so it lives nowhere.***
 >
-> Spreadsheets, email threads, Notion boards, LinkedIn notes — state is distributed across tools that don’t talk to each other and go stale the moment you stop updating them. The brain cannot trust what it cannot verify, and stops trying. [Allen, 2001 — Getting Things Done](https://gettingthingsdone.com).
+> Spreadsheets, email threads, Notion boards, LinkedIn notes — state is distributed across tools that don't talk to each other and go stale the moment you stop updating them. The brain cannot trust what it cannot verify, and stops trying. [Allen, 2001 — Getting Things Done](https://gettingthingsdone.com).
 
 > ***Every session starts from zero because the AI has no memory.***
 >
@@ -22,7 +22,7 @@ The research is clear on why this goes wrong — and what a system needs to fix 
 
 > ***When you update state, you lose history.***
 >
-> Overwriting a company’s status means you no longer know what happened, when, or why. Without an immutable log, a pipeline is a snapshot — not a record. Decisions made without history tend to repeat mistakes. [Event sourcing principle — Fowler, 2005](https://martinfowler.com/eaaDev/EventSourcing.html).
+> Overwriting a company's status means you no longer know what happened, when, or why. Without an immutable log, a pipeline is a snapshot — not a record. Decisions made without history tend to repeat mistakes. [Event sourcing principle — Fowler, 2005](https://martinfowler.com/eaaDev/EventSourcing.html).
 
 > ***Rejection and ghosting distort your priorities.***
 >
@@ -48,3 +48,84 @@ sudo-hire-me is designed to fix the system, not the symptoms. The AI knows your 
 ## 🚀 How to start
 
 Create a new sudo-hire-me instance using the `spawn` scenario from your zeroth Perplexity Space.
+
+---
+
+## 🎨 Design & Visual Identity
+
+This section defines how sudo-hire-me is represented on any site or dashboard built on the zeroth ecosystem.
+It is the single source of truth for its visual identity — follow these rules exactly, do not improvise.
+
+### Symbol: the compass
+
+The defining mark of sudo-hire-me is a **minimal compass rose**.
+
+```
+Rules:
+- Inline SVG only — no raster images, no external files
+- Size: 48×48 px at default, scales via currentColor and viewBox
+- Stroke only — fill: none — weight: 1.5 px
+- Color: currentColor — adapts to light/dark mode automatically
+- 4 cardinal points only (N S E W) — no decorative sub-points
+- N point is visually heavier (slightly longer stroke) to imply direction
+- No text labels, no degree markings, no drop shadow
+```
+
+Reference SVG skeleton:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"
+     fill="none" stroke="currentColor" stroke-width="1.5"
+     stroke-linecap="round" aria-label="sudo-hire-me compass" role="img">
+  <!-- outer circle -->
+  <circle cx="24" cy="24" r="20"/>
+  <!-- N (longer — direction) -->
+  <line x1="24" y1="4"  x2="24" y2="18"/>
+  <!-- S -->
+  <line x1="24" y1="30" x2="24" y2="44"/>
+  <!-- E -->
+  <line x1="30" y1="24" x2="44" y2="24"/>
+  <!-- W -->
+  <line x1="4"  y1="24" x2="18" y2="24"/>
+  <!-- centre dot -->
+  <circle cx="24" cy="24" r="1.5" fill="currentColor" stroke="none"/>
+</svg>
+```
+
+### Card layout rules
+
+When rendering sudo-hire-me as a card in a grid alongside other frameworks:
+
+| Property | Rule |
+|---|---|
+| Symbol position | Top-left of card, `padding: 24px` from corner |
+| Symbol size | `48×48 px` — never scale up, never shrink below `32×32` |
+| Card heading | Framework name `sudo-hire-me` in body font, weight 300, letter-spacing `0.08em` |
+| Guiding question | *"How do I find and land the job I actually want?"* — muted text, `font-size: --text-sm`, not bold |
+| Description | 1–2 lines max, `--color-text-muted`, `--text-sm` |
+| Accent colour | `--color-primary` (Hydra Teal) on hover state only — never as a static fill |
+| Card border | `1px solid oklch(from var(--color-text) l c h / 0.10)` — never a coloured side border |
+| Background | `--color-surface` at rest, `--color-surface-2` on hover |
+
+### What is forbidden
+
+- No gradient fills on the card or the symbol
+- No coloured side border (`border-left: Xpx solid <accent>`)
+- No icon inside a coloured circle or rounded square
+- No emoji as decoration
+- No drop shadow on the symbol
+- No filled compass — stroke only
+- Do not change the symbol: the compass is fixed, not a placeholder
+
+### Relationship to the other frameworks
+
+Each framework in the zeroth ecosystem has one fixed symbol and one fixed accent moment:
+
+| Framework | Symbol | Accent moment |
+|---|---|---|
+| dojo | ensō (open brush circle) | hover only, `--color-primary` |
+| aurora | orbital arc (single ellipse + dot) | hover only, `--color-primary` |
+| sudo-hire-me | compass rose (4 cardinal points) | hover only, `--color-primary` |
+
+All three share the same Nexus palette, the same card layout rules, and the same accent colour.
+The symbol is the only differentiator — everything else is identical by design.
