@@ -9,39 +9,40 @@
 <!--
   This is the manifesto. Be opinionated. Cite real research.
 
-  Structure for every research point:
+  Structure for every research point — use a blockquote block:
 
-    ***Problem title — what goes wrong without this framework.***
-
-    One plain-language sentence. No jargon. [Author, Year](link).
+    > ***Problem title — what goes wrong without this framework.***
+    >
+    > One plain-language sentence. No jargon. [Author, Year](link).
 
   Example (from dojo):
 
-    ***You remember what you retrieve, not what you read.***
-
-    Recalling information actively beats re-reading it every time — the act of retrieval
-    itself is what builds durable memory. [Roediger & Karpicke, 2006](https://doi.org/10.1177/1745691612443552).
+    > ***You remember what you retrieve, not what you read.***
+    >
+    > Recalling information actively beats re-reading it every time — the act of retrieval
+    > itself is what builds durable memory. [Roediger & Karpicke, 2006](https://doi.org/10.1177/1745691612443552).
 
   Rules:
   - Minimum 3 research points.
-  - Each point = bold+italic title on its own line + 1 plain-language sentence below + 1 live link.
-  - Blank line between every point — no bullet list.
-  - End with 2 closing paragraphs:
+  - Each point = its own blockquote block (blank line between blocks).
+  - Title = bold+italic (***like this***) on the first line of the blockquote.
+  - Text = plain sentence below, with live link at the end.
+  - End with 2 plain paragraphs (no blockquote):
       1. The AI trap — why AI makes this problem worse if used naively.
       2. The goal — what this framework actually achieves (outcome, not feature list).
 -->
 
-***{Problem title — what goes wrong without this framework.}***
+> ***{Problem title — what goes wrong without this framework.}***
+>
+> {One plain-language sentence. No jargon.} [{Author, Year}]({link}).
 
-{One plain-language sentence. No jargon.} [{Author, Year}]({link}).
+> ***{Problem title — what goes wrong without this framework.}***
+>
+> {One plain-language sentence. No jargon.} [{Author, Year}]({link}).
 
-***{Problem title — what goes wrong without this framework.}***
-
-{One plain-language sentence. No jargon.} [{Author, Year}]({link}).
-
-***{Problem title — what goes wrong without this framework.}***
-
-{One plain-language sentence. No jargon.} [{Author, Year}]({link}).
+> ***{Problem title — what goes wrong without this framework.}***
+>
+> {One plain-language sentence. No jargon.} [{Author, Year}]({link}).
 
 {The AI trap: why using AI naively makes this problem worse, not better.}
 
