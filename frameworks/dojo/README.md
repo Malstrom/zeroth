@@ -12,29 +12,29 @@ Most people study with books or courses. The problem is structural: a book conta
 
 The research is clear on why this fails — and what works instead.
 
-***You remember what you retrieve, not what you read.***
+> ***You remember what you retrieve, not what you read.***
+>
+> Recalling information actively beats re-reading it every time — the act of retrieval itself is what builds durable memory. [Roediger & Karpicke, 2006](https://doi.org/10.1177/1745691612443552).
 
-Recalling information actively beats re-reading it every time — the act of retrieval itself is what builds durable memory. [Roediger & Karpicke, 2006](https://doi.org/10.1177/1745691612443552).
+> ***You forget everything you don’t revisit at the right moment.***
+>
+> Memory decays on a predictable curve. Reviewing at increasing intervals — just before you forget — is the most efficient way to retain knowledge long-term. [Ebbinghaus, 1885](https://psychclassics.yorku.ca/Ebbinghaus/index.htm); [Cepeda et al., 2006](https://doi.org/10.1111/j.1467-8721.2007.00476.x).
 
-***You forget everything you don’t revisit at the right moment.***
+> ***You only understand something when you can explain it.***
+>
+> Connecting new knowledge to what you already know, and being forced to articulate it, produces far deeper comprehension than passive absorption. [Chi et al., 1994](https://doi.org/10.1207/s1532690xci1204_1).
 
-Memory decays on a predictable curve. Reviewing at increasing intervals — just before you forget — is the most efficient way to retain knowledge long-term. [Ebbinghaus, 1885](https://psychclassics.yorku.ca/Ebbinghaus/index.htm); [Cepeda et al., 2006](https://doi.org/10.1111/j.1467-8721.2007.00476.x).
+> ***Knowledge learned out of context doesn’t transfer.***
+>
+> What you study in a course feels clear until you face a real problem — and don’t recognise it. Learning anchored to real situations and your own context transfers. Abstract learning often doesn’t. [Lave & Wenger, 1991](https://doi.org/10.1017/CBO9780511815355); [Morris et al., 1977](https://doi.org/10.1037/0278-7393.3.5.519).
 
-***You only understand something when you can explain it.***
+> ***You don’t know what you don’t know.***
+>
+> People systematically overestimate how well they understand something after reading it passively. Without an external map of your actual knowledge, you study the wrong things. [Kruger & Dunning, 1999](https://doi.org/10.1037/0022-3514.77.6.1121); [Bjork et al., 2013](https://doi.org/10.1016/j.intell.2013.01.004).
 
-Connecting new knowledge to what you already know, and being forced to articulate it, produces far deeper comprehension than passive absorption. [Chi et al., 1994](https://doi.org/10.1207/s1532690xci1204_1).
-
-***Knowledge learned out of context doesn’t transfer.***
-
-What you study in a course feels clear until you face a real problem — and don’t recognise it. Learning anchored to real situations and your own context transfers. Abstract learning often doesn’t. [Lave & Wenger, 1991](https://doi.org/10.1017/CBO9780511815355); [Morris et al., 1977](https://doi.org/10.1037/0278-7393.3.5.519).
-
-***You don’t know what you don’t know.***
-
-People systematically overestimate how well they understand something after reading it passively. Without an external map of your actual knowledge, you study the wrong things. [Kruger & Dunning, 1999](https://doi.org/10.1037/0022-3514.77.6.1121); [Bjork et al., 2013](https://doi.org/10.1016/j.intell.2013.01.004).
-
-***Isolated knowledge is useless knowledge.***
-
-A course here, a book there, notes saved somewhere else — none of it connects. Understanding deepens when new knowledge is anchored to what you already know across domains. [Ausubel, 1968](https://www.worldcat.org/title/educational-psychology-a-cognitive-view/oclc/396748); [Siemens, 2005](https://doi.org/10.3217/zfhe-2-05-01).
+> ***Isolated knowledge is useless knowledge.***
+>
+> A course here, a book there, notes saved somewhere else — none of it connects. Understanding deepens when new knowledge is anchored to what you already know across domains. [Ausubel, 1968](https://www.worldcat.org/title/educational-psychology-a-cognitive-view/oclc/396748); [Siemens, 2005](https://doi.org/10.3217/zfhe-2-05-01).
 
 The risk with AI is the opposite trap: you get the answer instantly, but you never build the knowledge. You become faster but shallower. More dependent, not more capable.
 
