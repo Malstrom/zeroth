@@ -55,6 +55,12 @@ structure:
     - folders group by function, not by file type
     - AI navigation files are hidden YAML when possible
 
+  framework_readme:
+    rule: every frameworks/*/README.md must start with the following HTML comment as its very first line
+    required_first_line: "<!-- AI: before editing this file, read templates/framework_readme.md in zeroth. -->"
+    reason: ensures the AI reads the canonical framework README template before any edit
+    enforced_by: giskard
+
 # ---------------------------------------------------------------------------
 # TEMPLATES
 # ---------------------------------------------------------------------------
@@ -62,6 +68,11 @@ templates:
   rule: every generatable document has a template in templates/ — read it before generating
   placeholder_format: "{{TOKEN}}"
   forbidden: deviate from template structure — update template first, then use it
+
+  framework_readme:
+    file: templates/framework_readme.md
+    applies_to: "frameworks/*/README.md"
+    rule: read this template before creating or editing any framework README
 
 # ---------------------------------------------------------------------------
 # IMMUTABILITY AND LOGS
