@@ -3,7 +3,7 @@
 > The zeroth law stands above all others.
 
 Spec and foundational rules for building AI-native frameworks in the Malstrom ecosystem.
-Every framework that respects `zeroth` can be automatically validated by giskard.
+Every framework that respects `zeroth` can be automatically validated by [giskard](https://github.com/Malstrom/giskard).
 
 ## Why "zeroth"
 
@@ -11,7 +11,7 @@ Isaac Asimov introduced the Three Laws of Robotics in 1942.
 Decades later, in *Robots and Empire* (1985), he added a law so fundamental
 it had to precede all others — the Zeroth Law:
 
-> *"A robot may not harm humanity, or, by inaction, allow humanity to come to come to harm."*
+> *"A robot may not harm humanity, or, by inaction, allow humanity to come to harm."*
 
 A zeroth law doesn't replace the others. It governs them.
 This repo works the same way: not a framework itself, but the law above all frameworks.
@@ -26,39 +26,42 @@ No zeroth, no giskard. The law comes first.
 
 ```
 zeroth/
-├── rules/              # UNIVERSAL rules — apply to every framework
-│   ├── agent.yml        # structure and mandatory rules for .agent.yml
-│   ├── scenarios.yml    # syntax rules for .scenarios.yml and handlers
-│   ├── structure.yml    # required files, one file = one responsibility
-│   ├── naming.yml       # naming for repos, folders, files + language rule
-│   ├── registry.yml     # rules for .registry.yml
-│   ├── sync.yml         # cross-repo synchronisation patterns
-│   └── log.yml          # immutability and logging
-├── frameworks/         # FRAMEWORK-SPECIFIC rules
-│   ├── dojo/           # AI-assisted learning framework
-│   │   ├── .agent.yml      # dojo AI manifest
-│   │   ├── .scenarios.yml  # dojo scenario catalog
-│   │   ├── overview.yml    # purpose, concept, vocabulary
-│   │   ├── structure.yml   # required directory layout
-│   │   └── checks.yml      # validation: is this repo a valid dojo?
-│   └── sudo-hire-me/   # resume framework
-├── templates/          # base templates ready to use
+├── rules/                  # UNIVERSAL rules — apply to every framework
+│   ├── agent.yml           # structure and mandatory rules for .agent.yml
+│   ├── scenarios.yml       # syntax rules for .scenarios.yml and handlers
+│   ├── files.yml           # naming, organization, immutability, log patterns
+│   ├── connections.yml     # cross-repo synchronisation patterns
+│   └── checks.yml          # validation rules used by giskard
+├── frameworks/             # FRAMEWORK-SPECIFIC rules
+│   ├── dojo/               # AI-assisted learning — see README
+│   ├── aurora/             # Professional memory — see README
+│   └── sudo-hire-me/       # Job search management — see README
+├── templates/              # base templates ready to use
+│   ├── framework_readme.md # canonical template for framework READMEs
 │   ├── .agent.yml
 │   ├── .scenarios.yml
 │   ├── .registry.yml
 │   └── overview.yml
-├── .agent.yml          # AI manifest for zeroth itself
-├── .scenarios.yml      # scenario catalog for zeroth
-└── .registry.yml       # registered frameworks
+├── .agent.yml              # AI manifest for zeroth itself
+├── .scenarios.yml          # scenario catalog for zeroth
+└── .registry.yml           # registered frameworks
 ```
 
-> **Planned frameworks** (not yet in the repo): `tensho`. See `.philosophy.yml` for intent.
+## Frameworks
+
+| Framework | What it does |
+|---|---|
+| [dojo](frameworks/dojo/README.md) | AI-assisted learning — the AI acts as a sensei, tracks your knowledge state, and works only on the gap |
+| [aurora](frameworks/aurora/README.md) | Professional memory — the AI remembers everything you have done, for whom, and what comes next |
+| [sudo-hire-me](frameworks/sudo-hire-me/README.md) | Job search management — immutable pipeline log, full context across sessions, no re-briefing |
+
+> **Planned**: `tensho`. See `.philosophy.yml` for intent.
 
 ## How to use this repo
 
 - **Build a new framework**: read all of `rules/` → use the closest `frameworks/` folder as reference → create your repo.
-- **Validate an existing framework**: run giskard or manually follow the `checklist.yml` in the framework's folder.
-- **Add a new framework**: create `frameworks/{name}/` with at least `overview.yml`, `structure.yml`, `checklist.yml`.
+- **Validate an existing framework**: run [giskard](https://github.com/Malstrom/giskard) or manually follow the `checks.yml` in the framework's folder.
+- **Add a new framework**: create `frameworks/{name}/` with at least `overview.yml`, `structure.yml`, `checks.yml` and a `README.md` following [`templates/framework_readme.md`](templates/framework_readme.md).
 
 ## Universal Quick Rules
 
