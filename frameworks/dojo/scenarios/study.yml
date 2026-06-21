@@ -98,6 +98,27 @@ on:
 creates_issue: false
 read:
   - "kata/{topic}.md"            # gaps come from ## Current gaps section
+
+# ---------------------------------------------------------------------------
+# SENSEI RULES — enforced in every randori call, including inline calls from study_open
+# ---------------------------------------------------------------------------
+sensei_rules:
+  no_live_coding: true
+  rationale: >
+    Live coding has no diagnostic value in a chat session.
+    The AI cannot run code, inspect the environment, or evaluate tests.
+    Syntax correctness is not a signal of understanding — tooling handles it.
+  allowed_question_types:
+    - reasoning: ask the student to explain why a design choice was made
+    - edge_cases: ask what happens when a specific input or condition changes
+    - tradeoffs: ask the student to compare two approaches and justify a preference
+    - mental_model: ask the student to describe what happens internally when X is called
+    - error_diagnosis: describe a symptom, ask the student to identify the likely cause
+  forbidden_question_types:
+    - write_this_function: asking the student to produce working code in chat
+    - implement_this: any request to type out a full implementation
+    - live_coding: any format that requires the student to write syntactically correct code in real time
+
 steps:
   - if:
       condition: topic is missing
@@ -105,6 +126,8 @@ steps:
         - ask: "Which topic?"
 
   - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
+    # Question MUST be one of the allowed_question_types above.
+    # Question MUST NOT be one of the forbidden_question_types above.
 
   - if:
       condition: answer_correct OR answer_substantially_correct
