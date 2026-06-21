@@ -12,6 +12,7 @@ on:
 creates_issue: true
 issue:
   title: "[Goal] {goal_source_emoji} {goal_human_title} ({goal_slug})"
+  labels: ["Goal"]
   from: Malstrom/zeroth:frameworks/dojo/templates/issue_declare_goal.md
   update: check
   approval: none
@@ -66,8 +67,8 @@ issue:
   on_complete: close
   on_fail: comment
 read:
-  - github:issues:open:[Goal]    # goal issue — checked topics = completed topics
-  - "kata/"                      # list all kata filenames
+  - github:issues:open:label:Goal    # goal issue — checked topics = completed topics
+  - "kata/"                          # list all kata filenames
 steps:
   - compute: goal_readiness      # from goal issue checked count vs total
   - if:
