@@ -6,7 +6,7 @@ on:
 creates_issue: false
 read:
   - .gakusei.yml                          # identity only
-  - github:issues:open:[Goal]              # all open goal issues
+  - github:issues:open:label:Goal          # all open goal issues (filter by label)
 steps:
   - if:
       condition: gakusei_missing OR student_name == ""
@@ -14,6 +14,13 @@ steps:
         - read: Malstrom/zeroth:frameworks/dojo/onboarding.yml
         - call: onboarding
         - stop
+  - ensure_label:
+      name: "Goal"
+      color: "0075ca"
+      description: "Active learning goal"
+  - ensure_labels_on_issues:
+      title_pattern: "^\\[Goal\\]"
+      label: "Goal"
   - say: "{{student_name}}!"
   - if:
       condition: open_goal_issues | count > 0
