@@ -17,7 +17,7 @@ issue:
   on_fail: comment
 read:
   - .gakusei.yml
-  - "kata/{topic}.md"            # read if exists — contains current gaps
+  - "kata/{topic}.md"
 input_sources:
   - attached_file
   - url
@@ -42,7 +42,6 @@ steps:
   - issue:
       check: "concepts taught and randori completed"
 
-  # Write nikki FIRST — immutable record of the session
   - write:
       path: "kiroku/nikki/"
       filename: "YYYY-MM-DD_{topic}_study.yml"
@@ -53,7 +52,6 @@ steps:
   - issue:
       check: "nikki written"
 
-  # Update kata: add new concepts + refresh ## Current gaps
   - write:
       path: "kata/{topic}.md"
       access: read-write
@@ -66,7 +64,6 @@ steps:
   - issue:
       check: "kata updated"
 
-  # Update goal issue if topic is in checklist — add kata link, do NOT check yet
   - if:
       condition: open_goal_issues | any: topic in goal.unchecked_topics
       then:
@@ -74,8 +71,6 @@ steps:
             target: matching_goal_issue
             action: add_kata_link
             topic: "{{topic}}"
-            # Finds '- [ ] `{topic}`' line and appends kata link if not already present:
-            # '- [ ] `{topic}` — {description} — [kata](https://github.com/{owner}/{repo}/blob/main/kata/{topic}.md)'
   - issue:
       check: "goal issue updated"
 
@@ -97,11 +92,8 @@ on:
   - user wants to practice without studying first
 creates_issue: false
 read:
-  - "kata/{topic}.md"            # gaps come from ## Current gaps section
+  - "kata/{topic}.md"
 
-# ---------------------------------------------------------------------------
-# SENSEI RULES — enforced in every randori call, including inline calls from study_open
-# ---------------------------------------------------------------------------
 sensei_rules:
   no_live_coding: true
   rationale: >
@@ -126,8 +118,6 @@ steps:
         - ask: "Which topic?"
 
   - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
-    # Question MUST be one of the allowed_question_types above.
-    # Question MUST NOT be one of the forbidden_question_types above.
 
   - if:
       condition: answer_correct OR answer_substantially_correct
@@ -142,7 +132,6 @@ steps:
               - say: "Good. {{brief_explanation_of_gap}}"
             else:
               - say: "{{full_re_explanation_of_concept}}"
-        # In both gap cases: update ## Current gaps in kata
         - write:
             path: "kata/{topic}.md"
             fields: [current_gaps]
