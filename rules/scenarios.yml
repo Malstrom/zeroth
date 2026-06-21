@@ -185,27 +185,24 @@ anatomy:
   # --- issue_updates (creates_issue == false only) ---
   issue_updates:
     rule: |
-      Optional. Declare when a scenario with creates_issue == false needs to add
-      comments to an existing issue identified via compute.
+      Optional. Declare when a scenario with creates_issue == false needs to interact
+      with an existing external issue identified via compute.
       Forbidden when creates_issue == true — use the issue: block instead.
+      Serves only as target declaration — the actual update is performed by update_issue steps.
     fields:
       target:
         rule: name of the compute variable holding the issue identifier
-        example: target_issue
-      mode:
-        values: [comment]
-        default: comment
-        note: only comment is supported — check is not allowed on external issues
+        example: matching_goal_issue
       condition:
         rule: |
           Optional. A condition expression evaluated at runtime.
-          If the condition is false, issue_updates is skipped entirely — no error, no comment.
+          If the condition is false, all update_issue steps targeting this issue are skipped
+          entirely — no error, no side effect.
           Use when the target issue may not exist (e.g. topic not covered by any active goal).
         example: matching_goal_issue exists
     note: |
-      When issue_updates is declared, issue: comment steps in the steps list are valid
-      and target the issue identified by issue_updates.target.
-      The target variable must be computed before any issue: step.
+      The target variable must be computed before any update_issue step.
+      issue: comment steps are no longer valid for external issue updates — use update_issue instead.
 
   # --- dedup (event-triggered and reporter only) ---
   dedup:
@@ -335,7 +332,7 @@ anatomy:
         note: may be used inside on_confirm or if/then/else
 
       issue:
-        description: mid-scenario issue update — opt-in, only when needed
+        description: mid-scenario issue update — opt-in, only when creates_issue == true
         syntax: |
           - issue:
               check: "checklist item text"  # ticks that checkbox in issue body (requires update: check)
@@ -346,13 +343,54 @@ anatomy:
                 vars:
                   key: "{{value}}"
         note: |
-          Two valid uses:
-          1. creates_issue == true: issue: steps target the scenario's own issue
-             (issue: check requires issue.update == check;
-              issue: comment requires issue.update == comment)
-          2. creates_issue == false + issue_updates declared: issue: comment steps
-             target the external issue identified by issue_updates.target.
-             issue: check is forbidden in this case.
+          Only valid when creates_issue == true — targets the scenario's own issue.
+          issue: check requires issue.update == check.
+          issue: comment requires issue.update == comment.
+          For updates to EXTERNAL issues (creates_issue == false), use update_issue instead.
+        forbidden_in: [event_triggered, reporter]
+
+      update_issue:
+        description: |
+          Edit an external issue identified by a computed variable.
+          Only valid when issue_updates is declared and its condition is met.
+          This is the correct mechanism for inline body edits (e.g. adding kata links
+          next to topic checkboxes) and for closing external issues.
+          Does NOT create a new issue — only mutates an existing one.
+        syntax: |
+          - update_issue:
+              target: matching_goal_issue     # must match issue_updates.target
+              action: add_kata_link           # see actions below
+              topic: "{{topic}}"
+              kata_url: "{{kata_absolute_url}}"
+          # OR
+          - update_issue:
+              target: matching_goal_issue
+              action: close
+              comment: "{{optional closing comment}}"
+          # OR
+          - update_issue:
+              target: matching_goal_issue
+              action: add_comment
+              from: templates/comment.md
+              vars:
+                key: "{{value}}"
+        actions:
+          add_kata_link: |
+            Edits the issue body inline.
+            Finds the checklist item matching `topic`, appends the kata link next to it.
+            Format: `- [ ] \`{topic}\` — {description} — [kata]({kata_url})`
+            If kata has no open gaps (## Current gaps empty): also ticks the checkbox.
+          close: |
+            Closes the issue. Optionally adds a closing comment.
+          add_comment: |
+            Adds a comment to the issue without editing the body.
+            Use when you need to append session notes without touching the checklist.
+        required_fields:
+          - target   # must be declared in issue_updates.target
+          - action
+        conditional: |
+          If issue_updates.condition is false at runtime, all update_issue steps
+          targeting that issue are silently skipped — no error.
         forbidden_in: [event_triggered, reporter]
 
       if:
@@ -450,10 +488,12 @@ validation:
   - if creates_issue == true, issue: block must be present with title, from, update, approval, on_complete, on_fail
   - if creates_issue == true, issue.body inline is forbidden — use issue.from
   - if creates_issue == false, issue: block must be absent
-  - if creates_issue == false and issue: steps are present, issue_updates block must be declared
-  - if issue_updates is declared, issue_updates.target must be a computed variable available before any issue: step
-  - if creates_issue == false, issue: check steps are forbidden
-  - if creates_issue == false, issue: comment steps require issue_updates to be declared
+  - if creates_issue == false, issue: steps are forbidden — use update_issue instead
+  - if issue_updates is declared, issue_updates.target must be a computed variable available before any update_issue step
+  - every update_issue step must have: target, action
+  - update_issue target must match issue_updates.target
+  - update_issue with action add_kata_link must have: topic, kata_url
+  - update_issue is forbidden when issue_updates is not declared
   - every write step must have: path, access, via, approval
   - every write step where access is write-once or read-write must have: from
   - every write step where access is append-only must NOT have: from
@@ -468,7 +508,7 @@ validation:
   - triggers must be in English
   - type: reporter is required when scenario uses events: on: form AND has say/propose steps
   - issue: check steps are only valid when issue.update == check (creates_issue == true)
-  - issue: comment steps are only valid when issue.update == comment (creates_issue == true) OR issue_updates is declared (creates_issue == false)
+  - issue: comment steps are only valid when issue.update == comment (creates_issue == true)
   - read: entries may be file paths, glob patterns, or special sources (issues:, comments:) as declared in read.special_sources
   - if priority is present, it must be a non-negative integer
   - if preconditions is present, each condition must be a known identifier declared in the framework's overview.yml or .agent.yml under state_conditions, or the literal "any"

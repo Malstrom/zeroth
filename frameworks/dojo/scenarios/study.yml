@@ -10,8 +10,7 @@ on:
 creates_issue: false
 issue_updates:
   target: matching_goal_issue
-  mode: comment
-  condition: matching_goal_issue exists   # if no goal issue covers this topic, issue_updates is skipped entirely
+  condition: matching_goal_issue exists   # if no goal issue covers this topic, all update_issue steps are skipped
 read:
   - .gakusei.yml
   - github:issues:open:label:Goal         # to resolve matching_goal_issue
@@ -54,15 +53,16 @@ steps:
         Replace ## Current gaps section with gaps identified during this session's randori.
         If no gaps: write '- None recorded yet.' under ## Current gaps.
 
-  - if:
-      condition: matching_goal_issue exists
-      then:
-        - update_issue:
-            target: matching_goal_issue
-            action: add_kata_link
-            topic: "{{topic}}"
-            # Adds kata link to the topic checklist item in the goal issue.
-            # Ticks the checkbox if all gaps in kata/{topic}.md are resolved.
+  - update_issue:
+      target: matching_goal_issue
+      action: add_kata_link
+      topic: "{{topic}}"
+      kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
+      # Edits the goal issue body inline:
+      # finds the checklist item matching topic, appends kata link next to it.
+      # Format: - [ ] `topic` — description — [kata](kata_url)
+      # If kata has no open gaps: also ticks the checkbox.
+      # Skipped entirely if matching_goal_issue does not exist.
 
   - merge:
       strategy: squash
