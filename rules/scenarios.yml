@@ -10,10 +10,19 @@
 # How the AI picks a scenario before executing anything.
 # ---------------------------------------------------------------------------
 routing:
+  precondition_check: before trigger match — scenarios with failing preconditions are excluded
   rule: read ALL triggers before picking a scenario
   match: first semantic match wins — pick the most specific
+  order: sorted by priority DESC, then declaration order
   on_no_match: call unknown_scenario
-  order: scenarios evaluated top to bottom
+  escape_triggers:
+    description: |
+      Keywords that immediately interrupt ANY active scenario and return to routing.
+      The AI aborts the current scenario, says a brief interruption acknowledgement,
+      then re-routes the next user message from scratch.
+    default_keywords: ["stop", "cancel", "abort", "wrong", "reset", "esci", "annulla"]
+    override: frameworks can extend this list in their .agent.yml under hard_rules.escape_triggers
+    note: escape_triggers are evaluated BEFORE scenario trigger matching on every message.
   note: |
     The AI resolves the user's language, then matches intent.
     triggers are always written in English — language-independent.
@@ -94,6 +103,24 @@ anatomy:
           reporter must be declared explicitly because it shares the events: on: form
           with event_triggered but has different constraints.
 
+  # --- preconditions (optional) ---
+  preconditions:
+    rule: |
+      Optional. Declare when a scenario can only run if a specific state is present.
+      The AI checks all preconditions BEFORE evaluating trigger match.
+      A scenario whose preconditions are not met is EXCLUDED from routing candidates,
+      even if its triggers match the user message.
+      Use "any" to explicitly signal no precondition (always eligible).
+    format: list of condition identifiers
+    examples:
+      - active_goal_exists   # .gakusei.yml has at least one goal with status: active
+      - no_active_goal       # .gakusei.yml has no active goal OR file does not exist
+      - any                  # no precondition — always eligible
+    note: |
+      Preconditions are evaluated against already-read files — no extra reads are triggered.
+      Each condition identifier must be declared in the framework's overview.yml or
+      .agent.yml under state_conditions.
+
   # --- routing ---
   on:
     rule: exactly one form — never both
@@ -169,6 +196,12 @@ anatomy:
         values: [comment]
         default: comment
         note: only comment is supported — check is not allowed on external issues
+      condition:
+        rule: |
+          Optional. A condition expression evaluated at runtime.
+          If the condition is false, issue_updates is skipped entirely — no error, no comment.
+          Use when the target issue may not exist (e.g. topic not covered by any active goal).
+        example: matching_goal_issue exists
     note: |
       When issue_updates is declared, issue: comment steps in the steps list are valid
       and target the issue identified by issue_updates.target.
@@ -377,6 +410,8 @@ file_format:
     entry_optional_fields:
       - deprecated  # true | false
       - replaced_by # id of the replacing scenario — required when deprecated: true
+      - priority    # non-negative integer, default 0 — higher value = evaluated first during routing
+      - preconditions  # list of condition identifiers — scenario excluded from routing if any fails
     scenario_file_rules:
       - must start with: "# source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
       - filename: snake_case, lowercase, .yml extension
@@ -391,8 +426,16 @@ file_format:
 # Every .scenarios.yml must have these two, in this order.
 # ---------------------------------------------------------------------------
 required_scenarios:
-  - session_start   # first — triggered when session opens
-  - unknown_scenario  # last — fallthrough for unmatched intents
+  - session_start:
+      note: |
+        Must fire on conversation open. Recommended trigger pattern:
+        first message of the conversation with no other scenario match,
+        OR explicit greeting/start keywords.
+        Do NOT use "session opens automatically" — it is not a deterministic event.
+  - unknown_scenario:  # last — fallthrough for unmatched intents
+      note: |
+        Must surface the top 3 nearest scenarios by semantic proximity.
+        Never a silent dead end — always propose a recovery path.
 
 # ---------------------------------------------------------------------------
 # VALIDATION
@@ -427,6 +470,8 @@ validation:
   - issue: check steps are only valid when issue.update == check (creates_issue == true)
   - issue: comment steps are only valid when issue.update == comment (creates_issue == true) OR issue_updates is declared (creates_issue == false)
   - read: entries may be file paths, glob patterns, or special sources (issues:, comments:) as declared in read.special_sources
+  - if priority is present, it must be a non-negative integer
+  - if preconditions is present, each condition must be a known identifier declared in the framework's overview.yml or .agent.yml under state_conditions, or the literal "any"
   # index-specific
   - if file_format is index: every entry must have id, triggers, file
   - if file_format is index: deprecated entries must have replaced_by

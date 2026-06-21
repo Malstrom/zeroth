@@ -2,7 +2,10 @@
 
 id: session_start
 on:
-  - session opens automatically
+  - this is the first message of the conversation and no other scenario matches
+  - user says "start", "open dojo", "ciao", "inizio", "inizia"
+preconditions:
+  - any
 creates_issue: false
 read:
   - .gakusei.yml                          # identity only

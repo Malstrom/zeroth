@@ -3,6 +3,8 @@
 
 ---
 id: declare_goal
+preconditions:
+  - any
 on:
   - user wants to declare a learning objective
   - user says they want to become senior in something
@@ -53,6 +55,8 @@ output:
 
 ---
 id: goal_shinsa
+preconditions:
+  - active_goal_exists
 on:
   - events: [readiness-ready]
   - user wants to take the seniority exam for an active goal

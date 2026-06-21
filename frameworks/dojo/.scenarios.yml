@@ -5,11 +5,18 @@
 
 scenarios:
   - id: session_start
+    priority: 0
+    preconditions:
+      - any
     triggers:
-      - session opens automatically
+      - this is the first message of the conversation and no other scenario matches
+      - user says "start", "open dojo", "ciao", "inizio", "inizia"
     file: frameworks/dojo/scenarios/session.yml
 
   - id: declare_goal
+    priority: 10
+    preconditions:
+      - any
     triggers:
       - user wants to declare a learning objective
       - user says they want to become senior in something
@@ -19,6 +26,9 @@ scenarios:
     file: frameworks/dojo/scenarios/goal.yml
 
   - id: goal_shinsa
+    priority: 20
+    preconditions:
+      - active_goal_exists
     triggers:
       - user wants to take the seniority exam for an active goal
       - user says they are ready to test their goal
@@ -26,11 +36,17 @@ scenarios:
     file: frameworks/dojo/scenarios/goal.yml
 
   - id: goal_shinsa_report
+    priority: 0
+    preconditions:
+      - any
     triggers:
       - events: [goal-shinsa-passed, goal-shinsa-failed]
     file: frameworks/dojo/scenarios/goal.yml
 
   - id: study_open
+    priority: 10
+    preconditions:
+      - any
     triggers:
       - user wants to study a specific topic
       - user asks to be taught something
@@ -38,6 +54,9 @@ scenarios:
     file: frameworks/dojo/scenarios/study.yml
 
   - id: randori
+    priority: 10
+    preconditions:
+      - any
     triggers:
       - user wants to drill on the current topic
       - user asks to be quizzed on what was just explained
@@ -47,16 +66,25 @@ scenarios:
     file: frameworks/dojo/scenarios/study.yml
 
   - id: evaluate_readiness
+    priority: 0
+    preconditions:
+      - any
     triggers:
       - events: [study-completed]
     file: frameworks/dojo/scenarios/shinsa.yml
 
   - id: readiness_report
+    priority: 0
+    preconditions:
+      - any
     triggers:
       - events: [readiness-ready, readiness-gap, readiness-loop]
     file: frameworks/dojo/scenarios/shinsa.yml
 
   - id: topic_shinsa
+    priority: 15
+    preconditions:
+      - active_goal_exists
     triggers:
       - events: [readiness-ready]
       - user says they want to take the exam on a topic
@@ -65,11 +93,17 @@ scenarios:
     file: frameworks/dojo/scenarios/shinsa.yml
 
   - id: topic_shinsa_report
+    priority: 0
+    preconditions:
+      - any
     triggers:
       - events: [topic-shinsa-passed, topic-shinsa-failed]
     file: frameworks/dojo/scenarios/shinsa.yml
 
   - id: unknown_scenario
+    priority: 0
+    preconditions:
+      - any
     triggers:
       - any message that does not match any other scenario
     file: frameworks/dojo/scenarios/unknown.yml
