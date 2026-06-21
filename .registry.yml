@@ -26,6 +26,15 @@ connections:
     note: |
       Onboarding pending — student_name and language not yet filled.
 
+  - repo: Malstrom/dojo-demo
+    role: dojo instance — spawned 2026-06-21
+    framework: dojo
+    sync_trigger:
+      - rule-updated
+    access: read-write
+    note: |
+      Demo instance. Onboarding pending — student_name and language not yet filled.
+
   - repo: Malstrom/tensho
     role: registered framework
     sync_trigger:
