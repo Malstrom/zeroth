@@ -1,0 +1,44 @@
+# frameworks/daneel/templates/playbook_root.yml
+# Template for root (generalized) playbook files.
+# Path: playbooks/{work_type}_{descriptor}.yml
+# Created by: create_playbook scenario on user confirmation of promotion
+# Updated by: work_session (increments usage_count), create_playbook (adds source_clients)
+#
+# Root playbooks contain NO client-specific data.
+# Steps must reference clients/{slug}/context.yml for all variable data.
+#
+# Schema defined in #274.
+
+schema:
+  fields:
+    name:             { type: string,          required: true }
+    work_type:        { type: enum,            required: true, values: [contract_review, sla_negotiation, code_review, protocol_validation, auth, onboarding, incident, reporting, meeting, admin, other] }
+    created:          { type: date,            required: true }
+    promoted_from:    { type: string,          required: true, notes: "path to source client playbook" }
+    usage_count:      { type: number,          required: true }
+    source_clients:   { type: list,            required: true, min: 1 }
+    context.problem:  { type: string,          required: true, notes: "generalized — no client-specific details" }
+    steps:            { type: list,            required: true, min: 1 }
+    notes:            { type: nullable_string, required: false }
+
+# ---------------------------------------------------------------------------
+# PLAYBOOK DATA
+# ---------------------------------------------------------------------------
+name: "{{playbook name — same as source client playbook or more generic}}"
+work_type: "{{work_type}}"
+created: "{{YYYY-MM-DD}}"
+promoted_from: "clients/{{slug}}/playbooks/{{source_filename}}"
+usage_count: 0
+source_clients:
+  - "{{client_slug}}"
+
+context:
+  problem: >
+    {{Generalized problem description — no client names, IPs, contacts,
+    or approval chains. Pure reasoning pattern.}}
+
+steps:
+  - "{{Step 1 — load client-specific values from clients/{slug}/context.yml}}"
+  - "{{Step 2 — atomic and verifiable. Reference context.yml for all variable data.}}"
+
+notes: null                            # general notes — adapt from client context at use time

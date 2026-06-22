@@ -1,0 +1,49 @@
+# frameworks/daneel/templates/playbook_client.yml
+# Template for client-specific playbook files.
+# Path: clients/{slug}/playbooks/{work_type}_{descriptor}.yml
+# Created by: create_playbook scenario
+# Updated by: close_task (fills outcome), work_session (increments usage_count)
+#
+# Naming convention: {work_type}_{short_descriptor}.yml
+# Examples: contract_review_vendor_sla.yml, incident_ansible_idempotency.yml
+#
+# Schema defined in #274.
+
+schema:
+  fields:
+    name:             { type: string,          required: true }
+    client:           { type: string,          required: true }
+    contact:          { type: string,          required: false, notes: "slug ref to contacts/{slug}.yml — optional if contact unknown" }
+    work_type:        { type: enum,            required: true,  values: [contract_review, sla_negotiation, code_review, protocol_validation, auth, onboarding, incident, reporting, meeting, admin, other] }
+    created:          { type: date,            required: true }
+    issue_ref:        { type: number,          required: true,  notes: "GitHub issue number that originated this playbook" }
+    usage_count:      { type: number,          required: true }
+    promoted_to_root: { type: boolean,         required: true }
+    context.problem:  { type: string,          required: true,  notes: "generalized enough to match future similar tasks" }
+    context.outcome:  { type: nullable_string, required: true,  notes: "null until first execution — filled by close_task" }
+    steps:            { type: list,            required: true,  min: 1 }
+    notes:            { type: nullable_string, required: false }
+
+# ---------------------------------------------------------------------------
+# PLAYBOOK DATA
+# ---------------------------------------------------------------------------
+name: "{{playbook name — descriptive, e.g. 'Vendor contract with SLA clauses'}}"
+client: "{{client_slug}}"
+contact: "{{contact_slug}}"           # optional — omit if not applicable
+work_type: "{{work_type}}"
+created: "{{YYYY-MM-DD}}"
+issue_ref: {{github_issue_number}}
+usage_count: 0
+promoted_to_root: false
+
+context:
+  problem: >
+    {{Describe the task in generalized terms — specific enough to be useful,
+    broad enough to match future similar tasks. No client names here.}}
+  outcome: null                        # filled by close_task after first execution
+
+steps:
+  - "{{Step 1 — atomic and verifiable. Include exact commands or artifacts if applicable.}}"
+  - "{{Step 2}}"
+
+notes: null                            # client-specific constraints: tone, approval chain, access

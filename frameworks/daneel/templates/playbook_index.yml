@@ -1,0 +1,37 @@
+# frameworks/daneel/templates/playbook_index.yml
+# Template for playbook index files.
+# Paths:
+#   clients/{slug}/playbooks/_index.yml   ← client index
+#   playbooks/_index.yml                  ← root index
+#
+# Maintained by: create_playbook (MANDATORY explicit step — never implicit)
+# Also updated by: work_session (increments usage_count on playbook load)
+#
+# Rules:
+#   - Every playbook file in the directory must have an entry here
+#   - Every entry must reference an existing file
+#   - Root index does NOT have the promoted_to_root field
+#   - Client index MUST have promoted_to_root on every entry
+#   - Validated by giskard proxy playbook_index_consistent (see giskard#89)
+
+# ---------------------------------------------------------------------------
+# CLIENT INDEX — clients/{slug}/playbooks/_index.yml
+# ---------------------------------------------------------------------------
+playbooks:
+  - file: "{{work_type}}_{{descriptor}}.yml"
+    work_type: "{{work_type}}"
+    name: "{{playbook name}}"
+    created: "{{YYYY-MM-DD}}"
+    usage_count: 0
+    promoted_to_root: false           # set to true by create_playbook on promotion
+
+# ---------------------------------------------------------------------------
+# ROOT INDEX — playbooks/_index.yml
+# Same structure, promoted_to_root field omitted.
+# ---------------------------------------------------------------------------
+# playbooks:
+#   - file: "{{work_type}}_{{descriptor}}.yml"
+#     work_type: "{{work_type}}"
+#     name: "{{playbook name}}"
+#     created: "{{YYYY-MM-DD}}"
+#     usage_count: 0
