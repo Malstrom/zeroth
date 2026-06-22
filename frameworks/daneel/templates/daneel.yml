@@ -1,0 +1,14 @@
+# templates/daneel.yml
+# Template for the user profile file.
+# Path: .daneel.yml
+# Tone and communication style live in contacts/, not here.
+
+version: 1
+owner: "{{username}}"
+language: "{{primary language for AI responses, e.g. it|en|ru}}"
+timezone: "{{e.g. Europe/Moscow}}"
+
+roles: []                       # e.g. [developer, consultant, architect]
+domains: []                     # e.g. [backend, infrastructure, protocol_validation]
+work_types: []                  # enum used in log entries and playbooks
+clients: []                     # list of active client slugs
