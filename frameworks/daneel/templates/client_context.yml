@@ -1,20 +1,52 @@
-# templates/client_context.yml
+# frameworks/daneel/templates/client_context.yml
 # Template for client context files.
 # Path: clients/{slug}/context.yml
+# Created by: ingest_task (first task for a new client)
+# Updated by: AI whenever new client domains emerge
+#
+# FIXED section is always present.
+# OPTIONAL sections are added by AI only when relevant for this client.
+# Never add null fields for unused domains — omit the section entirely.
 
+# ---------------------------------------------------------------------------
+# FIXED — always present
+# ---------------------------------------------------------------------------
 slug: "{{client_slug}}"
 name: "{{full client name}}"
 sector: "{{industry or sector}}"
 country: "{{country}}"
 language: "{{primary language}}"
-
-tools:
-  jira: "{{base url or null}}"
-  jira_project: "{{PROJECT_KEY or null}}"
-  repo: "{{github org/repo or null}}"
-  other: []
-
-notes: "{{any relevant context about this client}}"
-
-work_types_used: []             # populated over time by AI
 first_work: "{{YYYY-MM-DD}}"
+work_types_used: []             # populated by AI — values from work_type enum in overview.yml
+
+# ---------------------------------------------------------------------------
+# OPTIONAL — add when client has infrastructure or SSH-managed systems
+# ---------------------------------------------------------------------------
+# infrastructure:
+#   ssh:
+#     - host: "{{IP or hostname}}"
+#       port: 22
+#       user: "{{username}}"
+#       key: "{{path to private key}}"
+#       role: "{{prod | staging | jump}}"
+#   maintenance_window: "{{days and times | null}}"
+#   notify:
+#     channel: "{{slack | telegram | email | null}}"
+#     target: "{{channel name or username}}"
+
+# ---------------------------------------------------------------------------
+# OPTIONAL — add when client has contract or legal work requiring approval
+# ---------------------------------------------------------------------------
+# legal:
+#   approval_required: true
+#   approval_contact: "{{email}}"
+#   approval_lead_time: "{{e.g. 48h}}"
+
+# ---------------------------------------------------------------------------
+# OPTIONAL — add when client uses external project or code tools
+# ---------------------------------------------------------------------------
+# tools:
+#   jira: "{{base url}}"
+#   jira_project: "{{PROJECT_KEY}}"
+#   repo: "{{github org/repo}}"
+#   other: []

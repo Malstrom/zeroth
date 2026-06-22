@@ -1,40 +1,57 @@
-# templates/contact.yml
+# frameworks/daneel/templates/contact.yml
 # Template for contact profile files.
 # Path: contacts/{client}_{firstname}_{lastname}.yml
-# Use client: _internal for team members (no external client).
+#
+# Contacts are GLOBAL — one file per person, not per client.
+# A person who works across multiple clients has one file with a clients list.
+# Slug convention: {primary_client}_{firstname}_{lastname} — all lowercase, underscore-separated.
+#
+# Schema defined in #274.
 
-client: "{{client_slug}}"       # use _internal for team members
-first_name: "{{firstname}}"
-last_name: "{{lastname}}"
+schema:
+  fields:
+    slug:      { type: string, required: true,  notes: "unique identifier — {client}_{first}_{last}" }
+    full_name: { type: string, required: true }
+    clients:   { type: list,   required: true,  min: 1, notes: "list of client slugs this contact is associated with" }
+    role:      { type: string, required: false }
+    language:  { type: enum,   required: true,  values: [ru, en, it, other] }
+    tone:      { type: enum,   required: true,  values: [formal, neutral, informal] }
+    prefers:   { type: string, required: false, notes: "communication preferences: format, length, avoid" }
+    notify:    { type: object, required: false, notes: "channel + target for async notifications" }
+
+# ---------------------------------------------------------------------------
+# CONTACT DATA
+# ---------------------------------------------------------------------------
+slug: "{{client}}_{{firstname}}_{{lastname}}"
+full_name: "{{Full Name}}"
+clients:
+  - "{{client_slug}}"           # add more slugs if this person works across clients
 role: "{{job title}}"
-email: "{{email}}"
 
 communication:
   language: "{{ru|en|it|other}}"
-  formality: "{{formal|neutral|informal}}"
-  salutation: "{{how to address them, e.g. Юлия or Dr. Smith}}"
+  tone: "{{formal|neutral|informal}}"
+  salutation: "{{how to address them, e.g. \u042e\u043b\u0438\u044f or Dr. Smith}}"
   format: "{{bullet_points|prose|table}}"
   avoid: []                     # e.g. [humor, idioms, long_paragraphs]
-  notes: "{{free text about communication style or preferences}}"
+  prefers: "{{free text about communication style or preferences}}"
 
-# skills: only for internal contacts (client: _internal)
-# omit entirely for external contacts
-skills:
-  - work_type: "{{work_type}}"
-    level: "{{expert|good|learning}}"
-    notes: "{{optional: specific strengths or weaknesses for this work type}}"
+# ---------------------------------------------------------------------------
+# OPTIONAL — add when contact uses a specific notification channel
+# ---------------------------------------------------------------------------
+# notify:
+#   channel: "{{telegram | slack | email}}"
+#   target: "{{@handle or email}}"
 
-# performance_log: only for internal contacts
-# append new entries after each rated task — never overwrite
-performance_log: []
-# entry format:
-#   - date: YYYY-MM-DD
-#     task_ref: "clients/{slug}/inbox/YYYY-MM-DD_{slug}.yml"
-#     score: 1-5
-#     strengths: []
-#     weaknesses: []
-#     notes: ""
+# ---------------------------------------------------------------------------
+# OPTIONAL — add for internal contacts only (client: _internal)
+# Omit entirely for external contacts.
+# ---------------------------------------------------------------------------
+# skills:
+#   - work_type: "{{work_type}}"
+#     level: "{{expert|good|learning}}"
+#     notes: "{{optional}}"
 
 history:
   first_contact: "{{YYYY-MM-DD}}"
-  notes: "{{any relevant background}}"
+  notes: "{{any relevant background about this contact}}"
