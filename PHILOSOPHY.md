@@ -1,5 +1,7 @@
 # Philosophy
 
+🇷🇺 [Русский](docs/ru/PHILOSOPHY.md)
+
 ## The Asimov Metaphor
 
 The names in this ecosystem are not random. They come from Isaac Asimov's robot universe — each one chosen because the metaphor is exact.
