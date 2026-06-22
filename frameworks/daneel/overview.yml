@@ -34,10 +34,10 @@ core_concepts:
   reindex: AI maintenance operation to rebuild playbook index files
 
 scenarios:
-  - ingest_task
   - session_start
   - work_session
   - close_task
+  - ingest_task
   - create_playbook
   - draft_reply
   - recall
@@ -97,19 +97,8 @@ label_conventions:
 
 # ---------------------------------------------------------------------------
 # ONBOARDING
-# Read by spawn scenario to collect identity data before creating the repo.
+# See frameworks/daneel/onboarding.yml
+# Triggered automatically by session_start when clients/ is empty.
 # ---------------------------------------------------------------------------
 onboarding:
-  questions:
-    - field: user_name
-      ask: "Your name?"
-    - field: language
-      ask: "Language for chat? (e.g. italian, english)"
-    - field: timezone
-      ask: "Your timezone? (e.g. Europe/Rome, Europe/Moscow)"
-    - field: role
-      ask: "Your role? (e.g. consultant, developer, freelancer)"
-    - field: first_client
-      ask: "First client name? (can add more later)"
-  creates: .daneel.yml
-  identity_template: templates/.daneel.yml
+  see: frameworks/daneel/onboarding.yml
