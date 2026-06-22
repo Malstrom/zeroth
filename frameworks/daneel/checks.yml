@@ -42,9 +42,9 @@ checks:
   # Structural presence checks
   # ---------------------------------------------------------------------------
 
-  - label: "frameworks/daneel/vocabulary/overview.yml exists"
+  - label: "frameworks/daneel/overview.yml exists"
     proxy: file_exists
-    target: "frameworks/daneel/vocabulary/overview.yml"
+    target: "frameworks/daneel/overview.yml"
     rule: rules/structure.yml
 
   - label: "frameworks/daneel/templates/playbook_client.yml exists"
