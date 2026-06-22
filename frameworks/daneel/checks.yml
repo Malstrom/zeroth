@@ -1,62 +1,111 @@
 # frameworks/daneel/checks.yml
-# Declarative check list for giskard --mode zeroth.
-# giskard reads this file from zeroth at runtime and executes
-# every check using the proxy named in 'proxy'.
-# No logic lives in giskard for this framework.
+# Giskard checks for the daneel framework — consumer side.
+# These checks run in any repo that uses daneel (e.g. daneel_igor).
+# Proxy implementations live in giskard: checks/frameworks/daneel.py
+# Rule definitions live in: rules/playbooks.yml
 
-sections:
+checks:
 
-  - name: "daneel@zeroth — structure"
-    checks:
+  # ---------------------------------------------------------------------------
+  # Playbook index consistency
+  # Requires: giskard proxy playbook_index_consistent (giskard#89)
+  # ---------------------------------------------------------------------------
 
-      - label: "frameworks/daneel/structure.yml present"
-        proxy: file_exists
-        target: frameworks/daneel/structure.yml
-        file: frameworks/daneel/structure.yml
-        rule: rules/structure.yml
+  - label: "clients/*/playbooks/_index.yml consistent"
+    proxy: playbook_index_consistent
+    target: "clients/*/playbooks"
+    is_client_dir: true
+    rule: rules/playbooks.yml
+    on_fail: |
+      AI repair workflow:
+      1. Read the structured YAML output above.
+      2. For missing_from_index: run reindex scenario for the affected client.
+      3. For missing_file: the index has a stale entry — run reindex to rebuild from actual files.
+      4. For broken_promotion: re-propose root promotion to user via create_playbook.
+      5. For missing_required_keys: open the playbook file and fill missing fields.
+      6. Re-run giskard check after repair.
 
-      - label: "frameworks/daneel/.agent.yml present"
-        proxy: file_exists
-        target: frameworks/daneel/.agent.yml
-        file: frameworks/daneel/.agent.yml
-        rule: rules/structure.yml
+  - label: "playbooks/_index.yml consistent"
+    proxy: playbook_index_consistent
+    target: "playbooks"
+    is_client_dir: false
+    rule: rules/playbooks.yml
+    on_fail: |
+      AI repair workflow:
+      1. Read the structured YAML output above.
+      2. For missing_from_index: run reindex scenario (root).
+      3. For missing_file: stale root index entry — run reindex to rebuild.
+      4. For forbidden_key_in_root: open the playbook file and remove promoted_to_root key.
+      5. Re-run giskard check after repair.
 
-      - label: "frameworks/daneel/.scenarios.yml present"
-        proxy: file_exists
-        target: frameworks/daneel/.scenarios.yml
-        file: frameworks/daneel/.scenarios.yml
-        rule: rules/structure.yml
+  # ---------------------------------------------------------------------------
+  # Structural presence checks
+  # ---------------------------------------------------------------------------
 
-      - label: "frameworks/daneel/.registry.yml present"
-        proxy: file_exists
-        target: frameworks/daneel/.registry.yml
-        file: frameworks/daneel/.registry.yml
-        rule: rules/structure.yml
+  - label: "frameworks/daneel/vocabulary/overview.yml exists"
+    proxy: file_exists
+    target: "frameworks/daneel/vocabulary/overview.yml"
+    rule: rules/structure.yml
 
-      - label: "frameworks/daneel/README.md present"
-        proxy: file_exists
-        target: frameworks/daneel/README.md
-        file: frameworks/daneel/README.md
-        rule: rules/structure.yml
+  - label: "frameworks/daneel/templates/playbook_client.yml exists"
+    proxy: file_exists
+    target: "frameworks/daneel/templates/playbook_client.yml"
+    rule: rules/structure.yml
 
-      - label: "frameworks/daneel/templates/ present"
-        proxy: file_exists
-        target: frameworks/daneel/templates
-        file: frameworks/daneel/templates/
-        rule: rules/structure.yml
+  - label: "frameworks/daneel/templates/playbook_root.yml exists"
+    proxy: file_exists
+    target: "frameworks/daneel/templates/playbook_root.yml"
+    rule: rules/structure.yml
 
-  - name: "daneel@zeroth — scenarios"
-    checks:
+  - label: "frameworks/daneel/templates/playbook_index.yml exists"
+    proxy: file_exists
+    target: "frameworks/daneel/templates/playbook_index.yml"
+    rule: rules/structure.yml
 
-      # NOTE: daneel still uses monolithic .scenarios.yml format.
-      # scenarios_index_valid and scenarios_index_files_exist will be
-      # enabled here after daneel is migrated to the index format.
-      - label: "frameworks/daneel/.scenarios.yml index format valid"
-        proxy: scenarios_index_valid
-        file: frameworks/daneel/.scenarios.yml
-        rule: rules/scenarios.yml
+  - label: "frameworks/daneel/templates/issue_body.md exists"
+    proxy: file_exists
+    target: "frameworks/daneel/templates/issue_body.md"
+    rule: rules/structure.yml
 
-      - label: "frameworks/daneel/.scenarios.yml scenario files exist"
-        proxy: scenarios_index_files_exist
-        file: frameworks/daneel/.scenarios.yml
-        rule: rules/scenarios.yml
+  - label: "frameworks/daneel/templates/issue_comment_progress.md exists"
+    proxy: file_exists
+    target: "frameworks/daneel/templates/issue_comment_progress.md"
+    rule: rules/structure.yml
+
+  - label: "frameworks/daneel/templates/issue_comment_close.md exists"
+    proxy: file_exists
+    target: "frameworks/daneel/templates/issue_comment_close.md"
+    rule: rules/structure.yml
+
+  # ---------------------------------------------------------------------------
+  # Client structure checks
+  # ---------------------------------------------------------------------------
+
+  - label: "clients/ directory has subfolders"
+    proxy: dir_has_subfolders
+    target: "clients/"
+    rule: rules/structure.yml
+
+  - label: "contacts/ directory exists"
+    proxy: file_exists
+    target: "contacts"
+    rule: rules/structure.yml
+
+  # ---------------------------------------------------------------------------
+  # Playbook file quality checks
+  # Validates that all client playbooks conform to the template schema.
+  # ---------------------------------------------------------------------------
+
+  - label: "client playbooks match playbook_client.yml schema"
+    proxy: generated_files_match_template
+    template: "frameworks/daneel/templates/playbook_client.yml"
+    glob: "clients/*/playbooks/*.yml"
+    exclude: "_index.yml"
+    rule: rules/playbooks.yml
+
+  - label: "root playbooks match playbook_root.yml schema"
+    proxy: generated_files_match_template
+    template: "frameworks/daneel/templates/playbook_root.yml"
+    glob: "playbooks/*.yml"
+    exclude: "_index.yml"
+    rule: rules/playbooks.yml
