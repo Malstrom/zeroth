@@ -111,6 +111,102 @@ workspace:
       access: read-write
 
 # ---------------------------------------------------------------------------
+# DANEEL FRAMEWORK — workspace paths
+# All paths below are relative to any daneel instance repo root.
+# These are the dynamic paths the AI reads/writes during daneel scenarios.
+# Static/canonical paths (templates, scenarios, checks) live in frameworks/daneel/.
+# ---------------------------------------------------------------------------
+daneel:
+  # Source of truth: GitHub issues (not files)
+  # Open tasks  → github_issues state:open  label:client:{slug}
+  # Task history → github_issues state:closed label:client:{slug}
+  # Progress     → issue comments (issue_comment_progress.md template)
+  # Closing note → issue comments (issue_comment_close.md template)
+  # Draft reply  → issue comments (section: Draft reply)
+
+  # Static client data — read-only during scenarios
+  client_context:
+    path: "clients/{slug}/context.yml"
+    template: "frameworks/daneel/templates/client_context.yml"
+    access: read-only
+    note: >
+      Written once at client onboarding.
+      Contains: slug, legal_name, SSH access, tools, timezone, language.
+
+  # Contact profiles — read-only during scenarios
+  contact:
+    path: "contacts/{client}_{first}_{last}.yml"
+    template: "frameworks/daneel/templates/contact.yml"
+    access: read-only
+    note: >
+      One file per person. A contact that works across multiple clients
+      has a single file with a clients list.
+
+  # Client playbooks — written by create_playbook, read by work_session
+  client_playbook:
+    path: "clients/{slug}/playbooks/{work_type}_{descriptor}.yml"
+    template: "frameworks/daneel/templates/playbook_client.yml"
+    access: read-write
+    write_rule: >
+      After every write, ALWAYS update clients/{slug}/playbooks/_index.yml.
+      No exceptions. Validated by giskard proxy playbook_index_consistent.
+
+  # Client playbook index — written by create_playbook and reindex
+  client_playbook_index:
+    path: "clients/{slug}/playbooks/_index.yml"
+    template: "frameworks/daneel/templates/playbook_index.yml"
+    access: read-write
+    write_rule: >
+      Must be updated atomically with every client_playbook write or delete.
+      Action: upsert (insert or update existing entry by file key).
+      Validated by giskard checks/frameworks/daneel.py.
+
+  # Root playbooks — written by create_playbook on promotion
+  root_playbook:
+    path: "playbooks/{work_type}_{descriptor}.yml"
+    template: "frameworks/daneel/templates/playbook_root.yml"
+    access: read-write
+    write_rule: >
+      Created only on explicit user confirmation during create_playbook promotion step.
+      After every write, ALWAYS update playbooks/_index.yml.
+
+  # Root playbook index
+  root_playbook_index:
+    path: "playbooks/_index.yml"
+    template: "frameworks/daneel/templates/playbook_index.yml"
+    access: read-write
+    write_rule: >
+      Must be updated atomically with every root_playbook write or delete.
+      Action: upsert. Validated by giskard.
+
+  # Checks and rules — read-only reference
+  checks:
+    path: "frameworks/daneel/checks.yml"
+    access: read-only
+    note: Giskard check definitions for this framework.
+
+  rules:
+    playbooks: "frameworks/daneel/rules/playbooks.yml"
+    structure: "frameworks/daneel/rules/structure.yml"
+    access: read-only
+
+  # Label conventions (must match vocabulary/overview.yml)
+  labels:
+    client: "client:{slug}"           # e.g. client:acme
+    work_type: "work:{work_type}"     # e.g. work:contract_review
+    note: >
+      Every issue must have exactly one client label and one work_type label.
+      Labels are created on first use if they do not exist.
+
+  # Validation — giskard
+  giskard:
+    repo: Malstrom/giskard
+    proxy: playbook_index_consistent
+    trigger: >
+      Run after any create_playbook or reindex scenario completes.
+      On failure: read structured YAML output, run reindex, re-run check.
+
+# ---------------------------------------------------------------------------
 # KNOWN REPOS
 # ---------------------------------------------------------------------------
 known_repos:
