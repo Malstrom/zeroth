@@ -1,0 +1,107 @@
+# frameworks/daneel/scenarios/recall.yml
+# Scenario: recall
+# Trigger: user asks about past work for a client or topic
+# Output: structured summary from closed GitHub issues
+
+scenario: recall
+
+on:
+  - user asks about past work for a client or topic
+  - user wants to know the history of a client or project
+  - user asks if something similar was done before
+  - "cosa ho fatto"
+  - "storia di"
+  - "recall"
+  - "ricordami"
+  - "hai memoria di"
+  - "abbiamo mai fatto"
+
+read: []                                            # all reads are GitHub searches — no files
+
+steps:
+
+  - extract:
+      field: recall_intent
+      from: user_input
+      options:
+        - client_history        # "cosa ho fatto per acme"
+        - work_type_history     # "ho mai fatto un contract_review"
+        - topic_search          # "c'è qualcosa su ansible"
+        - contact_history       # "ho lavorato con dmitri volkov"
+      on_ambiguous: infer_from_context
+
+  - if: recall_intent == client_history
+    then:
+      - extract: { field: slug, from: user_input }
+      - search:
+          source: github_issues
+          state: closed
+          labels: ["client:{{slug}}"]
+          assign: results
+          sort: updated desc
+          limit: 20
+
+  - if: recall_intent == work_type_history
+    then:
+      - extract: { field: work_type, from: user_input, enum: overview.yml#work_type.values }
+      - extract: { field: slug, from: user_input, required: false }
+      - search:
+          source: github_issues
+          state: closed
+          labels:
+            - "{{slug ? 'client:' + slug : 'client:*'}}"
+            - "work:{{work_type}}"
+          assign: results
+          sort: updated desc
+          limit: 20
+
+  - if: recall_intent == topic_search
+    then:
+      - extract: { field: topic, from: user_input }
+      - extract: { field: slug, from: user_input, required: false }
+      - search:
+          source: github_issues
+          state: closed
+          query: "{{topic}}"
+          labels: "{{slug ? ['client:' + slug] : []}}"
+          assign: results
+          sort: updated desc
+          limit: 20
+
+  - if: recall_intent == contact_history
+    then:
+      - extract: { field: contact_slug, from: user_input }
+      - search:
+          source: github_issues
+          state: closed
+          query: "{{contact_slug}}"
+          assign: results
+          sort: updated desc
+          limit: 20
+
+  - if: results is empty
+    then:
+      - say: "No past work found matching your query."
+      - stop
+
+  - say: |
+      Found {{results | count}} past issue(s):
+
+      {{results | format_as_list:
+        '#{{number}} — {{title}} — closed {{closed_at | YYYY-MM-DD}}\n  Labels: {{labels | join}}\n  {{body | section: "## Prior art" | first_line | trim}}'
+      }}
+
+  - ask: "Want details on any of these? (issue number or 'no')"
+
+  - if: user provides issue number
+    then:
+      - read:
+          resource: github_issue
+          number: "{{issue_number}}"
+          assign: issue_detail
+      - say: |
+          #{{issue_detail.number}} — {{issue_detail.title}}
+
+          **Task:** {{issue_detail.body | section: "## Task"}}
+          **Work type:** {{issue_detail.body | section: "## Work type"}}
+          **Resolution:** {{issue_detail.comments | last | section: "## Task closed"}}
