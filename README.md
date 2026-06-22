@@ -5,7 +5,7 @@
 Spec and foundational rules for building AI-native frameworks in the Malstrom ecosystem.
 Every framework that respects `zeroth` can be automatically validated by [giskard](https://github.com/Malstrom/giskard).
 
-🌐 [zeroth-site](https://github.com/Malstrom/zeroth-site) &nbsp;&middot;&nbsp; [GitHub](https://github.com/Malstrom/zeroth)
+🌐 [zeroth-site](https://github.com/Malstrom/zeroth-site) &nbsp;·&nbsp; [GitHub](https://github.com/Malstrom/zeroth) &nbsp;·&nbsp; 🇷🇺 [Русский](docs/ru/README.md)
 
 ---
 
@@ -135,6 +135,10 @@ zeroth/
 │   ├── .scenarios.yml
 │   ├── .registry.yml
 │   └── overview.yml
+├── docs/
+│   └── ru/                 # русский перевод
+│       ├── README.md
+│       └── PHILOSOPHY.md
 ├── .agent.yml              # AI manifest for zeroth itself
 ├── .scenarios.yml          # scenario catalog for zeroth
 ├── .registry.yml           # registered frameworks
