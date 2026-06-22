@@ -7,16 +7,13 @@ on:
   - user wants to study a specific topic
   - user asks to be taught something
   - user wants to open a study session on a topic
-creates_issue: true
-issue:
-  title: "Study: {topic}"
-  from: Malstrom/zeroth:frameworks/dojo/templates/issue_study_open.md
-  update: check
-  approval: none
-  on_complete: close
-  on_fail: comment
+creates_issue: false
+issue_updates:
+  target: matching_goal_issue
+  condition: matching_goal_issue exists   # if no goal issue covers this topic, all update_issue steps are skipped
 read:
   - .gakusei.yml
+  - github:issues:open:label:Goal         # to resolve matching_goal_issue
   - "kata/{topic}.md"
 input_sources:
   - attached_file
@@ -24,9 +21,8 @@ input_sources:
   - pasted_text
   - ai_knowledge
 steps:
+  - compute: matching_goal_issue          # open goal issue where topic is in unchecked_topics, or null
   - say: "{{source_summary}}: {{concept_count}} concepts identified."
-  - issue:
-      check: "source loaded"
 
   - for_each: concept in source.concepts
     do:
@@ -39,9 +35,6 @@ steps:
           concept: "{{concept}}"
           topic: "{{topic}}"
 
-  - issue:
-      check: "concepts taught and randori completed"
-
   - write:
       path: "kiroku/nikki/"
       filename: "YYYY-MM-DD_{topic}_study.yml"
@@ -49,8 +42,6 @@ steps:
       access: write-once
       via: PR
       approval: none
-  - issue:
-      check: "nikki written"
 
   - write:
       path: "kata/{topic}.md"
@@ -61,18 +52,17 @@ steps:
         Append new concepts to kata.
         Replace ## Current gaps section with gaps identified during this session's randori.
         If no gaps: write '- None recorded yet.' under ## Current gaps.
-  - issue:
-      check: "kata updated"
 
-  - if:
-      condition: open_goal_issues | any: topic in goal.unchecked_topics
-      then:
-        - update_issue:
-            target: matching_goal_issue
-            action: add_kata_link
-            topic: "{{topic}}"
-  - issue:
-      check: "goal issue updated"
+  - update_issue:
+      target: matching_goal_issue
+      action: add_kata_link
+      topic: "{{topic}}"
+      kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
+      # Edits the goal issue body inline:
+      # finds the checklist item matching topic, appends kata link next to it.
+      # Format: - [ ] `topic` — description — [kata](kata_url)
+      # If kata has no open gaps: also ticks the checkbox.
+      # Skipped entirely if matching_goal_issue does not exist.
 
   - merge:
       strategy: squash

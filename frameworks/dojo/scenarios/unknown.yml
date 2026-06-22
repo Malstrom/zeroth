@@ -6,15 +6,15 @@ on:
 creates_issue: false
 read: []
 steps:
-  - if:
-      condition: closest_scenario exists
-      then:
-        - propose: "Did you mean: {{closest_scenario}}?"
-          on_confirm:
-            - call: "{{closest_scenario}}"
-          on_reject:
-            - say: "OK. What would you like to do?"
-      else:
-        - say: "I don't recognize that as a defined scenario. Want me to add it?"
+  - compute: nearest_scenarios   # top 3 scenarios by semantic proximity to the user message
+  - say: |
+      Non ho capito cosa vuoi fare.
+      Intendevi forse:
+      {{nearest_scenarios | each: "- **{{name}}** — {{description}}"}}
+  - propose: "Vuoi che esegua {{nearest_scenarios.first.name}}?"
+    on_confirm:
+      - call: "{{nearest_scenarios.first.id}}"
+    on_reject:
+      - say: "OK. Dimmi cosa vuoi fare."
 output:
   state_changes: []
