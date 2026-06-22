@@ -1,23 +1,21 @@
-# templates/playbook.yml
-# Template for playbook files.
-# Path: playbooks/{slug}.yml
-# One playbook per work type — not per tool.
+# frameworks/daneel/templates/playbook.yml
+# DEPRECATED — superseded by playbook_client.yml and playbook_root.yml
+# Do not use for new playbooks. See #272 and #276 for the redesign.
+#
+# Kept for reference only. Will be removed in a future cleanup PR.
 
-name: "{{playbook_slug}}"
-description: "{{what this work type involves}}"
-work_type: "{{work_type enum value}}"
-
-required_input:
-  - "{{input 1}}"
-  - "{{input 2}}"
-
-steps:
-  - step: 1
-    action: "{{atomic verifiable action — no vague language}}"
-  - step: 2
-    action: "{{atomic verifiable action}}"
-
-output:
-  - "{{file or artifact produced}}"
-
-notes: null
+# name: "{{playbook_slug}}"
+# description: "{{what this work type involves}}"
+# work_type: "{{work_type enum value}}"
+#
+# required_input:
+#   - "{{input 1}}"
+#
+# steps:
+#   - step: 1
+#     action: "{{atomic verifiable action}}"
+#
+# output:
+#   - "{{file or artifact produced}}"
+#
+# notes: null
