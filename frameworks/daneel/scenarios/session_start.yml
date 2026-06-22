@@ -1,0 +1,53 @@
+# frameworks/daneel/scenarios/session_start.yml
+# Scenario: session_start
+# Trigger: session opens, or user has no clear intent
+# Output: summary of open issues per client, optional jump to work_session
+
+scenario: session_start
+
+on:
+  - session opens automatically
+  - user greets or sends a short message
+  - user seems unsure what to do next
+  - user asks what they can do
+  - "cosa c’è"
+  - "cosa ho in sospeso"
+  - "start"
+
+# ---------------------------------------------------------------------------
+# READS — no file reads, GitHub only
+# ---------------------------------------------------------------------------
+read: []
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  - search:
+      source: github_issues
+      state: open
+      labels:
+        - "client:*"                              # all client labels
+      group_by: label_client
+      assign: open_issues_by_client
+
+  - if: open_issues_by_client is empty
+    then:
+      - say: "No open issues. Ready to ingest a new task?"
+      - stop
+
+  - say: |
+      Open tasks:
+      {{open_issues_by_client | format_as_list:
+        "{client_slug}: {count} open — {issue_numbers_and_titles}"}}
+
+  - say: |
+      Available actions: ingest_task, work_session, draft_reply, recall.
+
+  - if: open_issues_by_client | total_count == 1
+    then:
+      - propose: "One open task: {{open_issues_by_client[0].title}}. Work on it now?"
+        on_confirm:
+          - call: work_session
+            with: { issue: open_issues_by_client[0] }

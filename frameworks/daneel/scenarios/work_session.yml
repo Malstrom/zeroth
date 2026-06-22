@@ -1,0 +1,130 @@
+# frameworks/daneel/scenarios/work_session.yml
+# Scenario: work_session
+# Trigger: user starts working on a specific open issue
+# Output: step-by-step execution, progress comments posted on issue, usage_count incremented
+
+scenario: work_session
+
+on:
+  - user starts working on a task
+  - user wants to open a work session on a task
+  - user picks an issue to work on
+  - "lavoriamo su"
+  - "inizia sessione"
+  - "work on"
+  - "start session"
+
+# ---------------------------------------------------------------------------
+# READS
+# ---------------------------------------------------------------------------
+read:
+  - github_issue: "{{issue_number}}"              # issue body + all comments
+  - "clients/{slug}/context.yml"                   # client static data (SSH, legal, tools)
+  # playbook loaded dynamically from index below
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  - if: issue_number is not provided
+    then:
+      - search:
+          source: github_issues
+          state: open
+          labels: ["client:*"]
+          assign: open_issues
+      - ask: "Which issue do you want to work on? {{open_issues | numbers_and_titles}}"
+      - assign: issue_number from user_input
+
+  - read:
+      resource: github_issue
+      number: "{{issue_number}}"
+      assign: issue
+
+  - extract:
+      field: work_type
+      from: issue.body
+      section: "## Work type"
+
+  - extract:
+      field: slug
+      from: issue.labels
+      prefix: "client:"
+
+  - read:
+      path: "clients/{slug}/playbooks/_index.yml"
+      filter: { work_type: "{{work_type}}" }
+      assign: matching_playbooks
+      on_missing: skip
+
+  - if: matching_playbooks is empty
+    then:
+      - read:
+          path: "playbooks/_index.yml"
+          filter: { work_type: "{{work_type}}" }
+          assign: matching_playbooks
+          on_missing: skip
+
+  - if: matching_playbooks is not empty
+    then:
+      - assign: playbook_entry = matching_playbooks | highest_usage_count
+      - read:
+          path: "{{playbook_entry.file_path}}"
+          assign: playbook
+      - say: "Playbook loaded: {{playbook.name}} (used {{playbook_entry.usage_count}} times)"
+      - write:
+          path: "{{playbook_entry.file_path}}"
+          fields: { usage_count: "{{playbook_entry.usage_count + 1}}" }
+          also_update:
+            path: "{{playbook_entry.index_path}}"
+            entry: "{{playbook_entry.file}}"
+            fields: { usage_count: "{{playbook_entry.usage_count + 1}}" }
+          note: "MANDATORY — both playbook file and index entry must be updated"
+          via: direct
+    else:
+      - say: "No playbook found for work_type '{{work_type}}'. Proceeding without one."
+
+  - say: |
+      Issue: #{{issue_number}} — {{issue.title}}
+      Client: {{slug}}
+      Work type: {{work_type}}
+      {{playbook ? 'Playbook: ' + playbook.name : 'No playbook'}}
+
+      Steps:
+      {{playbook.steps | numbered_list ?? 'No steps — proceed manually.'}}
+
+  - for_each: step in playbook.steps
+    do:
+      - say: "Step {{step.index}}: {{step.text}}"
+      - ask: "Done? (yes / skip / block)"
+      - if: user says skip
+        then: continue
+      - if: user says block
+        then:
+          - ask: "What is blocking you?"
+          - comment:
+              issue: "{{issue_number}}"
+              from: templates/issue_comment_progress.md
+              fields:
+                step_completed: "{{step.text}}"
+                status: blocked
+                what_was_done: "Attempted — blocked."
+                next: "Waiting on: {{blocker_description}}"
+                blockers: "{{blocker_description}}"
+          - stop
+      - comment:
+          issue: "{{issue_number}}"
+          from: templates/issue_comment_progress.md
+          fields:
+            step_completed: "{{step.text}}"
+            status: "{{last_step ? 'done' : 'in_progress'}}"
+            what_was_done: "{{user_description_of_what_was_done}}"
+            next: "{{next_step.text ?? 'All steps complete'}}"
+            blockers: none
+
+  - say: "All steps completed. Close the issue now?"
+  - propose: "Run close_task?"
+    on_confirm:
+      - call: close_task
+        with: { issue_number: "{{issue_number}}", slug: "{{slug}}", work_type: "{{work_type}}" }
