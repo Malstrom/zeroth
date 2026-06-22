@@ -1,0 +1,87 @@
+# frameworks/daneel/scenarios/close_task.yml
+# Scenario: close_task
+# Trigger: user signals a task is complete, or called by work_session
+# Output: closing comment posted on issue, issue closed, optional create_playbook
+
+scenario: close_task
+
+on:
+  - user says the task is done
+  - user wants to close an issue
+  - called by work_session after all steps complete
+  - "chiudi task"
+  - "task done"
+  - "close issue"
+
+read:
+  - github_issue: "{{issue_number}}"              # issue body + all comments
+  - "clients/{slug}/playbooks/_index.yml"           # to check if playbook exists
+
+steps:
+
+  - if: issue_number is not provided
+    then:
+      - search:
+          source: github_issues
+          state: open
+          labels: ["client:*"]
+          assign: open_issues
+      - ask: "Which issue are you closing? {{open_issues | numbers_and_titles}}"
+      - assign: issue_number from user_input
+
+  - read:
+      resource: github_issue
+      number: "{{issue_number}}"
+      assign: issue
+
+  - extract:
+      field: work_type
+      from: issue.body
+      section: "## Work type"
+
+  - extract:
+      field: slug
+      from: issue.labels
+      prefix: "client:"
+
+  - ask: |
+      How was this resolved? (2-3 lines — what was done, what was delivered)
+
+  - ask: "What was delivered to the client? (document, email, PR, etc. — or 'none')"
+
+  - comment:
+      issue: "{{issue_number}}"
+      from: templates/issue_comment_close.md
+      fields:
+        resolved: "{{today | YYYY-MM-DD}}"
+        how_resolved: "{{resolution_description}}"
+        output_delivered: "{{output_delivered}}"
+        playbook_used: "{{playbook_used_in_session | 'none'}}"
+        playbook_created: "{{playbook_created_this_session | 'no'}}"
+        promoted_to_root: "not evaluated"
+
+  - read:
+      path: "clients/{slug}/playbooks/_index.yml"
+      filter: { work_type: "{{work_type}}" }
+      assign: existing_playbooks
+      on_missing: skip
+
+  - propose: |
+      {{existing_playbooks is empty
+        ? 'No playbook exists for ' + work_type + ' on this client. Create one now?'
+        : 'Update playbook for ' + work_type + ' with outcome from this session?'}}
+    on_confirm:
+      - call: create_playbook
+        with:
+          issue_number: "{{issue_number}}"
+          slug: "{{slug}}"
+          work_type: "{{work_type}}"
+          outcome: "{{resolution_description}}"
+          existing_playbook: "{{existing_playbooks[0] | null}}"
+
+  - close:
+      resource: github_issue
+      number: "{{issue_number}}"
+      reason: completed
+
+  - say: "Issue #{{issue_number}} closed."

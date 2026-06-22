@@ -1,0 +1,150 @@
+# frameworks/daneel/scenarios/create_playbook.yml
+# Scenario: create_playbook
+# Trigger: called by close_task after issue resolution
+# Output: client playbook written, _index.yml updated, optional root promotion
+# Spec: #276
+
+scenario: create_playbook
+
+on:
+  - called by close_task
+  - user explicitly asks to create a playbook
+  - "crea playbook"
+  - "create playbook"
+  - "salva come playbook"
+
+read:
+  - github_issue: "{{issue_number}}"              # issue body + all comments for step extraction
+  - "clients/{slug}/context.yml"                   # for client-specific step details
+  - "clients/{slug}/playbooks/_index.yml"           # to detect if updating existing
+  - templates/playbook_client.yml                  # template
+
+steps:
+
+  - say: "Reading issue #{{issue_number}} to extract steps..."
+
+  - extract:
+      field: steps_draft
+      from: issue.comments
+      strategy: |
+        Synthesize atomic, verifiable steps from progress comments.
+        Each step must be reproducible without reading the original issue.
+        Remove client-specific values (IPs, names, emails) that belong in context.yml.
+        Aim for 3-8 steps.
+
+  - say: |
+      Proposed playbook steps:
+      {{steps_draft | numbered_list}}
+
+  - ask: "Edit steps? (confirm or provide corrections)"
+
+  - assign: final_steps from user_confirmation_or_edits
+
+  - assign:
+      playbook_filename: "{{work_type}}_{{descriptor | slugify}}.yml"
+      playbook_path: "clients/{{slug}}/playbooks/{{playbook_filename}}"
+
+  - if: existing_playbook is not null
+    then:
+      - say: "Updating existing playbook: {{existing_playbook.file}}"
+      - assign: playbook_path = "clients/{{slug}}/playbooks/{{existing_playbook.file}}"
+      - write:
+          path: "{{playbook_path}}"
+          fields:
+            steps: "{{final_steps}}"
+            context.outcome: "{{outcome}}"
+            usage_count: "{{existing_playbook.usage_count}}"
+          via: direct
+    else:
+      - write:
+          path: "{{playbook_path}}"
+          from: templates/playbook_client.yml
+          fields:
+            name: "{{playbook_name}}"
+            client: "{{slug}}"
+            contact: "{{issue.contact | null}}"
+            work_type: "{{work_type}}"
+            created: "{{today | YYYY-MM-DD}}"
+            issue_ref: "{{issue_number}}"
+            usage_count: 0
+            promoted_to_root: false
+            context.problem: "{{problem_statement}}"
+            context.outcome: "{{outcome}}"
+            steps: "{{final_steps}}"
+            notes: null
+          via: direct
+
+  # MANDATORY — always update index after writing playbook
+  - write:
+      path: "clients/{{slug}}/playbooks/_index.yml"
+      entry:
+        file: "{{playbook_filename}}"
+        work_type: "{{work_type}}"
+        name: "{{playbook_name}}"
+        created: "{{today | YYYY-MM-DD}}"
+        usage_count: "{{existing_playbook.usage_count | 0}}"
+        promoted_to_root: false
+      action: upsert                                # insert or update if file entry exists
+      via: direct
+      note: "MANDATORY — must run even if playbook file already existed"
+
+  - say: "Playbook saved: {{playbook_path}}"
+
+  - propose: |
+      Is this pattern generic enough to promote to a root playbook?
+      (Root playbooks have no client-specific data and can be reused across clients.)
+    on_confirm:
+      - extract:
+          field: root_steps
+          from: final_steps
+          strategy: |
+            Remove all client-specific values.
+            Replace with references to clients/{slug}/context.yml.
+            Steps must work for any client with the same work_type.
+
+      - write:
+          path: "playbooks/{{playbook_filename}}"
+          from: templates/playbook_root.yml
+          fields:
+            name: "{{playbook_name}}"
+            work_type: "{{work_type}}"
+            created: "{{today | YYYY-MM-DD}}"
+            promoted_from: "{{playbook_path}}"
+            usage_count: 0
+            source_clients: ["{{slug}}"]
+            context.problem: "{{problem_statement | generalized}}"
+            steps: "{{root_steps}}"
+            notes: null
+          via: direct
+
+      # MANDATORY — update root index
+      - write:
+          path: "playbooks/_index.yml"
+          entry:
+            file: "{{playbook_filename}}"
+            work_type: "{{work_type}}"
+            name: "{{playbook_name}}"
+            created: "{{today | YYYY-MM-DD}}"
+            usage_count: 0
+          action: upsert
+          via: direct
+          note: "MANDATORY — root index must be updated on promotion"
+
+      # Update client playbook promoted_to_root flag
+      - write:
+          path: "{{playbook_path}}"
+          fields: { promoted_to_root: true }
+          via: direct
+
+      # Update client index entry
+      - write:
+          path: "clients/{{slug}}/playbooks/_index.yml"
+          entry: "{{playbook_filename}}"
+          fields: { promoted_to_root: true }
+          action: update
+          via: direct
+
+      - say: "Root playbook created: playbooks/{{playbook_filename}}"
+
+    on_decline:
+      - say: "Playbook saved as client-only. Promotion skipped."

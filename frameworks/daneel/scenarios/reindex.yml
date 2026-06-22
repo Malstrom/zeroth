@@ -1,0 +1,65 @@
+# frameworks/daneel/scenarios/reindex.yml
+# Scenario: reindex
+# Trigger: giskard detects index inconsistency, or explicit user request
+# Output: _index.yml rebuilt from actual files on disk
+# This is a maintenance scenario — not user-facing in normal operation.
+
+scenario: reindex
+
+on:
+  - giskard proxy playbook_index_consistent returns inconsistent
+  - user explicitly asks to reindex playbooks
+  - "reindex"
+  - "aggiorna indice playbook"
+  - "rebuild index"
+
+read:
+  - "clients/{slug}/playbooks/"                    # scan actual files
+  - "playbooks/"                                    # scan actual files
+  - templates/playbook_index.yml                   # index entry format
+
+steps:
+
+  - if: slug is provided
+    then:
+      - scan:
+          path: "clients/{{slug}}/playbooks/"
+          pattern: "*.yml"
+          exclude: ["_index.yml"]
+          assign: client_playbook_files
+
+      - for_each: file in client_playbook_files
+        do:
+          - read: { path: "clients/{{slug}}/playbooks/{{file}}" }
+          - extract: [work_type, name, created, usage_count, promoted_to_root]
+
+      - write:
+          path: "clients/{{slug}}/playbooks/_index.yml"
+          content: "{{client_playbook_files | as_index_entries}}"
+          access: overwrite
+          via: direct
+
+      - say: "Client index rebuilt: {{client_playbook_files | count}} entries for {{slug}}."
+
+  - if: root requested OR slug not provided
+    then:
+      - scan:
+          path: "playbooks/"
+          pattern: "*.yml"
+          exclude: ["_index.yml"]
+          assign: root_playbook_files
+
+      - for_each: file in root_playbook_files
+        do:
+          - read: { path: "playbooks/{{file}}" }
+          - extract: [work_type, name, created, usage_count]
+
+      - write:
+          path: "playbooks/_index.yml"
+          content: "{{root_playbook_files | as_index_entries}}"
+          access: overwrite
+          via: direct
+
+      - say: "Root index rebuilt: {{root_playbook_files | count}} entries."
+
+  - say: "Reindex complete. Run giskard check to verify."
