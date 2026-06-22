@@ -1,69 +1,111 @@
 # frameworks/daneel/onboarding.yml
-# Step-by-step guide for setting up a new daneel_{instance} repo.
-# The AI reads this file when a user says "setup daneel" or starts onboarding.
-# All steps are atomic and verifiable (L2-15).
+# Daneel onboarding wizard.
+# Read by session_start when clients/ contains only .gitkeep (first session).
+# Never read again after first client is created.
+#
+# Pattern: dojo onboarding.yml pro_path
+# The user has GitHub connector active — AI writes files directly.
 
-framework: daneel
-version: 1
+onboarding:
 
-pre_requisites:
-  - GitHub account
-  - Perplexity Space with GitHub connector active
-  - Access to zeroth repo (public: github.com/Malstrom/zeroth)
+  # ---------------------------------------------------------------------------
+  # TRIGGER CONDITION (evaluated in session_start)
+  # ---------------------------------------------------------------------------
+  trigger:
+    condition: clients_dir_empty
+    description: >
+      clients/ exists but contains only .gitkeep.
+      This means spawn has run but onboarding has not completed yet.
 
-steps:
+  # ---------------------------------------------------------------------------
+  # STEP 1 — COLLECT IDENTITY
+  # ---------------------------------------------------------------------------
+  collect_identity:
 
-  - step: 1
-    action: create a new private GitHub repo named daneel_{your_name}
-    example: daneel_igor
-    note: snake_case, all lowercase
+    collect_name:
+      ask: "What's your name?"
+      field: user_name
 
-  - step: 2
-    action: copy templates/agent.yml from zeroth to root of new repo, rename to .agent.yml
-    source: zeroth/frameworks/daneel/templates/agent.yml
+    collect_language:
+      ask: "What language do you want me to reply in? (e.g. italian, english)"
+      field: language
 
-  - step: 3
-    action: copy templates/scenarios.yml from zeroth to root, rename to .scenarios.yml
-    source: zeroth/frameworks/daneel/templates/scenarios.yml
+    collect_timezone:
+      ask: "Your timezone? (e.g. Europe/Rome, Europe/Moscow)"
+      field: timezone
 
-  - step: 4
-    action: copy templates/daneel.yml from zeroth to root, rename to .daneel.yml
-    source: zeroth/frameworks/daneel/templates/daneel.yml
-    then: fill in all {{TOKEN}} fields (owner, language, timezone, roles, domains, work_types)
+    collect_role:
+      ask: "Your role? (e.g. consultant, developer, freelancer)"
+      field: role
 
-  - step: 5
-    action: create .registry.yml in root
-    content: |
-      repos:
-        zeroth:
-          url: https://github.com/Malstrom/zeroth
-          access: read
+  # ---------------------------------------------------------------------------
+  # STEP 2 — FIRST CLIENT (optional)
+  # ---------------------------------------------------------------------------
+  collect_first_client:
+    ask: |
+      Do you have a first client to add now?
+      I'll create the folder structure for them.
+      If not, say "skip" — you can add clients later with the add_client scenario.
+    on_skip: goto write_files
+    on_provided:
+      collect_client_name:
+        ask: "Client name? (will be used as folder slug, e.g. acme)"
+        field: first_client_name
+        note: snake_case, lowercase, no spaces
+      collect_client_sector:
+        ask: "Sector or type of work? (e.g. legal, software, consulting)"
+        field: first_client_sector
 
-  - step: 6
-    action: create README.md in root
-    content: minimal human-readable description of the instance
-    note: AI does not read README.md
+  # ---------------------------------------------------------------------------
+  # STEP 3 — WRITE FILES
+  # ---------------------------------------------------------------------------
+  write_files:
+    description: >
+      Write initial repo files after collecting identity and optional first client.
+      Executed via GitHub connector — no user action needed.
+    actions:
 
-  - step: 7
-    action: for each active client, create clients/{slug}/context.yml from template
-    source: zeroth/frameworks/daneel/templates/client_context.yml
+      - write:
+          path: "README.md"
+          generate: true
+          guided_by: "Malstrom/zeroth:frameworks/daneel/overview.yml"
+          content_hint: |
+            Human-readable profile for {{user_name}}.
+            Mentions role, language, timezone.
+            Lists active clients if any.
+            Visible on the GitHub repo landing page.
+          access: write-once
+          via: PR
+          approval: none
 
-  - step: 8
-    action: for each known contact, create contacts/{client}_{firstname}_{lastname}.yml from template
-    source: zeroth/frameworks/daneel/templates/contact.yml
-    note: for internal team members use client _internal
+      - if:
+          condition: first_client_provided
+          then:
+            - write:
+                path: "clients/{{first_client_slug}}/context.yml"
+                from: "Malstrom/zeroth:frameworks/daneel/templates/client_context.yml"
+                vars:
+                  client_name: "{{first_client_name}}"
+                  sector: "{{first_client_sector}}"
+                  owner: "{{user_name}}"
+                access: read-write
+                via: PR
+                approval: none
+            - write:
+                path: "clients/{{first_client_slug}}/playbooks/.gitkeep"
+                content: ""
+                access: write-once
+                via: PR
+                approval: none
 
-  - step: 9
-    action: create at least one playbook in playbooks/ for your most common work type
-    source: zeroth/frameworks/daneel/templates/playbook.yml
-
-  - step: 10
-    action: in Perplexity Space settings, add daneel_{instance} to connected repos
-
-  - step: 11
-    action: say "read .agent.yml" to the AI to verify the setup is complete
-    expected_response: AI confirms repo map loaded and .daneel.yml read
-
-post_setup:
-  - run ingest_task with your first real task to verify the full flow
-  - run recall after a week to verify log and index are working
+  # ---------------------------------------------------------------------------
+  # STEP 4 — DONE
+  # ---------------------------------------------------------------------------
+  done:
+    say: |
+      Setup complete, {{user_name}}.
+      Your daneel repo is ready.
+      {% if first_client_provided %}
+      First client added: {{first_client_name}} → clients/{{first_client_slug}}/
+      {% endif %}
+      Next: tell me about your first task and I'll run ingest_task.
