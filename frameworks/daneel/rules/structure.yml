@@ -1,0 +1,38 @@
+# frameworks/daneel/rules/structure.yml
+# Rule definitions for daneel structural checks.
+# Defines what files and directories must be present in any daneel instance repo.
+
+required_files:
+  - path: frameworks/daneel/vocabulary/overview.yml
+    why: work_type enum and label conventions used by all scenarios
+
+  - path: frameworks/daneel/templates/playbook_client.yml
+    why: template used by create_playbook to write client playbooks
+
+  - path: frameworks/daneel/templates/playbook_root.yml
+    why: template used by create_playbook on root promotion
+
+  - path: frameworks/daneel/templates/playbook_index.yml
+    why: template used by reindex to rebuild _index.yml
+
+  - path: frameworks/daneel/templates/issue_body.md
+    why: template used by ingest_task to open GitHub issues
+
+  - path: frameworks/daneel/templates/issue_comment_progress.md
+    why: template used by work_session to post progress comments
+
+  - path: frameworks/daneel/templates/issue_comment_close.md
+    why: template used by close_task to post closing comment
+
+required_directories:
+  - path: clients/
+    must_have_subfolders: true
+    why: at least one client must exist
+
+  - path: contacts/
+    why: contact profiles used by draft_reply
+
+optional_directories:
+  - path: playbooks/
+    why: root playbooks — created on first promotion
+    note: absence is valid until first root promotion occurs

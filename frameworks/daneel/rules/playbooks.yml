@@ -1,0 +1,96 @@
+# frameworks/daneel/rules/playbooks.yml
+# Rule definitions for daneel playbook validation.
+# Referenced by checks.yml and by giskard proxy playbook_index_consistent.
+
+# ---------------------------------------------------------------------------
+# _index.yml entry rules
+# ---------------------------------------------------------------------------
+
+index_entry:
+
+  required_keys:
+    - file          # filename: {work_type}_{descriptor}.yml
+    - work_type     # must match a value in vocabulary/overview.yml#work_type.values
+    - name          # human-readable name
+    - created       # YYYY-MM-DD
+    - usage_count   # integer, 0 at creation
+
+  client_index_only:
+    - promoted_to_root  # bool, false at creation — MUST NOT appear in root index
+
+  root_index_forbidden:
+    - promoted_to_root  # must not be present in root playbooks/_index.yml
+
+  filename_pattern: "^[a-z][a-z0-9_]*_[a-z][a-z0-9_]*\.yml$"
+  filename_description: "{work_type}_{descriptor}.yml"
+
+# ---------------------------------------------------------------------------
+# Playbook file rules
+# ---------------------------------------------------------------------------
+
+client_playbook:
+
+  required_keys:
+    - name
+    - client          # slug
+    - work_type
+    - created         # YYYY-MM-DD
+    - issue_ref       # GitHub issue number (integer)
+    - usage_count     # integer
+    - promoted_to_root  # bool
+    - context         # map with at least: problem, outcome
+    - steps           # non-empty list
+
+  optional_keys:
+    - contact         # contact slug or null
+    - notes           # string or null
+
+  invariants:
+    - usage_count >= 0
+    - promoted_to_root is boolean
+    - steps is non-empty list
+    - context.outcome is nullable string  # null until first real use
+
+root_playbook:
+
+  required_keys:
+    - name
+    - work_type
+    - created         # YYYY-MM-DD
+    - promoted_from   # path to source client playbook
+    - usage_count     # integer
+    - source_clients  # list of slugs (non-empty)
+    - context         # map with at least: problem
+    - steps           # non-empty list
+
+  optional_keys:
+    - notes           # string or null
+
+  forbidden_keys:
+    - client          # root playbooks are client-agnostic
+    - contact
+    - promoted_to_root
+
+  invariants:
+    - usage_count >= 0
+    - source_clients is non-empty list
+    - steps is non-empty list
+    - steps do not contain client-specific values (IPs, names, emails)
+
+# ---------------------------------------------------------------------------
+# Repair guidance (used by AI reindex workflow)
+# ---------------------------------------------------------------------------
+
+repair:
+  missing_from_index:
+    action: run reindex scenario for the affected directory
+  missing_file:
+    action: run reindex scenario — stale index entry, rebuild from actual files
+  broken_promotion:
+    action: re-propose root promotion to user via create_playbook scenario
+  missing_required_keys:
+    action: open the playbook file, fill missing fields from issue or user input
+  forbidden_key_in_root:
+    action: open root playbook file, remove the forbidden key
+  invalid_filename:
+    action: rename file and update index entry to match {work_type}_{descriptor}.yml pattern
