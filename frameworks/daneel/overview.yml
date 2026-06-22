@@ -1,6 +1,6 @@
 # frameworks/daneel/overview.yml
 # Daneel framework — professional memory + operational assistant
-# Status: DRAFT (issue #55)
+# Status: DRAFT (issue #272)
 
 name: daneel
 version: 1
@@ -28,30 +28,76 @@ target_users:
 
 core_concepts:
   client: an external entity you do work for
-  contact: a person at a client you communicate with
-  inbox: raw incoming task data before processing
-  log: immutable daily record of work done
-  index: AI-generated map of log files for fast recall
+  contact: a person at a client you communicate with — global, not per-client
   playbook: step-by-step instructions for a recurring work type
-  recall: AI operation to retrieve past work history for a client/topic
-  reindex: AI operation to generate or update monthly/annual index
+  recall: AI operation to retrieve past work via closed GitHub issues
+  reindex: AI maintenance operation to rebuild playbook index files
 
 scenarios:
   - ingest_task
+  - session_start
   - work_session
-  - log_work
+  - close_task
+  - create_playbook
+  - draft_reply
   - recall
   - reindex
-  - summarize_client
-  - draft_reply
 
 derives_from: zeroth
 L2_compliance: see rules/laws.yml in zeroth
 
 # ---------------------------------------------------------------------------
+# WORK TYPE VOCABULARY
+# Closed enum — used as primary matching key for playbook lookup and issue
+# search. Every issue must have a label work:{work_type}.
+# The AI must always map a task to one of these values — never free text.
+# If no value fits precisely, use 'other'.
+# ---------------------------------------------------------------------------
+work_type:
+  values:
+    - contract_review      # reviewing or negotiating a contract
+    - sla_negotiation      # negotiating service level agreements
+    - code_review          # reviewing, deploying, or debugging code
+    - protocol_validation  # validating technical or operational protocols
+    - auth                 # authentication, access, permissions
+    - onboarding           # onboarding a new client, user, or system
+    - incident             # incident response and resolution
+    - reporting            # producing reports or summaries
+    - meeting              # preparing for or following up on a meeting
+    - admin                # administrative tasks with no other category
+    - other                # anything that does not fit the above
+  notes: >
+    This enum is the single source of truth for work_type across all templates,
+    schemas, scenarios, and GitHub label conventions. Any change here must be
+    propagated to: playbook_client.yml schema, playbook_root.yml schema,
+    contact.yml schema (if used), and GitHub labels.
+
+# ---------------------------------------------------------------------------
+# LABEL CONVENTIONS
+# Every GitHub issue created by daneel must have exactly two labels:
+#   client:{slug}     — identifies the client (e.g. client:acme)
+#   work:{work_type}  — identifies the work type (e.g. work:contract_review)
+# These two labels enable all search operations in recall, ingest_task,
+# and cross-client pattern recognition.
+# Labels must be created in GitHub before first use.
+# ---------------------------------------------------------------------------
+label_conventions:
+  client:
+    prefix: "client:"
+    example: "client:acme"
+    description: "One per issue. Identifies the client this work belongs to."
+  work:
+    prefix: "work:"
+    example: "work:contract_review"
+    description: "One per issue. Must match a value in work_type.values."
+  rules:
+    - Every issue must have exactly one client label and one work label
+    - Labels must be created in GitHub before the first issue of that type
+    - The AI creates missing labels automatically at ingest_task time
+
+# ---------------------------------------------------------------------------
 # ONBOARDING
 # Read by spawn scenario to collect identity data before creating the repo.
-# creates: identity file generated from identity_template filled with answers.
 # ---------------------------------------------------------------------------
 onboarding:
   questions:
