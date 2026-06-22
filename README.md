@@ -89,7 +89,7 @@ Job search management. Immutable pipeline log, full context across sessions, no 
 
 ---
 
-## 🛡️ giskard
+## 🤖 giskard
 
 Every framework built on zeroth can be validated by [giskard](https://github.com/Malstrom/giskard).
 It cannot be seen; nothing is valid without its approval.
