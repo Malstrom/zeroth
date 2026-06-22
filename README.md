@@ -9,7 +9,7 @@ Every framework that respects `zeroth` can be automatically validated by [giskar
 
 ---
 
-## Why "zeroth"
+## ⚖️ Why "zeroth"
 
 Isaac Asimov introduced the Three Laws of Robotics in 1942.
 Decades later, in *Robots and Empire* (1985), he added a law so fundamental
@@ -22,7 +22,7 @@ This repo works the same way: not a framework itself, but the law above all fram
 
 ---
 
-## How it works
+## 🔄 How it works
 
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"edgeLabelBackground": "#ffffff", "textColor": "#0f172a"}}}%%
@@ -72,24 +72,24 @@ flowchart TD
 
 ---
 
-## Frameworks
+## 🧩 Frameworks
 
 Each framework is one dimension of a person's professional life.
 
-**[dojo](frameworks/dojo/README.md)** &nbsp;—&nbsp; *"What do I know how to do?"*
+🥋 **[dojo](frameworks/dojo/README.md)** &nbsp;—&nbsp; *"What do I know how to do?"*
 AI-assisted learning. The AI acts as a sensei — tracks your knowledge state, works only on the gap, and never lets you skip the fundamentals.
 
-**[daneel](frameworks/daneel/README.md)** &nbsp;—&nbsp; *"How do I work, and with whom?"*
+🧠 **[daneel](frameworks/daneel/README.md)** &nbsp;—&nbsp; *"How do I work, and with whom?"*
 Professional memory. The AI reads the daily work log and surfaces connections across clients and situations — so every session starts exactly where the last one ended.
 
-**[sudo-hire-me](frameworks/sudo-hire-me/README.md)** &nbsp;—&nbsp; *"How do I present who I am professionally?"*
+💼 **[sudo-hire-me](frameworks/sudo-hire-me/README.md)** &nbsp;—&nbsp; *"How do I present who I am professionally?"*
 Job search management. Immutable pipeline log, full context across sessions, no re-briefing.
 
-**tensho** &nbsp;—&nbsp; *"Is this idea actually feasible for me?"* &nbsp;*(planned)*
+🔭 **tensho** &nbsp;—&nbsp; *"Is this idea actually feasible for me?"* &nbsp;*(planned)*
 
 ---
 
-## giskard
+## 🛡️ giskard
 
 Every framework built on zeroth can be validated by [giskard](https://github.com/Malstrom/giskard).
 It cannot be seen; nothing is valid without its approval.
@@ -109,13 +109,13 @@ All checks passed.
 
 ---
 
-## Philosophy
+## 💭 Philosophy
 
 The names, the metaphors, and the principles behind this system. &nbsp;→&nbsp; [PHILOSOPHY.md](PHILOSOPHY.md)
 
 ---
 
-## Structure
+## 📁 Structure
 
 ```
 zeroth/
@@ -143,7 +143,7 @@ zeroth/
 
 ---
 
-## Space Instructions Snippet
+## 🚀 Space Instructions Snippet
 
 Copy the block below into the instructions of every new Perplexity space.
 Replace `{owner}/{repo}` with the actual repo path for that space.
