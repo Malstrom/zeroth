@@ -5,6 +5,10 @@
 Spec and foundational rules for building AI-native frameworks in the Malstrom ecosystem.
 Every framework that respects `zeroth` can be automatically validated by [giskard](https://github.com/Malstrom/giskard).
 
+🌐 [zeroth-site](https://github.com/Malstrom/zeroth-site) &nbsp;&middot;&nbsp; [GitHub](https://github.com/Malstrom/zeroth)
+
+---
+
 ## Why "zeroth"
 
 Isaac Asimov introduced the Three Laws of Robotics in 1942.
@@ -16,11 +20,100 @@ it had to precede all others — the Zeroth Law:
 A zeroth law doesn't replace the others. It governs them.
 This repo works the same way: not a framework itself, but the law above all frameworks.
 
+---
+
+## How it works
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"edgeLabelBackground": "#ffffff", "textColor": "#0f172a"}}}%%
+flowchart TD
+    U(["👤 User"])
+    PX["🔍 Perplexity Space"]
+
+    subgraph Z["zeroth"]
+        SC["📋 .scenarios.yml"] -->|3. loads| SY["🎯 scenario"]
+    end
+
+    subgraph I["instance repo"]
+        A["⚙️ .agent.yml"]
+        IR[("🗄️ GitHub files · issues · memory")]
+    end
+
+    GK["🤖 Giskard"]
+
+    U -->|writes| PX
+    PX -->|1. reads| A
+    A -->|2. points to| SC
+    SY -->|4. reads| IR
+    IR -->|5. executes| PX
+    PX -->|6. replies| U
+    PX -->|7. writes| IR
+    GK -.->|validates| Z
+    GK -.->|validates| I
+
+    classDef user fill:#e2e8f0,stroke:#94a3b8,color:#1e293b
+    classDef ai fill:#20808D,stroke:#155e75,color:#fff
+    classDef zeroth fill:#1d4ed8,stroke:#1e3a8a,color:#fff
+    classDef instance fill:#15803d,stroke:#14532d,color:#fff
+    classDef store fill:#15803d,stroke:#14532d,color:#fff
+    classDef giskard fill:#7c3aed,stroke:#4c1d95,color:#fff
+
+    class U user
+    class PX ai
+    class SC,SY zeroth
+    class A instance
+    class IR store
+    class GK giskard
+
+    style Z fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a5f
+    style I fill:#dcfce7,stroke:#22c55e,stroke-width:1.5px,color:#14532d
+    linkStyle default stroke:#475569,stroke-width:1.5px
+```
+
+---
+
+## Frameworks
+
+Each framework is one dimension of a person's professional life.
+
+**[dojo](frameworks/dojo/README.md)** &nbsp;—&nbsp; *"What do I know how to do?"*
+AI-assisted learning. The AI acts as a sensei — tracks your knowledge state, works only on the gap, and never lets you skip the fundamentals.
+
+**[daneel](frameworks/daneel/README.md)** &nbsp;—&nbsp; *"How do I work, and with whom?"*
+Professional memory. The AI reads the daily work log and surfaces connections across clients and situations — so every session starts exactly where the last one ended.
+
+**[sudo-hire-me](frameworks/sudo-hire-me/README.md)** &nbsp;—&nbsp; *"How do I present who I am professionally?"*
+Job search management. Immutable pipeline log, full context across sessions, no re-briefing.
+
+**tensho** &nbsp;—&nbsp; *"Is this idea actually feasible for me?"* &nbsp;*(planned)*
+
+---
+
 ## giskard
 
 Every framework built on zeroth can be validated by [giskard](https://github.com/Malstrom/giskard).
-giskard enforces the zeroth law — if a repo violates the rules defined here, giskard catches it.
-No zeroth, no giskard. The law comes first.
+It cannot be seen; nothing is valid without its approval.
+
+```
+$ giskard validate ./instance
+
+✓ .agent.yml — found
+✓ .scenarios.yml — found
+✓ hard_rules block — present
+✓ .registry.yml — found
+✓ log immutability — enforced
+✓ block order — valid
+
+All checks passed.
+```
+
+---
+
+## Philosophy
+
+The names, the metaphors, and the principles behind this system. &nbsp;→&nbsp; [PHILOSOPHY.md](PHILOSOPHY.md)
+
+---
 
 ## Structure
 
@@ -34,7 +127,7 @@ zeroth/
 │   └── checks.yml          # validation rules used by giskard
 ├── frameworks/             # FRAMEWORK-SPECIFIC rules
 │   ├── dojo/               # AI-assisted learning — see README
-│   ├── aurora/             # Professional memory — see README
+│   ├── daneel/             # Professional memory — see README
 │   └── sudo-hire-me/       # Job search management — see README
 ├── templates/              # base templates ready to use
 │   ├── framework_readme.md # canonical template for framework READMEs
@@ -44,42 +137,11 @@ zeroth/
 │   └── overview.yml
 ├── .agent.yml              # AI manifest for zeroth itself
 ├── .scenarios.yml          # scenario catalog for zeroth
-└── .registry.yml           # registered frameworks
+├── .registry.yml           # registered frameworks
+└── PHILOSOPHY.md           # the principles behind this system
 ```
 
-## Frameworks
-
-| Framework | What it does |
-|---|---|
-| [dojo](frameworks/dojo/README.md) | AI-assisted learning — the AI acts as a sensei, tracks your knowledge state, and works only on the gap |
-| [aurora](frameworks/aurora/README.md) | Professional memory — the AI remembers everything you have done, for whom, and what comes next |
-| [sudo-hire-me](frameworks/sudo-hire-me/README.md) | Job search management — immutable pipeline log, full context across sessions, no re-briefing |
-
-> **Planned**: `tensho`. See `.philosophy.yml` for intent.
-
-## How to use this repo
-
-- **Build a new framework**: read all of `rules/` → use the closest `frameworks/` folder as reference → create your repo.
-- **Validate an existing framework**: run [giskard](https://github.com/Malstrom/giskard) or manually follow the `checks.yml` in the framework's folder.
-- **Add a new framework**: create `frameworks/{name}/` with at least `overview.yml`, `structure.yml`, `checks.yml` and a `README.md` following [`templates/framework_readme.md`](templates/framework_readme.md).
-
-## Universal Quick Rules
-
-1. Every repo has `.agent.yml` in the root — first file read by the AI
-2. Every `.agent.yml` declares a `scenarios_file` pointing to `.scenarios.yml`
-3. All agent files are hidden (`.agent.yml`, not `agent.yml`)
-4. `.registry.yml` mandatory in root, even if empty
-5. All files read or written by the AI must be in **English** (README excluded)
-6. Small files per domain — never monoliths (~150 lines max)
-7. Never push directly to main — always feature branch → PR → squash merge
-8. `hard_rules` block mandatory in every `.agent.yml` — even when empty
-9. **Commit messages must always be in English** — regardless of the language used in chat
-
-## .agent.yml Block Order
-
-Required (in order): `language` → `work_rules` → `tool_approval` → `hard_rules` → `scenarios` → `workspace`
-
-Forbidden blocks (never use): `connector_check`, `global`, `repo_map`, `file_access`, `write_ahead`, `post_action_hook`, `handlers`
+---
 
 ## Space Instructions Snippet
 
