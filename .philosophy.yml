@@ -19,7 +19,7 @@ metaphor:
     It cannot be seen; nothing is valid without its approval.
 
   frameworks: >
-    Frameworks are the robots: dojo, aurora, sudo_hire_me, tensho.
+    Frameworks are the robots: dojo, daneel, sudo_hire_me, tensho.
     They act, produce, and remember — within the laws defined by zeroth.
     Each framework is one dimension of a person's professional life.
 
@@ -48,12 +48,12 @@ frameworks:
       Dojo is the single source of truth for knowledge across the entire system.
       Other frameworks query it. None overwrite it.
 
-  aurora:
+  daneel:
     status: active
     question: "How do I work, and with whom?"
     tracks: clients, contacts, daily work log, communication, recurring patterns
     philosophy: >
-      Aurora is not a task manager. Its goal is to never lose context
+      Daneel is not a task manager. Its goal is to never lose context
       and to recognize patterns across clients and situations.
       The AI reads the daily work log and surfaces connections — similar problems,
       recurring communication styles, reusable approaches.

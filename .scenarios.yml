@@ -13,7 +13,7 @@ scenarios:
     triggers:
       - user wants to create a new repo from a framework
       - user wants to instantiate a framework
-      - user wants to spawn a new instance of dojo, aurora, or any registered framework
+      - user wants to spawn a new instance of dojo, daneel, or any registered framework
     file: scenarios/spawn.yml
 
   - id: improve
