@@ -1,0 +1,118 @@
+# frameworks/daneel/.scenarios.yml
+# Daneel framework — scenario index.
+# Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
+# AI reads this first, then fetches ONLY the relevant scenario file.
+
+scenarios:
+
+  - id: session_start
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - session opens automatically
+      - this is the first message of the conversation and no other scenario matches
+    file: frameworks/daneel/scenarios/session.yml
+
+  - id: propose_action
+    priority: 5
+    preconditions:
+      - any
+    triggers:
+      - user sends a message without a clear intent
+      - user asks what they can do
+      - user greets or sends a short message
+      - user seems unsure what to do next
+    file: frameworks/daneel/scenarios/session.yml
+
+  - id: ingest_task
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user shares a new task, email, or request
+      - user pastes an email or message they received
+      - user describes a new incoming request from a client
+    file: frameworks/daneel/scenarios/task.yml
+
+  - id: delegate_task
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user wants to assign a task to a team member
+      - user asks who is the best person for a task
+      - user wants to delegate work
+    file: frameworks/daneel/scenarios/task.yml
+
+  - id: rate_work
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user wants to evaluate completed work by a team member
+      - user wants to give feedback on a completed task
+      - user wants to rate a team member's work
+    file: frameworks/daneel/scenarios/task.yml
+
+  - id: work_session
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user starts working on a task themselves
+      - user wants to open a work session on a task
+    file: frameworks/daneel/scenarios/task.yml
+
+  - id: log_work
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user asks to log work done
+      - user says a session is ending and wants to record what was done
+    file: frameworks/daneel/scenarios/log.yml
+
+  - id: reindex
+    priority: 5
+    preconditions:
+      - any
+    triggers:
+      - user asks to reindex logs
+      - user wants to update the log index for a client or period
+    file: frameworks/daneel/scenarios/log.yml
+
+  - id: recall
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user asks about past work for a client or topic
+      - user wants to know the history of a client or project
+    file: frameworks/daneel/scenarios/log.yml
+
+  - id: summarize_client
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user asks for a client summary
+      - user wants an overview of a client relationship
+    file: frameworks/daneel/scenarios/client.yml
+
+  - id: draft_reply
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user asks to draft a reply or message to a contact
+      - user wants to write a message to a client or team member
+    file: frameworks/daneel/scenarios/client.yml
+
+  - id: unknown_scenario
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - any message that does not match any other scenario
+    file: frameworks/daneel/scenarios/session.yml

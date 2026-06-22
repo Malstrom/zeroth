@@ -1,6 +1,6 @@
-# templates/aurora.yml
+# templates/daneel.yml
 # Template for the user profile file.
-# Path: .aurora.yml
+# Path: .daneel.yml
 # Tone and communication style live in contacts/, not here.
 
 version: 1

@@ -1,15 +1,15 @@
-# frameworks/aurora/overview.yml
-# Aurora framework — professional memory + operational assistant
+# frameworks/daneel/overview.yml
+# Daneel framework — professional memory + operational assistant
 # Status: DRAFT (issue #55)
 
-name: aurora
+name: daneel
 version: 1
 status: draft
 
 tag_line: "The AI remembers everything you have done. You just work."
 
 purpose: >
-  Aurora is an AI-native framework that acts as persistent professional memory
+  Daneel is an AI-native framework that acts as persistent professional memory
   and operational assistant for any type of knowledge work.
   The AI does not track tasks — it accompanies you in doing them,
   remembers everything, and uses that memory when needed.
@@ -65,5 +65,5 @@ onboarding:
       ask: "Your role? (e.g. consultant, developer, freelancer)"
     - field: first_client
       ask: "First client name? (can add more later)"
-  creates: .aurora.yml
-  identity_template: templates/.aurora.yml
+  creates: .daneel.yml
+  identity_template: templates/.daneel.yml

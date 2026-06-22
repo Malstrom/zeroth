@@ -1,14 +1,14 @@
-# frameworks/aurora/structure.yml
-# Canonical directory layout for any aurora_{instance} repo.
+# frameworks/daneel/structure.yml
+# Canonical directory layout for any daneel_{instance} repo.
 # All names: snake_case (L2-13)
 # AI files: .yml | Human files: .md (L2-1)
 # Immutable files declared in .agent.yml file_access.immutable (L2-7, L2-8)
 # Status: DRAFT (issue #55)
 
-root: aurora_{instance}
+root: daneel_{instance}
 
 files:
-  - path: .aurora.yml
+  - path: .daneel.yml
     type: yml
     role: user profile — owner, roles, domains, language, timezone
     access: read-only
@@ -118,7 +118,7 @@ folders:
   templates:
     path: templates/
     files:
-      - aurora.yml
+      - daneel.yml
       - agent.yml
       - scenarios.yml
       - log.yml

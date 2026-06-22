@@ -1,12 +1,12 @@
 <!-- AI: before editing this file, read templates/framework_readme.md in zeroth. -->
 
-# aurora
+# daneel
 
 > What have I done, for whom, and what do I need to do next?
 
 ---
 
-## 🧠 Why aurora exists
+## 🧠 Why daneel exists
 
 Knowledge work is invisible. You spend years working for clients, solving problems, making decisions — and almost none of it leaves a trace you can actually use. The next time you need that context, it is gone. You start over.
 
@@ -30,7 +30,7 @@ This is not a discipline problem. It is a system problem.
 
 The risk with AI is that it makes the problem feel solved without solving it. You can ask an AI anything — but if the AI has no memory of what you have done, you are just asking a very fast stranger. Every session starts from zero.
 
-autora is designed to be the memory layer that makes AI actually useful over time. The AI reads your full work history at the start of every session — clients, contacts, past work, open tasks. It accompanies you while you work, logs what happens, and builds a retrievable record of everything. The next session starts exactly where the last one ended. The goal is not to track work. The goal is to never lose the context of your work again.
+daneel is designed to be the memory layer that makes AI actually useful over time. The AI reads your full work history at the start of every session — clients, contacts, past work, open tasks. It accompanies you while you work, logs what happens, and builds a retrievable record of everything. The next session starts exactly where the last one ended. The goal is not to track work. The goal is to never lose the context of your work again.
 
 ---
 
@@ -48,4 +48,4 @@ autora is designed to be the memory layer that makes AI actually useful over tim
 
 ## 🚀 How to start
 
-Create a new aurora instance using the `spawn` scenario from your zeroth Perplexity Space.
+Create a new daneel instance using the `spawn` scenario from your zeroth Perplexity Space.

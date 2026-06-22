@@ -1,0 +1,118 @@
+# frameworks/daneel/scenarios/task.yml
+# Scenarios: ingest_task, delegate_task, rate_work, work_session
+
+scenarios:
+
+  ingest_task:
+    on:
+      - user shares a new task, email, or request
+      - user pastes an email or message they received
+      - user describes a new incoming request from a client
+    creates_issue: true
+    issue:
+      title: "Task: {slug} — {{date}}"
+      body: |
+        - [ ] inbox file created
+        - [ ] next step proposed
+      on_complete: close
+      on_fail: comment
+    read:
+      - "clients/{slug}/context.yml"
+      - "log/_index/{{current_year}}.yml"
+      - templates/inbox.yml
+    steps:
+      - say: "Loading client context and history..."
+      - say: "Relevant past entries found: {{history_matches | count}}."
+      - write:
+          path: "clients/{slug}/inbox/"
+          filename: "YYYY-MM-DD_{slug}.yml"
+          from: templates/inbox.yml
+          access: write-once
+          via: PR
+      - issue:
+          check: "inbox file created"
+      - say: "Task ingested. Proposed next step: {{next_step}}."
+      - issue:
+          check: "next step proposed"
+    output:
+      state_changes: [task-ingested]
+
+  delegate_task:
+    on:
+      - user wants to assign a task to a team member
+      - user asks who is the best person for a task
+      - user wants to delegate work
+    creates_issue: false
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "contacts/"
+    steps:
+      - say: "Candidates ranked by skill match and performance score: {{ranked_candidates}}."
+      - ask: "Which candidate do you want to assign this to?"
+      - call: draft_reply
+      - write:
+          path: "clients/{slug}/inbox/{{task_file}}"
+          fields: [assigned_to, status_log]
+          access: append-only
+          via: PR
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
+          fields: [entries]
+          access: append-only
+          via: PR
+    output:
+      state_changes: [task-delegated]
+
+  rate_work:
+    on:
+      - user wants to evaluate completed work by a team member
+      - user wants to give feedback on a completed task
+      - user wants to rate a team member's work
+    creates_issue: false
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "contacts/{{contact_file}}"
+    steps:
+      - ask: "Score (1-5)?"
+      - ask: "Strengths?"
+      - ask: "Weaknesses?"
+      - ask: "Notes?"
+      - write:
+          path: "contacts/"
+          filename: "{client}_{firstname}_{lastname}.yml"
+          fields: [performance_log]
+          access: append-only
+          via: PR
+      - write:
+          path: "clients/{slug}/inbox/{{task_file}}"
+          fields: [status_log]
+          access: append-only
+          via: PR
+      - write:
+          path: "log/{slug}/"
+          filename: "YYYY-MM-DD.yml"
+          fields: [entries]
+          access: append-only
+          via: PR
+      - say: "Rating saved. Updated performance summary: {{performance_summary}}."
+    output:
+      state_changes: [work-rated]
+
+  work_session:
+    on:
+      - user starts working on a task themselves
+      - user wants to open a work session on a task
+    creates_issue: false
+    read:
+      - "clients/{slug}/inbox/{{task_file}}"
+      - "clients/{slug}/context.yml"
+      - "playbooks/{{work_type}}.yml"
+    steps:
+      - say: "Playbook: {{playbook.name}} — {{playbook.description}}."
+      - say: "Steps: {{playbook.steps}}."
+      - propose: "Start playbook execution step by step?"
+        on_confirm:
+          - call: log_work
+    output:
+      state_changes: []

@@ -1,12 +1,12 @@
 # templates/scenarios.yml
-# Template for .scenarios.yml in an aurora_{instance} repo.
+# Template for .scenarios.yml in a daneel_{instance} repo.
 # Copy to root as .scenarios.yml.
 # Triggers are matched in order — first match wins.
-# Full scenario steps: see frameworks/aurora/scenarios.yml in zeroth.
+# Full scenario steps: see frameworks/daneel/scenarios.yml in zeroth.
 
 version: 1
-framework: aurora
-ref: zeroth/frameworks/aurora/scenarios.yml
+framework: daneel
+ref: zeroth/frameworks/daneel/scenarios.yml
 
 # ---------------------------------------------------------------------------
 # TRIGGER MAP

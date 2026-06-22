@@ -1,11 +1,11 @@
-# frameworks/aurora/.registry.yml
-# Cross-repo connection map for aurora instances.
+# frameworks/daneel/.registry.yml
+# Cross-repo connection map for daneel instances.
 # Canonical spec — read by the AI agent at session start.
 # Instances inherit this file via zeroth (read cross-repo, never copied).
 
-framework: aurora
+framework: daneel
 
-# Repos that an aurora instance may reference or read from.
+# Repos that a daneel instance may reference or read from.
 # Each entry declares the repo, its role, and the access level.
 connections: []
 
@@ -21,5 +21,5 @@ connections: []
 #       role: shared playbooks and templates
 #       access: read-only
 #     - repo: acme/erp-exports
-#       role: raw data exports consumed by aurora
+#       role: raw data exports consumed by daneel
 #       access: read-only

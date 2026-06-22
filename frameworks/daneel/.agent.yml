@@ -1,11 +1,11 @@
 # .agent.yml
-# AI-only operational manifest for the aurora framework.
+# AI-only operational manifest for the daneel framework.
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
 # ---------------------------------------------------------------------------
 language:
-  chat: read from .aurora.yml     # language used when speaking with the user
+  chat: read from .daneel.yml     # language used when speaking with the user
   files: english                  # all file content, commits, PR/issue bodies
   filenames: english              # all file names AND folder names (snake_case, lowercase)
 
@@ -49,7 +49,7 @@ hard_rules:
 # Every user message must be matched against scenarios first.
 # ---------------------------------------------------------------------------
 scenarios:
-  spec: Malstrom/zeroth:frameworks/aurora/.scenarios.yml
+  spec: Malstrom/zeroth:frameworks/daneel/.scenarios.yml
   read_before_responding: true
   on_no_match: propose new scenario to user before proceeding
 
@@ -57,7 +57,7 @@ scenarios:
 # WORKSPACE
 # ---------------------------------------------------------------------------
 workspace:
-  .aurora.yml:
+  .daneel.yml:
     role: user profile, roles, domains, language, timezone
     access: read-only
   .scenarios.yml:

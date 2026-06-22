@@ -1,9 +1,9 @@
-# frameworks/aurora/onboarding.yml
-# Step-by-step guide for setting up a new aurora_{instance} repo.
-# The AI reads this file when a user says "setup aurora" or starts onboarding.
+# frameworks/daneel/onboarding.yml
+# Step-by-step guide for setting up a new daneel_{instance} repo.
+# The AI reads this file when a user says "setup daneel" or starts onboarding.
 # All steps are atomic and verifiable (L2-15).
 
-framework: aurora
+framework: daneel
 version: 1
 
 pre_requisites:
@@ -14,21 +14,21 @@ pre_requisites:
 steps:
 
   - step: 1
-    action: create a new private GitHub repo named aurora_{your_name}
-    example: aurora_igor
+    action: create a new private GitHub repo named daneel_{your_name}
+    example: daneel_igor
     note: snake_case, all lowercase
 
   - step: 2
     action: copy templates/agent.yml from zeroth to root of new repo, rename to .agent.yml
-    source: zeroth/frameworks/aurora/templates/agent.yml
+    source: zeroth/frameworks/daneel/templates/agent.yml
 
   - step: 3
     action: copy templates/scenarios.yml from zeroth to root, rename to .scenarios.yml
-    source: zeroth/frameworks/aurora/templates/scenarios.yml
+    source: zeroth/frameworks/daneel/templates/scenarios.yml
 
   - step: 4
-    action: copy templates/aurora.yml from zeroth to root, rename to .aurora.yml
-    source: zeroth/frameworks/aurora/templates/aurora.yml
+    action: copy templates/daneel.yml from zeroth to root, rename to .daneel.yml
+    source: zeroth/frameworks/daneel/templates/daneel.yml
     then: fill in all {{TOKEN}} fields (owner, language, timezone, roles, domains, work_types)
 
   - step: 5
@@ -46,23 +46,23 @@ steps:
 
   - step: 7
     action: for each active client, create clients/{slug}/context.yml from template
-    source: zeroth/frameworks/aurora/templates/client_context.yml
+    source: zeroth/frameworks/daneel/templates/client_context.yml
 
   - step: 8
     action: for each known contact, create contacts/{client}_{firstname}_{lastname}.yml from template
-    source: zeroth/frameworks/aurora/templates/contact.yml
+    source: zeroth/frameworks/daneel/templates/contact.yml
     note: for internal team members use client _internal
 
   - step: 9
     action: create at least one playbook in playbooks/ for your most common work type
-    source: zeroth/frameworks/aurora/templates/playbook.yml
+    source: zeroth/frameworks/daneel/templates/playbook.yml
 
   - step: 10
-    action: in Perplexity Space settings, add aurora_{instance} to connected repos
+    action: in Perplexity Space settings, add daneel_{instance} to connected repos
 
   - step: 11
     action: say "read .agent.yml" to the AI to verify the setup is complete
-    expected_response: AI confirms repo map loaded and .aurora.yml read
+    expected_response: AI confirms repo map loaded and .daneel.yml read
 
 post_setup:
   - run ingest_task with your first real task to verify the full flow

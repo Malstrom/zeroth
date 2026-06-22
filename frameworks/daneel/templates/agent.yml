@@ -1,5 +1,5 @@
 # templates/agent.yml
-# Template for .agent.yml in an aurora_{instance} repo.
+# Template for .agent.yml in a daneel_{instance} repo.
 # Copy to root as .agent.yml and replace all {{TOKEN}} placeholders.
 # Inherits global rules from: zeroth/rules/agent.yml
 # Laws: zeroth/rules/laws.yml
@@ -13,7 +13,7 @@ connector_check:
 # REPO MAP
 # ---------------------------------------------------------------------------
 repo_map:
-  .aurora.yml: user profile — read at session start
+  .daneel.yml: user profile — read at session start
   .scenarios.yml: scenario catalog
   .registry.yml: cross-repo connections
   clients/: client context, inbox, output
@@ -28,7 +28,7 @@ repo_map:
 # ---------------------------------------------------------------------------
 file_access:
   read_only:
-    - .aurora.yml
+    - .daneel.yml
     - .agent.yml
     - .scenarios.yml
     - .registry.yml
@@ -73,7 +73,7 @@ write_ahead:
 # GLOBAL
 # ---------------------------------------------------------------------------
 global:
-  language: read from .aurora.yml
+  language: read from .daneel.yml
   pr_strategy: batch_per_session
   merge_strategy: squash
   dedup_scope: current_session
