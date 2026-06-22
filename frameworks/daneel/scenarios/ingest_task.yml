@@ -1,0 +1,135 @@
+# frameworks/daneel/scenarios/ingest_task.yml
+# Scenario: ingest_task
+# Trigger: user receives a new task, email, chat, or meeting request
+# Output: GitHub issue created with structured body + labels
+# Spec: #275
+
+scenario: ingest_task
+
+on:
+  - user shares a new task, email, or request
+  - user pastes an email or message they received
+  - user describes a new incoming request from a client
+  - "nuova task"
+  - "ho ricevuto"
+  - "new task"
+  - "ingest"
+
+# ---------------------------------------------------------------------------
+# READS
+# Max 2 index file reads + GitHub searches. No brute-force scanning.
+# ---------------------------------------------------------------------------
+read:
+  - "clients/{slug}/context.yml"                   # client static data
+  - "clients/{slug}/playbooks/_index.yml"           # client playbook index (if exists)
+  - "playbooks/_index.yml"                          # root playbook index (fallback)
+  - templates/issue_body.md                         # issue body template
+
+# ---------------------------------------------------------------------------
+# STEPS
+# ---------------------------------------------------------------------------
+steps:
+
+  - say: "Tell me about the task — paste the email, message, or describe it."
+
+  - extract:
+      field: work_type
+      from: user_input
+      enum: overview.yml#work_type.values
+      on_ambiguous: ask
+      say: "I classified this as work_type: {{work_type}}. Correct?"
+
+  - extract:
+      field: client_slug
+      from: user_input
+      fallback: ask
+
+  - read:
+      path: "clients/{slug}/playbooks/_index.yml"
+      filter: { work_type: "{{work_type}}" }
+      assign: client_playbooks
+      on_missing: skip                              # index may not exist yet
+
+  - if: client_playbooks is empty
+    then:
+      - read:
+          path: "playbooks/_index.yml"
+          filter: { work_type: "{{work_type}}" }
+          assign: root_playbooks
+          on_missing: skip
+
+  - search:
+      source: github_issues
+      state: closed
+      labels:
+        - "client:{{slug}}"
+        - "work:{{work_type}}"
+      assign: past_issues_client
+
+  - if: past_issues_client is empty
+    then:
+      - search:
+          source: github_issues
+          state: closed
+          labels:
+            - "work:{{work_type}}"
+          assign: past_issues_cross_client
+          note: "cross-client prior art — do not expose client names in output"
+
+  - say: |
+      Prior art found:
+      — Client playbooks: {{client_playbooks | names_and_usage_count | 'none'}}
+      — Root playbooks:   {{root_playbooks | names_and_usage_count | 'none'}}
+      — Past issues (this client): {{past_issues_client | numbers_and_titles | 'none'}}
+      — Past issues (other clients): {{past_issues_cross_client | count | 'none'}}
+
+  - search:
+      source: github_issues
+      state: open
+      labels:
+        - "client:{{slug}}"
+        - "work:{{work_type}}"
+      assign: open_duplicates
+
+  - if: open_duplicates is not empty
+    then:
+      - say: "Open issues exist for the same client and work type: {{open_duplicates | numbers_and_titles}}"
+      - ask: "Is this a new task or a duplicate of one of the above?"
+      - if: user confirms duplicate
+        then:
+          - say: "Linking to existing issue {{duplicate_issue_number}}. No new issue created."
+          - stop
+
+  - if: root_playbooks is not empty AND client_playbooks is empty
+    then:
+      - say: |
+          A root playbook exists for {{work_type}} but this client has no client-specific version yet.
+          I will need the following client-specific data to proceed:
+          {{root_playbooks[0] | missing_client_fields_from: 'clients/{slug}/context.yml'}}
+      - ask: "Provide the missing values or confirm to create the issue without a client playbook."
+
+  - ensure_labels:
+      - "client:{{slug}}"
+      - "work:{{work_type}}"
+      create_if_missing: true
+
+  - create:
+      resource: github_issue
+      title: "{{work_type}}: {{short task description}} — {{slug}}"
+      body: templates/issue_body.md
+      labels:
+        - "client:{{slug}}"
+        - "work:{{work_type}}"
+      fields:
+        task: "{{raw task description}}"
+        source_type: "{{email | chat | meeting | other}}"
+        contact: "{{contact_slug | null}}"
+        received: "{{YYYY-MM-DD}}"
+        deadline: "{{YYYY-MM-DD | null}}"
+        work_type: "{{work_type}}"
+        prior_art_playbook: "{{best matching playbook name | none}}"
+        prior_art_issues: "{{past_issues_client | top 3 numbers and titles | none}}"
+        notes: "{{additional context from user | omit if empty}}"
+      assign: new_issue
+
+  - say: "Issue created: {{new_issue.url}} — ready to start working?"
