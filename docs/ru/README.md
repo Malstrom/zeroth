@@ -5,7 +5,7 @@
 Спецификация и базовые правила для создания AI-нативных фреймворков в экосистеме Malstrom.
 Каждый фреймворк, построенный на `zeroth`, может быть автоматически проверен с помощью [giskard](https://github.com/Malstrom/giskard).
 
-🌐 [zeroth-site](https://github.com/Malstrom/zeroth-site) &nbsp;·&nbsp; [GitHub](https://github.com/Malstrom/zeroth) &nbsp;·&nbsp; 🇬🇧 [English](../../README.md)
+🌐 [zeroth-site](https://malstrom.github.io/zeroth-site/zeroth.html) &nbsp;·&nbsp; [GitHub](https://github.com/Malstrom/zeroth) &nbsp;·&nbsp; 🇬🇧 [English](../../README.md)
 
 ---
 
@@ -135,6 +135,10 @@ zeroth/
 │   ├── .scenarios.yml
 │   ├── .registry.yml
 │   └── overview.yml
+├── docs/
+│   └── ru/                 # русский перевод
+│       ├── README.md
+│       └── PHILOSOPHY.md
 ├── .agent.yml              # AI-манифест самого zeroth
 ├── .scenarios.yml          # каталог сценариев для zeroth
 ├── .registry.yml           # реестр фреймворков
