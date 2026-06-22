@@ -1,0 +1,135 @@
+# frameworks/daneel/structure.yml
+# Canonical directory layout for any daneel_{instance} repo.
+# All names: snake_case (L2-13)
+# AI files: .yml | Human files: .md (L2-1)
+# Immutable files declared in .agent.yml file_access.immutable (L2-7, L2-8)
+# Status: DRAFT (issue #55)
+
+root: daneel_{instance}
+
+files:
+  - path: .daneel.yml
+    type: yml
+    role: user profile — owner, roles, domains, language, timezone
+    access: read-only
+    required: true
+
+  - path: .agent.yml
+    type: yml
+    role: AI manifest and entry point
+    access: read-only
+    required: true
+
+  - path: .scenarios.yml
+    type: yml
+    role: scenario catalog
+    access: read-only
+    required: true
+
+  - path: .registry.yml
+    type: yml
+    role: cross-repo connection map
+    access: read-only
+    required: true
+
+  - path: README.md
+    type: md
+    role: human navigation hub
+    access: write-only (AI does not read)
+    required: true
+
+folders:
+
+  clients:
+    path: clients/{slug}/
+    description: everything related to a single client
+    subfolders:
+      - path: clients/{slug}/context.yml
+        type: yml
+        role: static client info (name, sector, tools, notes)
+        immutable: false
+
+      - path: clients/{slug}/summary.md
+        type: md
+        role: human-facing client summary, AI-generated
+        immutable: false
+
+      - path: clients/{slug}/inbox/
+        description: raw incoming tasks before processing
+        files:
+          - pattern: YYYY-MM-DD_{slug}.yml
+            type: yml
+            role: raw task data
+            immutable: true
+            status_field: true
+
+      - path: clients/{slug}/output/
+        description: AI-generated output for human delivery
+        files:
+          - pattern: YYYY-MM-DD_{slug}.md
+            type: md
+            role: email drafts, code, tables, analysis
+            immutable: false
+
+      - path: clients/{slug}/playbooks/
+        description: client-specific playbook overrides
+        files:
+          - pattern: "{playbook_slug}.yml"
+            type: yml
+            role: client override of a general playbook
+            immutable: false
+
+      - path: clients/{slug}/log/
+        description: immutable daily work records for this client
+        files:
+          - pattern: YYYY-MM-DD.yml
+            type: yml
+            role: daily work log
+            immutable: true
+            write_ahead: true
+
+          - pattern: YYYY-MM.index.yml
+            type: yml
+            role: monthly index, AI-generated
+            immutable: false
+            contains: [file_refs, topics, external_refs, issue_refs, work_types]
+            does_not_contain: [full_note_text]
+
+  contacts:
+    path: contacts/
+    files:
+      - pattern: "{client}_{firstname}_{lastname}.yml"
+        type: yml
+        role: external contact profile with communication preferences
+        immutable: false
+      - pattern: "internal_{firstname}_{lastname}.yml"
+        type: yml
+        role: internal team member profile with skills and performance_log
+        immutable: false
+
+  playbooks:
+    path: playbooks/
+    files:
+      - pattern: "{slug}.yml"
+        type: yml
+        role: step-by-step instructions for a recurring work type
+        note: one file per work type, not per tool
+
+  templates:
+    path: templates/
+    files:
+      - daneel.yml
+      - agent.yml
+      - scenarios.yml
+      - log.yml
+      - log_index.yml
+      - inbox.yml
+      - contact.yml
+      - client_context.yml
+      - playbook.yml
+
+reindex_trigger:
+  manual: true
+  automatic:
+    condition: clients/{client}/log/ has more than 30 files without a monthly index
+    action: run reindex scenario for that client
