@@ -5,7 +5,7 @@
 Spec and foundational rules for building AI-native frameworks in the Malstrom ecosystem.
 Every framework that respects `zeroth` can be automatically validated by [giskard](https://github.com/Malstrom/giskard).
 
-🌐 [zeroth-site](https://malstrom.github.io/zeroth-site) &nbsp;·&nbsp; [GitHub](https://github.com/Malstrom/zeroth) &nbsp;·&nbsp; 🇷🇺 [Русский](docs/ru/README.md)
+🌐 [zeroth-site](https://malstrom.github.io/zeroth-site/zeroth.html) &nbsp;·&nbsp; [GitHub](https://github.com/Malstrom/zeroth) &nbsp;·&nbsp; 🇷🇺 [Русский](docs/ru/README.md)
 
 ---
 
