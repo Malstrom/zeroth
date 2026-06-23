@@ -2,6 +2,10 @@
 # Daneel framework — scenario index.
 # Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
 # AI reads this first, then fetches ONLY the relevant scenario file.
+#
+# TRIGGER MATCHING: semantic and language-independent.
+# Match user intent regardless of the language they write in (Italian, Russian, English, etc.).
+# Never match literal strings — always match meaning.
 
 scenarios:
 
