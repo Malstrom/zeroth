@@ -3,11 +3,10 @@
 
 # ---------------------------------------------------------------------------
 # THRESHOLDS
-# Single source of truth for readiness evaluation.
 # ---------------------------------------------------------------------------
 readiness_thresholds:
-  min_randori_score: 80        # % correct answers in last randori session for this topic
-  min_sessions_without_gaps: 2 # consecutive sessions where kata ## Current gaps is empty
+  min_randori_score: 80
+  min_sessions_without_gaps: 2
 
 ---
 id: evaluate_readiness
@@ -52,7 +51,9 @@ steps:
   - if:
       condition: event == "readiness-ready"
       then:
-        - say: report readiness score and clean session count, inform student they are ready for topic shinsa
+        - say: |
+            report readiness score and clean session count, inform student they are ready for topic shinsa
+            Score: {{randori_score}}% — {{sessions_without_gaps}} sessioni pulite.
         - propose: propose taking the topic shinsa now
           on_confirm:
             - call: topic_shinsa
@@ -62,7 +63,9 @@ steps:
         - if:
             condition: event == "readiness-gap"
             then:
-              - say: list the open gaps and explain they must be closed before shinsa
+              - say: |
+                  list the open gaps and explain they must be closed before shinsa
+                  Gap aperti: {{current_gaps | join}}
               - propose: propose studying the gaps now
                 on_confirm:
                   - call: study_open
@@ -72,7 +75,9 @@ steps:
                 on_reject:
                   - say: acknowledge and remind the student the gaps are in the kata
             else:
-              - say: inform the student there are no gaps but not enough clean sessions yet, show current count vs required
+              - say: |
+                  inform student there are no gaps but not enough clean sessions
+                  Sessioni pulite: {{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}}
               - propose: propose studying a new concept in the topic
                 on_confirm:
                   - call: study_open

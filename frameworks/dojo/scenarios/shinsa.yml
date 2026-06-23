@@ -22,7 +22,9 @@ steps:
   - if:
       condition: kata/{topic}.md current_gaps | count > 0
       then:
-        - say: warn the student there are open gaps, list them
+        - say: |
+            warn the student there are open gaps before proceeding
+            Gaps: {{current_gaps | join}}
         - propose: propose proceeding anyway
           on_reject:
             - stop
@@ -94,13 +96,19 @@ steps:
   - if:
       condition: event == "topic-shinsa-passed"
       then:
-        - say: inform the student the topic shinsa was passed, show score and topic completed
+        - say: |
+            inform the student the topic shinsa was passed
+            Score: {{score}}% — {{topic}} completato.
         - if:
             condition: open_goal_issues | any: topic in goal.required_topics
             then:
-              - say: show progress toward the active goal (checked vs total topics)
+              - say: |
+                  show progress toward the active goal
+                  Progresso verso {{matching_goal.title}}: {{matching_goal.checked_count}}/{{matching_goal.total_count}} topic.
       else:
-        - say: inform the student the topic shinsa was not passed, show score, mention gaps were updated in kata
+        - say: |
+            inform the student the topic shinsa was not passed
+            Score: {{score}}% — gap aggiornati nel kata.
         - propose: propose studying the weak spots now
           on_confirm:
             - call: study_open

@@ -39,9 +39,16 @@ steps:
   - compute: already_satisfied
   - compute: missing_topics
   - say: |
-      show goal summary: title, source, already satisfied topics, and missing topics grouped by priority (critical / important / later)
+      Goal: {{goal_human_title}} ({{goal_slug}})
+      Source: {{goal_source_emoji}} {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
+      Already satisfied ({{already_satisfied | count}}): {{already_satisfied | join}}
+      Topics to study:
+        🔴 Critical:  {{missing_topics | where: priority == critical | join}}
+        🟡 Important: {{missing_topics | where: priority == important | join}}
+        🟢 Later:     {{missing_topics | where: priority == later | join}}
+      # Issue body rendering:
       # kata exists    → - [ ] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
-      # kata missing   → - [ ] `slug` — description
+      # kata missing   → - [ ] `slug` — description  (or *(ai inferred)*)
       # ALL kata links: absolute GitHub URLs (blob/main/), never relative.
 output:
   state_changes: [goal-declared]
@@ -71,7 +78,10 @@ steps:
   - if:
       condition: goal_readiness == "not_ready"
       then:
-        - say: inform the student they are not ready for goal shinsa — show completed and missing topics
+        - say: |
+            inform the student they are not ready for goal shinsa
+            Completati: {{checked_topics | join}}
+            Mancanti: {{unchecked_topics | join}}
         - propose: propose proceeding anyway
           on_reject:
             - say: encourage the student to keep studying
@@ -141,9 +151,15 @@ steps:
   - if:
       condition: event == "goal-shinsa-passed"
       then:
-        - say: inform the student the goal shinsa was passed — show score, confirm goal achieved and makimono written
+        - say: |
+            inform the student the goal shinsa was passed
+            Score: {{score}}%
+            {{goal_slug}} raggiunto — makimono scritto.
       else:
-        - say: inform the student the goal shinsa was not passed — show score and list weak topics
+        - say: |
+            inform the student the goal shinsa was not passed
+            Score: {{score}}%
+            Weak topics: {{weak_topics | join}}
         - propose: propose studying the weak topics now
           on_confirm:
             - call: study_open
