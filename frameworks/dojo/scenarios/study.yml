@@ -54,9 +54,14 @@ steps:
 
   - update_issue:
       target: matching_goal_issue
-      action: add_kata_link
+      condition: matching_goal_issue exists
+      action: update_topic_kata_link
       topic: "{{topic}}"
       kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
+      note: |
+        Find the checklist row for this topic in the goal issue and append
+        [kata](kata_url) inline if not already present.
+        Do not tick the checkbox — that is reserved for topic_shinsa on pass.
 
   - merge:
       strategy: squash

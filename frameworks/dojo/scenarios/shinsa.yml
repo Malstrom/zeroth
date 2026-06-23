@@ -63,6 +63,21 @@ steps:
                   action: check_topic
                   topic: "{{topic}}"
                   nikki: "{{nikki_url}}"
+              - update_issue:
+                  target: matching_goal_issue
+                  action: update_topic_kata_link
+                  topic: "{{topic}}"
+                  kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
+        - write:
+            path: "kiroku/makimono/"
+            filename: "YYYY-MM-DD_{topic}_shinsa_passed.yml"
+            from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_makimono.yml
+            access: write-once
+            via: PR
+            approval: none
+            note: |
+              Record this topic shinsa pass.
+              Fields: date, topic, score, weak_spots.
         - emit: topic-shinsa-passed
       else:
         - write:
