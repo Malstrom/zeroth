@@ -1,35 +1,34 @@
 # source: frameworks/dojo/scenarios/study.yml
-# Scenarios: study_open, randori
+# Scenario: study_open
 
----
 id: study_open
 on:
   - user wants to study a specific topic
   - user asks to be taught something
   - user wants to open a study session on a topic
+preconditions:
+  - any
 creates_issue: false
 issue_updates:
   target: matching_goal_issue
-  condition: matching_goal_issue exists   # if no goal issue covers this topic, all update_issue steps are skipped
+  condition: matching_goal_issue exists
 read:
   - .gakusei.yml
-  - github:issues:open:label:Goal         # to resolve matching_goal_issue
-  - "kata/{topic}.md"
-input_sources:
-  - attached_file
-  - url
-  - pasted_text
-  - ai_knowledge
+  - github:issues:open:label:Goal
+  - "kata/{topic}.md"           # existing concepts and ## Current gaps
+  - "kiroku/nikki/"             # filenames only — to detect previously asked questions
 steps:
-  - compute: matching_goal_issue          # open goal issue where topic is in unchecked_topics, or null
-  - say: "{{source_summary}}: {{concept_count}} concepts identified."
+  - compute: matching_goal_issue
+  - compute: agenda
+    # Priority order — AI builds agenda before starting:
+    # 1. concepts in ## Current gaps of kata/{topic}.md (close gaps first)
+    # 2. concepts of this topic not yet present in kata/{topic}.md (add new knowledge)
+    # 3. concepts already in kata with no recent randori (reinforce)
+    # Session target: ~20 minutes. AI stops adding concepts when estimated time is reached.
+    # Never repeat a concept+question combination already present in a nikki for this topic.
 
-  - for_each: concept in source.concepts
+  - for_each: concept in agenda
     do:
-      - say: |
-          **{{concept.title}}**
-          {{concept.explanation}}
-          > Source: {{concept.citation}}
       - call: randori
         with:
           concept: "{{concept}}"
@@ -49,20 +48,15 @@ steps:
       via: PR
       approval: none
       note: |
-        Append new concepts to kata.
-        Replace ## Current gaps section with gaps identified during this session's randori.
-        If no gaps: write '- None recorded yet.' under ## Current gaps.
+        Append new concepts covered this session.
+        Update ## Current gaps: remove closed gaps, keep open ones.
+        If no gaps remain: write '- None.' under ## Current gaps.
 
   - update_issue:
       target: matching_goal_issue
       action: add_kata_link
       topic: "{{topic}}"
       kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
-      # Edits the goal issue body inline:
-      # finds the checklist item matching topic, appends kata link next to it.
-      # Format: - [ ] `topic` — description — [kata](kata_url)
-      # If kata has no open gaps: also ticks the checkbox.
-      # Skipped entirely if matching_goal_issue does not exist.
 
   - merge:
       strategy: squash
@@ -71,66 +65,3 @@ steps:
       approval: none
 output:
   state_changes: [study-completed]
-
----
-id: randori
-on:
-  - user wants to drill on the current topic
-  - user asks to be quizzed on what was just explained
-  - user wants to practice a concept
-  - user wants to review what they know
-  - user wants to practice without studying first
-creates_issue: false
-read:
-  - "kata/{topic}.md"
-
-sensei_rules:
-  no_live_coding: true
-  rationale: >
-    Live coding has no diagnostic value in a chat session.
-    The AI cannot run code, inspect the environment, or evaluate tests.
-    Syntax correctness is not a signal of understanding — tooling handles it.
-  allowed_question_types:
-    - reasoning: ask the student to explain why a design choice was made
-    - edge_cases: ask what happens when a specific input or condition changes
-    - tradeoffs: ask the student to compare two approaches and justify a preference
-    - mental_model: ask the student to describe what happens internally when X is called
-    - error_diagnosis: describe a symptom, ask the student to identify the likely cause
-  forbidden_question_types:
-    - write_this_function: asking the student to produce working code in chat
-    - implement_this: any request to type out a full implementation
-    - live_coding: any format that requires the student to write syntactically correct code in real time
-
-steps:
-  - if:
-      condition: topic is missing
-      then:
-        - ask: "Which topic?"
-
-  - ask: "{{reasoning_question_on_concept_requiring_concept_to_answer}}"
-
-  - if:
-      condition: answer_correct OR answer_substantially_correct
-      then:
-        - say: "Correct. {{brief_positive_reinforcement}}"
-      else:
-        - say: "Not quite — {{gap_explanation}}"
-        - ask: "{{simpler_followup_on_same_concept_using_only_source_or_prior_kata}}"
-        - if:
-            condition: followup_correct OR followup_substantially_correct
-            then:
-              - say: "Good. {{brief_explanation_of_gap}}"
-            else:
-              - say: "{{full_re_explanation_of_concept}}"
-        - write:
-            path: "kata/{topic}.md"
-            fields: [current_gaps]
-            access: read-write
-            via: PR
-            approval: none
-            note: |
-              Replace ## Current gaps section only.
-              Add new gap if not already listed.
-              Format: - `concept` — description of specific gap
-output:
-  state_changes: [randori-completed]
