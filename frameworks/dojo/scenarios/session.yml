@@ -30,9 +30,13 @@ steps:
       condition: open_goal_issues | count > 0
       then:
         - say: |
-            show the active goal title and topic progress
+            Goal attivo: {{open_goal_issues.first.title}}
+            Progressi:
+            {{open_goal_issues.first | topics_with_kata_status}}
             # topics_with_kata_status renders each topic as:
             # - `slug` — in progress (kata exists, gaps: X) | not started | [x] passed
+            # kata existence check: kata/{slug}.md exists?
+            # gap count: ## Current gaps section in kata/{slug}.md, non-empty lines
         - propose: propose continuing the active goal
           on_confirm:
             - call: study_open
