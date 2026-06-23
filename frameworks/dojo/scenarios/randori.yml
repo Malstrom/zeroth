@@ -1,0 +1,84 @@
+# source: frameworks/dojo/scenarios/randori.yml
+# Scenario: randori
+
+id: randori
+on:
+  - user wants to drill on the current topic
+  - user wants to practice a concept
+  - user wants to be quizzed on what was just explained
+  - user wants to review what they know
+  - user wants to practice without studying first
+preconditions:
+  - any
+creates_issue: false
+read:
+  - "kata/{topic}.md"           # ## Current gaps is authoritative for gap state
+  - "kiroku/nikki/"             # filenames only — detect previously asked questions per topic
+
+sensei_rules:
+  no_live_coding: true
+  rationale: >
+    Live coding has no diagnostic value in a chat session.
+    The AI cannot run code or evaluate tests.
+    Syntax correctness is not a signal of understanding.
+  allowed_question_types:
+    - reasoning:      ask WHY a design choice was made
+    - edge_cases:     ask what happens when a condition changes
+    - tradeoffs:      compare two approaches, justify preference
+    - mental_model:   describe what happens internally when X is called
+    - error_diagnosis: describe a symptom, identify the likely cause
+  forbidden_question_types:
+    - write_this_function
+    - implement_this
+    - live_coding
+  progression:
+    # Question difficulty scales with concept history in nikki:
+    # first time seeing concept → basic comprehension question
+    # concept seen before, no gap → intermediate (edge case or tradeoff)
+    # concept seen before, gap exists → start from the gap, then advance
+    # Never ask a question already present in a previous nikki for this topic.
+
+steps:
+  - if:
+      condition: called_from_study_open
+      then:
+        - say: |
+            **{{concept.title}}**
+            {{concept.explanation}}
+      # concept already explained by study_open caller — skip re-explanation if same session
+
+  - if:
+      condition: NOT called_from_study_open AND topic is missing
+      then:
+        - ask: "Su quale topic vuoi fare randori?"
+
+  - compute: question
+    # Select one question for this concept following sensei_rules.progression.
+    # Must not repeat any question already in kiroku/nikki/ for this topic.
+
+  - ask: "{{question.text}}"
+
+  - if:
+      condition: answer_correct OR answer_substantially_correct
+      then:
+        - say: "Corretto. {{brief_reinforcement}}"
+      else:
+        - say: "Non esatto — {{gap_explanation}}"
+        - ask: "{{simpler_followup_on_same_concept}}"
+        - if:
+            condition: followup_correct OR followup_substantially_correct
+            then:
+              - say: "Bene. {{brief_explanation_of_gap}}"
+            else:
+              - say: "{{full_re_explanation_of_concept}}"
+        - write:
+            path: "kata/{topic}.md"
+            fields: [current_gaps]
+            access: read-write
+            via: PR
+            approval: none
+            note: |
+              Add this concept to ## Current gaps if not already listed.
+              Format: - `concept` — description of specific gap
+output:
+  state_changes: [randori-completed]
