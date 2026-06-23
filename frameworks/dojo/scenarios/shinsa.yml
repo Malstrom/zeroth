@@ -8,16 +8,10 @@ on:
   - user wants to take the exam on a specific topic
   - user wants to test their knowledge on a topic
   - user says they are ready to be examined on a topic
-creates_issue: true
-issue:
-  title: "Topic shinsa: {topic}"
-  from: Malstrom/zeroth:frameworks/dojo/templates/issue_topic_shinsa.md
-  update: check
-  approval: none
-  on_complete: close
-  on_fail: comment
+creates_issue: false
 read:
   - "kata/{topic}.md"
+  - github:issues:open:label:Goal
 steps:
   - if:
       condition: kata/{topic}.md current_gaps | count > 0
@@ -39,8 +33,6 @@ steps:
 
   - compute: score
   - compute: weak_spots
-  - issue:
-      check: "exam conducted"
 
   - write:
       path: "kiroku/nikki/"
@@ -49,25 +41,29 @@ steps:
       access: write-once
       via: PR
       approval: none
-  - issue:
-      check: "nikki written"
 
   - if:
       condition: score >= 80
       then:
-        - if:
-            condition: open_goal_issues | any: topic in goal.unchecked_topics
-            then:
-              - update_issue:
-                  target: matching_goal_issue
-                  action: check_topic
-                  topic: "{{topic}}"
-                  nikki: "{{nikki_url}}"
-              - update_issue:
-                  target: matching_goal_issue
-                  action: update_topic_kata_link
-                  topic: "{{topic}}"
-                  kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
+        - for_each: goal_issue in (open_goal_issues | where: topic in goal.unchecked_topics)
+          do:
+            - update_issue:
+                target: goal_issue
+                action: check_topic
+                topic: "{{topic}}"
+                nikki: "{{nikki_url}}"
+            - update_issue:
+                target: goal_issue
+                action: update_topic_kata_link
+                topic: "{{topic}}"
+                kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
+            - update_issue:
+                target: goal_issue
+                action: append_shinsa_log
+                topic: "{{topic}}"
+                score: "{{score}}"
+                nikki: "{{nikki_url}}"
+                result: passed
         - write:
             path: "kiroku/makimono/"
             filename: "YYYY-MM-DD_{topic}_shinsa_passed.yml"
@@ -87,9 +83,17 @@ steps:
             via: PR
             approval: none
             note: Replace ## Current gaps with weak_spots from this shinsa.
+        - for_each: goal_issue in (open_goal_issues | where: topic in goal.unchecked_topics)
+          do:
+            - update_issue:
+                target: goal_issue
+                action: append_shinsa_log
+                topic: "{{topic}}"
+                score: "{{score}}"
+                nikki: "{{nikki_url}}"
+                result: failed
+                weak_spots: "{{weak_spots | join}}"
         - emit: topic-shinsa-failed
-  - issue:
-      check: "artifacts updated"
 
   - merge:
       strategy: squash
@@ -106,7 +110,7 @@ on:
   events: [topic-shinsa-passed, topic-shinsa-failed]
 creates_issue: false
 read:
-  - github:issues:open:[Goal]
+  - github:issues:open:label:Goal
 steps:
   - if:
       condition: event == "topic-shinsa-passed"

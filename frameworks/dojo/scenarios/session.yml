@@ -11,6 +11,7 @@ creates_issue: false
 read:
   - .gakusei.yml
   - github:issues:open:label:Goal
+  - "kiroku/nikki/"
 steps:
   - if:
       condition: gakusei_missing OR student_name == ""
@@ -25,6 +26,44 @@ steps:
   - ensure_labels_on_issues:
       title_pattern: "^\\[Goal\\]"
       label: "Goal"
+
+  # Recovery: find nikki written in the last 7 days whose topic is not yet checked
+  # in any open goal issue. If found, resume goal issue update without re-running the exam.
+  - compute: orphaned_nikki
+    note: |
+      orphaned_nikki = nikki files from last 7 days where:
+        nikki.type == "topic_shinsa"
+        AND nikki.result == "passed"
+        AND NOT (open_goal_issues | any: topic == nikki.topic AND topic in goal.checked_topics)
+  - if:
+      condition: orphaned_nikki | count > 0
+      then:
+        - say: |
+            inform the student that a previous shinsa session was interrupted
+            Shinsa interrotto trovato per: {{orphaned_nikki | map: topic | join}}
+            Riprendo l'aggiornamento del goal.
+        - for_each: nikki in orphaned_nikki
+          do:
+            - for_each: goal_issue in (open_goal_issues | where: nikki.topic in goal.unchecked_topics)
+              do:
+                - update_issue:
+                    target: goal_issue
+                    action: check_topic
+                    topic: "{{nikki.topic}}"
+                    nikki: "{{nikki.url}}"
+                - update_issue:
+                    target: goal_issue
+                    action: update_topic_kata_link
+                    topic: "{{nikki.topic}}"
+                    kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{nikki.topic}}.md"
+                - update_issue:
+                    target: goal_issue
+                    action: append_shinsa_log
+                    topic: "{{nikki.topic}}"
+                    score: "{{nikki.score}}"
+                    nikki: "{{nikki.url}}"
+                    result: passed
+
   - say: greet the student by name
   - if:
       condition: open_goal_issues | count > 0
