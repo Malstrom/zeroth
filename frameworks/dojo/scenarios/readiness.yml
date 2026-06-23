@@ -20,11 +20,11 @@ dedup: once per session
 creates_issue: false
 read:
   - "kata/{topic}.md"
-  - "kiroku/nikki/"             # scan filenames to count sessions without gaps
+  - "kiroku/nikki/"
 steps:
-  - compute: randori_score          # % correct in last nikki for this topic
-  - compute: sessions_without_gaps  # consecutive nikki files for topic with empty ## Current gaps
-  - compute: has_gaps               # kata/{topic}.md ## Current gaps is non-empty
+  - compute: randori_score
+  - compute: sessions_without_gaps
+  - compute: has_gaps
   - if:
       condition: randori_score >= readiness_thresholds.min_randori_score
                  AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
@@ -52,33 +52,33 @@ steps:
   - if:
       condition: event == "readiness-ready"
       then:
-        - say: "Score: {{randori_score}}% — {{sessions_without_gaps}} sessioni pulite. Pronto per la topic shinsa."
-        - propose: "Fai la topic shinsa per {{topic}} adesso?"
+        - say: report readiness score and clean session count, inform student they are ready for topic shinsa
+        - propose: propose taking the topic shinsa now
           on_confirm:
             - call: topic_shinsa
           on_reject:
-            - say: "OK. Torna quando sei pronto."
+            - say: acknowledge and tell the student to come back when ready
       else:
         - if:
             condition: event == "readiness-gap"
             then:
-              - say: "Gap aperti: {{current_gaps | join}}. Devi chiuderli prima della shinsa."
-              - propose: "Studiamo i gap adesso?"
+              - say: list the open gaps and explain they must be closed before shinsa
+              - propose: propose studying the gaps now
                 on_confirm:
                   - call: study_open
                     with:
                       topic: "{{topic}}"
                       source: gaps_from_kata
                 on_reject:
-                  - say: "OK. I gap sono nel kata. Riesamina quando sei pronto."
+                  - say: acknowledge and remind the student the gaps are in the kata
             else:
-              - say: "Nessun gap, ma solo {{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}} sessioni pulite. Continua a studiare."
-              - propose: "Studia un nuovo concetto in {{topic}}?"
+              - say: inform the student there are no gaps but not enough clean sessions yet, show current count vs required
+              - propose: propose studying a new concept in the topic
                 on_confirm:
                   - call: study_open
                     with:
                       topic: "{{topic}}"
                 on_reject:
-                  - say: "OK. Alla prossima sessione."
+                  - say: acknowledge and close the session
 output:
   state_changes: []

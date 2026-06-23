@@ -12,7 +12,7 @@ preconditions:
   - any
 creates_issue: false
 read:
-  - "kata/{topic}.md"           # ## Current gaps is authoritative for gap state
+  - "kata/{topic}.md"
   - "kiroku/nikki/"             # filenames only — detect previously asked questions per topic
 
 sensei_rules:
@@ -32,7 +32,6 @@ sensei_rules:
     - implement_this
     - live_coding
   progression:
-    # Question difficulty scales with concept history in nikki:
     # first time seeing concept → basic comprehension question
     # concept seen before, no gap → intermediate (edge case or tradeoff)
     # concept seen before, gap exists → start from the gap, then advance
@@ -42,35 +41,32 @@ steps:
   - if:
       condition: called_from_study_open
       then:
-        - say: |
-            **{{concept.title}}**
-            {{concept.explanation}}
-      # concept already explained by study_open caller — skip re-explanation if same session
+        - say: explain the concept to the student
 
   - if:
       condition: NOT called_from_study_open AND topic is missing
       then:
-        - ask: "Su quale topic vuoi fare randori?"
+        - ask: ask the student which topic they want to practice
 
   - compute: question
     # Select one question for this concept following sensei_rules.progression.
     # Must not repeat any question already in kiroku/nikki/ for this topic.
 
-  - ask: "{{question.text}}"
+  - ask: ask the question for this concept
 
   - if:
       condition: answer_correct OR answer_substantially_correct
       then:
-        - say: "Corretto. {{brief_reinforcement}}"
+        - say: confirm the answer is correct with brief reinforcement
       else:
-        - say: "Non esatto — {{gap_explanation}}"
-        - ask: "{{simpler_followup_on_same_concept}}"
+        - say: explain why the answer is wrong and what the gap is
+        - ask: ask a simpler follow-up question on the same concept
         - if:
             condition: followup_correct OR followup_substantially_correct
             then:
-              - say: "Bene. {{brief_explanation_of_gap}}"
+              - say: acknowledge improvement and briefly explain the gap
             else:
-              - say: "{{full_re_explanation_of_concept}}"
+              - say: fully re-explain the concept
         - write:
             path: "kata/{topic}.md"
             fields: [current_gaps]
