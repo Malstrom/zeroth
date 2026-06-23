@@ -15,6 +15,28 @@ routing:
   match: first semantic match wins — pick the most specific
   order: sorted by priority DESC, then declaration order
   on_no_match: call unknown_scenario
+  trigger_format:
+    rule: |
+      Triggers must describe user intent in English — never literal phrases or keywords.
+      The AI matches meaning, not words. This makes triggers language-independent:
+      a user writing in Russian, Italian, or any other language is matched correctly
+      because the LLM evaluates intent, not string equality.
+    forbidden_patterns:
+      - 'user says "..."'
+      - 'user writes "..."'
+      - 'user types "..."'
+      - any trigger that is a quoted literal string the user must type verbatim
+    correct_examples:
+      - user greets the system or initiates a new session
+      - user wants to set a goal
+      - user wants to practice a concept
+    wrong_examples:
+      - 'user says "ciao", "inizio", "start"'
+      - '"ho ricevuto un offerta"'
+      - '"received offer from"'
+    rationale: |
+      Keyword triggers break silently for any language not explicitly listed.
+      Semantic intent triggers work universally because the LLM is multilingual.
   escape_triggers:
     description: |
       Keywords that immediately interrupt ANY active scenario and return to routing.
@@ -506,6 +528,7 @@ validation:
   - output.state_changes must never be omitted
   - dedup is only valid on event-triggered and reporter scenarios
   - triggers must be in English
+  - triggers must describe user intent — keyword-literal triggers (user says "...", user writes "...") are forbidden
   - type: reporter is required when scenario uses events: on: form AND has say/propose steps
   - issue: check steps are only valid when issue.update == check (creates_issue == true)
   - issue: comment steps are only valid when issue.update == comment (creates_issue == true)
