@@ -9,8 +9,8 @@ preconditions:
   - any
 creates_issue: false
 read:
-  - .gakusei.yml                          # identity only
-  - github:issues:open:label:Goal          # all open goal issues (filter by label)
+  - .gakusei.yml
+  - github:issues:open:label:Goal
 steps:
   - if:
       condition: gakusei_missing OR student_name == ""
@@ -25,29 +25,25 @@ steps:
   - ensure_labels_on_issues:
       title_pattern: "^\\[Goal\\]"
       label: "Goal"
-  - say: "{{student_name}}!"
+  - say: greet the student by name
   - if:
       condition: open_goal_issues | count > 0
       then:
         - say: |
-            Goal attivo: {{open_goal_issues.first.title}}
-            Progressi:
-            {{open_goal_issues.first | topics_with_kata_status}}
+            show the active goal title and topic progress
             # topics_with_kata_status renders each topic as:
             # - `slug` — in progress (kata exists, gaps: X) | not started | [x] passed
-            # kata existence check: kata/{slug}.md exists?
-            # gap count: ## Current gaps section in kata/{slug}.md, non-empty lines
-        - propose: "Continuiamo su {{open_goal_issues.first.title}}?"
+        - propose: propose continuing the active goal
           on_confirm:
             - call: study_open
           on_reject:
-            - say: "Cosa vuoi fare? study, randori, topic shinsa, o dichiara un nuovo goal."
+            - say: ask the student what they want to do next (study, randori, topic shinsa, or declare a new goal)
       else:
-        - say: "Nessun goal attivo."
-        - propose: "Dichiari un goal?"
+        - say: inform the student they have no active goal
+        - propose: propose declaring a new goal
           on_confirm:
             - call: declare_goal
           on_reject:
-            - say: "Cosa vuoi fare? study, randori, o topic shinsa."
+            - say: ask the student what they want to do next (study, randori, or topic shinsa)
 output:
   state_changes: []

@@ -22,12 +22,12 @@ issue:
   on_fail: comment
 read:
   - .gakusei.yml
-  - "kata/"                     # list filenames only — AI checks which kata already exist
+  - "kata/"
 steps:
-  - ask: "Qual è il tuo goal?"
+  - ask: ask the student what their goal is
   - compute: goal_slug
   - compute: goal_human_title
-  - ask: "Da dove viene questo goal? (self-declared, job offer, project, interview feedback — o incolla un link)"
+  - ask: ask the student where this goal comes from (self-declared, job offer, project, interview feedback, or paste a link)
   - compute: goal_source_type
   - compute: goal_source_ref
   - compute: goal_source_emoji
@@ -36,19 +36,12 @@ steps:
       then:
         - read: "{{goal_source_ref}}"
   - compute: required_topics
-  - compute: already_satisfied     # required_topics where kata/{slug}.md exists AND ## Current gaps is empty
-  - compute: missing_topics        # required_topics − already_satisfied
+  - compute: already_satisfied
+  - compute: missing_topics
   - say: |
-      Goal: {{goal_human_title}} ({{goal_slug}})
-      Source: {{goal_source_emoji}} {{goal_source_type}}{{goal_source_ref | prefix: " — "}}
-      Already satisfied ({{already_satisfied | count}}): {{already_satisfied | join}}
-      Topics to study:
-        🔴 Critical:  {{missing_topics | where: priority == critical | join}}
-        🟡 Important: {{missing_topics | where: priority == important | join}}
-        🟢 Later:     {{missing_topics | where: priority == later | join}}
-      # Issue body rendering:
+      show goal summary: title, source, already satisfied topics, and missing topics grouped by priority (critical / important / later)
       # kata exists    → - [ ] `slug` — description — [kata](https://github.com/{owner}/{repo}/blob/main/kata/slug.md)
-      # kata missing   → - [ ] `slug` — description  (or *(ai inferred)*)
+      # kata missing   → - [ ] `slug` — description
       # ALL kata links: absolute GitHub URLs (blob/main/), never relative.
 output:
   state_changes: [goal-declared]
@@ -71,36 +64,32 @@ issue:
   on_complete: close
   on_fail: comment
 read:
-  - github:issues:open:label:Goal    # goal issue — checked topics = completed topics
-  - "kata/"                          # list all kata filenames
+  - github:issues:open:label:Goal
+  - "kata/"
 steps:
-  - compute: goal_readiness      # from goal issue checked count vs total
+  - compute: goal_readiness
   - if:
       condition: goal_readiness == "not_ready"
       then:
-        - say: |
-            Non sei ancora pronto per {{goal_slug}}.
-            Completati: {{checked_topics | join}}.
-            Mancanti: {{unchecked_topics | join}}.
-        - propose: "Procedi comunque?"
+        - say: inform the student they are not ready for goal shinsa — show completed and missing topics
+        - propose: propose proceeding anyway
           on_reject:
-            - say: "OK. Continua a studiare."
+            - say: encourage the student to keep studying
             - stop
           on_confirm:
             - continue
 
-  - say: "Goal shinsa: {{goal_slug}}. Nessun feedback durante l'esame — solo score finale."
+  - say: announce the goal shinsa is starting — no feedback during exam, only final score
 
   - for_each: question in exam.questions   # 15–20 questions from kata/ filtered by goal
     do:
-      - ask: "{{question.text}}"
+      - ask: ask the exam question
 
   - compute: score
   - compute: weak_topics
   - issue:
       check: "exam conducted"
 
-  # Write nikki FIRST
   - write:
       path: "kiroku/nikki/"
       filename: "YYYY-MM-DD_{goal_slug}_goal_shinsa.yml"
@@ -127,7 +116,6 @@ steps:
             target: matching_goal_issue
             action: close
             makimono: "{{makimono_url}}"
-            # Closes the goal issue with a comment: makimono link
         - emit: goal-shinsa-passed
       else:
         - emit: goal-shinsa-failed
@@ -153,20 +141,16 @@ steps:
   - if:
       condition: event == "goal-shinsa-passed"
       then:
-        - say: |
-            Goal shinsa passata. Score: {{score}}%.
-            {{goal_slug}} raggiunto — makimono scritto.
+        - say: inform the student the goal shinsa was passed — show score, confirm goal achieved and makimono written
       else:
-        - say: |
-            Goal shinsa non passata. Score: {{score}}%.
-            Weak topics: {{weak_topics | join}}.
-        - propose: "Studia i weak topics adesso?"
+        - say: inform the student the goal shinsa was not passed — show score and list weak topics
+        - propose: propose studying the weak topics now
           on_confirm:
             - call: study_open
               with:
                 topic: "{{weak_topics.first}}"
                 source: gaps_from_kata
           on_reject:
-            - say: "OK. Riprova quando sei pronto."
+            - say: acknowledge and close the session
 output:
   state_changes: []

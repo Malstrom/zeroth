@@ -22,18 +22,18 @@ steps:
   - if:
       condition: kata/{topic}.md current_gaps | count > 0
       then:
-        - say: "Ci sono ancora gap aperti: {{current_gaps | join}}. Potresti non essere pronto."
-        - propose: "Procedi comunque?"
+        - say: warn the student there are open gaps, list them
+        - propose: propose proceeding anyway
           on_reject:
             - stop
           on_confirm:
             - continue
 
-  - say: "Topic shinsa: {{topic}}. Nessun feedback durante l'esame — solo score finale."
+  - say: announce the topic shinsa is starting — no feedback during exam, only final score
 
   - for_each: question in exam.questions   # 5–8 questions from kata/{topic}.md
     do:
-      - ask: "{{question.text}}"
+      - ask: ask the exam question
 
   - compute: score
   - compute: weak_spots
@@ -94,20 +94,20 @@ steps:
   - if:
       condition: event == "topic-shinsa-passed"
       then:
-        - say: "Topic shinsa passata. Score: {{score}}%. {{topic}} completato."
+        - say: inform the student the topic shinsa was passed, show score and topic completed
         - if:
             condition: open_goal_issues | any: topic in goal.required_topics
             then:
-              - say: "Progresso verso {{matching_goal.title}}: {{matching_goal.checked_count}}/{{matching_goal.total_count}} topic."
+              - say: show progress toward the active goal (checked vs total topics)
       else:
-        - say: "Topic shinsa non passata. Score: {{score}}%. Gap aggiornati nel kata."
-        - propose: "Studia i weak spots adesso?"
+        - say: inform the student the topic shinsa was not passed, show score, mention gaps were updated in kata
+        - propose: propose studying the weak spots now
           on_confirm:
             - call: study_open
               with:
                 topic: "{{topic}}"
                 source: gaps_from_kata
           on_reject:
-            - say: "OK. I gap sono nel kata. Riprova quando sei pronto."
+            - say: acknowledge and remind the student the gaps are in the kata
 output:
   state_changes: []
