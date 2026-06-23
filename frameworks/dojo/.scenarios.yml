@@ -64,11 +64,11 @@ scenarios:
       - any
     triggers:
       - user wants to drill on the current topic
-      - user asks to be quizzed on what was just explained
       - user wants to practice a concept
+      - user wants to be quizzed on what was just explained
       - user wants to review what they know
       - user wants to practice without studying first
-    file: frameworks/dojo/scenarios/study.yml
+    file: frameworks/dojo/scenarios/randori.yml
 
   - id: evaluate_readiness
     priority: 0
@@ -76,7 +76,10 @@ scenarios:
       - any
     triggers:
       - events: [study-completed]
-    file: frameworks/dojo/scenarios/shinsa.yml
+      - user wants to know if they are ready for the exam on a topic
+      - user asks to check their readiness on a topic
+      - user wants to know if they can take the shinsa
+    file: frameworks/dojo/scenarios/readiness.yml
 
   - id: readiness_report
     priority: 0
@@ -84,7 +87,7 @@ scenarios:
       - any
     triggers:
       - events: [readiness-ready, readiness-gap, readiness-loop]
-    file: frameworks/dojo/scenarios/shinsa.yml
+    file: frameworks/dojo/scenarios/readiness.yml
 
   - id: topic_shinsa
     priority: 15
