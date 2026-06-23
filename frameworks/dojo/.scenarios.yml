@@ -10,7 +10,8 @@ scenarios:
       - any
     triggers:
       - this is the first message of the conversation and no other scenario matches
-      - user says "start", "open dojo", "ciao", "inizio", "inizia"
+      - user greets the system or initiates a new session
+      - user opens or restarts the dojo
     file: frameworks/dojo/scenarios/session.yml
 
   - id: declare_goal
