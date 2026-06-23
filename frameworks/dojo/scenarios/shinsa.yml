@@ -1,75 +1,5 @@
 # source: frameworks/dojo/scenarios/shinsa.yml
-# Scenarios: evaluate_readiness, readiness_report, topic_shinsa, topic_shinsa_report
-
----
-id: evaluate_readiness
-on:
-  events: [study-completed]
-dedup: once per session
-creates_issue: false
-read:
-  - "kata/{topic}.md"            # ## Current gaps is the gap source
-steps:
-  - compute: randori_score
-  - compute: sessions_without_gaps   # count nikki files for topic with empty ## Current gaps at time of writing
-  - compute: has_gaps                # ## Current gaps in kata non-empty
-  - if:
-      condition: randori_score >= readiness_thresholds.min_randori_score
-                 AND sessions_without_gaps >= readiness_thresholds.min_sessions_without_gaps
-      then:
-        - emit: readiness-ready
-      else:
-        - if:
-            condition: has_gaps
-            then:
-              - emit: readiness-gap
-            else:
-              - emit: readiness-loop
-output:
-  state_changes: []
-
----
-id: readiness_report
-type: reporter
-on:
-  events: [readiness-ready, readiness-gap, readiness-loop]
-creates_issue: false
-read:
-  - "kata/{topic}.md"
-steps:
-  - if:
-      condition: event == "readiness-ready"
-      then:
-        - say: "Score: {{randori_score}}% correct, {{sessions_without_gaps}} clean sessions. Ready for topic shinsa."
-        - propose: "Fai la topic shinsa per {{topic}} adesso?"
-          on_confirm:
-            - call: topic_shinsa
-          on_reject:
-            - say: "OK. Torna quando sei pronto."
-      else:
-        - if:
-            condition: event == "readiness-gap"
-            then:
-              - say: "Gaps: {{current_gaps | join}}. Studiamoli."
-              - propose: "Studio i weak spots adesso?"
-                on_confirm:
-                  - call: study_open
-                    with:
-                      topic: "{{topic}}"
-                      source: gaps_from_kata
-                on_reject:
-                  - say: "OK. I gap sono nel kata. Li rivediamo la prossima sessione."
-            else:
-              - say: "Nessun gap oggi, ma non abbastanza sessioni pulite ({{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}}). Continua."
-              - propose: "Studia un nuovo concetto in {{topic}}?"
-                on_confirm:
-                  - call: study_open
-                    with:
-                      topic: "{{next_concept_not_yet_in_kata}}"
-                on_reject:
-                  - say: "OK. Alla prossima sessione."
-output:
-  state_changes: []
+# Scenarios: topic_shinsa, topic_shinsa_report
 
 ---
 id: topic_shinsa
@@ -110,7 +40,6 @@ steps:
   - issue:
       check: "exam conducted"
 
-  # Write nikki FIRST
   - write:
       path: "kiroku/nikki/"
       filename: "YYYY-MM-DD_{topic}_shinsa.yml"
@@ -124,7 +53,6 @@ steps:
   - if:
       condition: score >= 80
       then:
-        # Update goal issue: check the topic + add kata and nikki links
         - if:
             condition: open_goal_issues | any: topic in goal.unchecked_topics
             then:
@@ -133,12 +61,8 @@ steps:
                   action: check_topic
                   topic: "{{topic}}"
                   nikki: "{{nikki_url}}"
-                  # Finds '- [ ] `{topic}`' and replaces with:
-                  # '- [x] `{topic}` — {description} — [kata](...) — [nikki](...)'
-                  # Both links are absolute GitHub URLs (blob/main/).
         - emit: topic-shinsa-passed
       else:
-        # Update ## Current gaps in kata from weak_spots
         - write:
             path: "kata/{topic}.md"
             fields: [current_gaps]
@@ -165,7 +89,7 @@ on:
   events: [topic-shinsa-passed, topic-shinsa-failed]
 creates_issue: false
 read:
-  - github:issues:open:[Goal]    # to show updated progress
+  - github:issues:open:[Goal]
 steps:
   - if:
       condition: event == "topic-shinsa-passed"
