@@ -2,6 +2,10 @@
 # Scenario index for dojo framework.
 # Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
 # AI reads this first, then fetches ONLY the relevant scenario file.
+#
+# TRIGGER MATCHING: semantic and language-independent.
+# Match user intent regardless of the language they write in (Italian, Russian, English, etc.).
+# Never match literal strings — always match meaning.
 
 scenarios:
   - id: session_start
@@ -88,9 +92,9 @@ scenarios:
       - active_goal_exists
     triggers:
       - events: [readiness-ready]
-      - user says they want to take the exam on a topic
-      - user says "shinsa on {topic}"
-      - user says they are ready to test a topic
+      - user wants to take the exam on a specific topic
+      - user wants to test their knowledge on a topic
+      - user says they are ready to be examined on a topic
     file: frameworks/dojo/scenarios/shinsa.yml
 
   - id: topic_shinsa_report
