@@ -1,4 +1,4 @@
-# frameworks/sudo-hire-me/templates/issue_round.md
+<!-- source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/templates/issue_round.md -->
 
 # {{company}} — {{round.label}}
 
@@ -14,7 +14,7 @@
 
 This sub-issue tracks preparation and debrief for the **{{round.label}}** round with {{company}}.
 
-- Use `screening_prep` scenario for prep sessions.
+- Use `round_prep` scenario for prep sessions.
 - Use `round_completed_debrief` scenario right after the round.
 
 ---

@@ -1,4 +1,4 @@
-# frameworks/sudo-hire-me/templates/comment_round_debrief.md
+<!-- source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/templates/comment_round_debrief.md -->
 
 ## 📋 Round debrief — {{date}} — {{round_name}}
 
@@ -16,7 +16,7 @@
 
 ### Open gaps dopo questo round
 
-{{open_gaps_block}}
+{{open_gaps}}
 
 {{#if extra_notes}}
 ### Note extra

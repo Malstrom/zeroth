@@ -1,4 +1,4 @@
-# frameworks/sudo-hire-me/templates/pipeline.yml
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/templates/pipeline.yml
 
 company: Example Corp
 company_slug: example-corp
@@ -6,23 +6,53 @@ company_slug: example-corp
 role:
   title: Senior Backend Engineer
   location: Remote
-  source: unknown   # linkedin / referral / agency / direct / other
+  source: unknown   # linkedin | referral | agency | direct | other
 
 status:
-  stage: prospect          # prospect | applied | screening_scheduled | screening_done | tech_round_scheduled | tech_round_done | offer_received | rejected
-  last_event: null         # last significant event (round id or offer/reject)
+  stage: prospect
+  # stage values (aligned to round_type in round_prep.yml):
+  #   prospect | applied
+  #   hr_screening_scheduled | hr_screening_done
+  #   technical_scheduled    | technical_done
+  #   lead_round_scheduled   | lead_round_done
+  #   cto_round_scheduled    | cto_round_done
+  #   offer_received | rejected
+  last_event: null         # last significant event (round_id or offer/reject)
   last_updated: null       # ISO date, maintained by AI
 
 main_issue: null           # GitHub issue number for main tracking issue in sudo-hire-me
 
 rounds:
-  # key = round_id used by scenarios (e.g. screening_hr, tech_interview, system_design)
-  screening_hr:
-    label: "HR screening"
+  # Each key must match a round_type from round_prep.yml strategy section.
+  # Add only the rounds that apply to this company.
+
+  hr_screening:
+    label: "HR Screening"
     status: planned        # planned | scheduled | completed | skipped
     date: null             # YYYY-MM-DD
     interviewer: []        # list of names/roles
     sub_issue: null        # GitHub issue number for this round
+
+  # technical:
+  #   label: "Technical Interview"
+  #   status: planned
+  #   date: null
+  #   interviewer: []
+  #   sub_issue: null
+
+  # lead_round:
+  #   label: "Tech Lead Round"
+  #   status: planned
+  #   date: null
+  #   interviewer: []
+  #   sub_issue: null
+
+  # cto_round:
+  #   label: "CTO Round"
+  #   status: planned
+  #   date: null
+  #   interviewer: []
+  #   sub_issue: null
 
 open_gaps: []              # list of gaps; AI maintains this via round_completed_debrief
 # - topic: golang_concurrency

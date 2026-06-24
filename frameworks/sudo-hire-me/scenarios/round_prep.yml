@@ -132,13 +132,13 @@ steps:
       - commit_before_reply
       - issue:
           comment:
-            from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_screening_prep.md
+            from: Malstrom/zeroth:frameworks/sudo-hire-me/templates/comment_round_prep.md
             vars:
               date: "{{date}}"
               round_name: "{{target_round.name}}"
+              round_type: "{{round_type}}"
               interviewer_name: "{{interviewer_persona.name}}"
               interviewer_role: "{{interviewer_persona.role}}"
-              round_type: "{{round_type}}"
               story_score: "{{session_summary.story_score}}"
               story_feedback: "{{session_summary.story_feedback}}"
               technical_table: "{{session_summary.technical_table}}"
