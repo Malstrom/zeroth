@@ -43,22 +43,28 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
+# Files are split by repo. "zeroth" = Malstrom/zeroth. "instance" = the
+# instance repo declared in Space instructions (e.g. Malstrom/dojo).
 # ---------------------------------------------------------------------------
 workspace:
-  .gakusei.yml:
-    role: student identity only (student_name, language, issue_language)
-    access: read-write
-    note: read at every session start — contains NO topic or goal state
-  .scenarios.yml:
-    role: scenario catalog
-    access: read-only
-  .registry.yml:
-    role: cross-repo connections
-    access: read-only
-  templates/:
-    role: file templates for kata, nikki, makimono, shinsa
-    access: read-only
-  patterns:
+  zeroth:
+    # files that live in Malstrom/zeroth
+    - path: frameworks/dojo/.scenarios.yml
+      role: scenario catalog
+      access: read-only
+    - path: frameworks/dojo/templates/
+      role: file templates for kata, nikki, makimono, shinsa
+      access: read-only
+
+  instance:
+    # files that live in the instance repo declared in Space instructions
+    - path: .gakusei.yml
+      role: student identity only (student_name, language, issue_language)
+      access: read-write
+      note: read at every session start — contains NO topic or goal state
+    - path: .registry.yml
+      role: cross-repo connections
+      access: read-only
     - path: "kata/**"
       role: flat kata library — one file per topic slug; ## Current gaps section is authoritative for gap state
       access: read-write

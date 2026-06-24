@@ -36,27 +36,33 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
+# Files are split by repo. "zeroth" = Malstrom/zeroth. "instance" = the
+# instance repo declared in Space instructions (e.g. Malstrom/{instance-slug}).
 # ---------------------------------------------------------------------------
 workspace:
-  .daneel.yml:
-    role: user profile, roles, domains, language, timezone
-    access: read-only
-  .scenarios.yml:
-    role: scenario catalog
-    access: read-only
-  .registry.yml:
-    role: cross-repo connections
-    access: read-only
-  contacts/:
-    role: external and internal contact profiles
-    access: read-write
-  playbooks/:
-    role: step-by-step instructions for recurring work types
-    access: read-write
-  templates/:
-    role: file templates for log, inbox, contact, playbook, client context
-    access: read-only
-  patterns:
+  zeroth:
+    # files that live in Malstrom/zeroth
+    - path: frameworks/daneel/.scenarios.yml
+      role: scenario catalog
+      access: read-only
+    - path: frameworks/daneel/templates/
+      role: file templates for log, inbox, contact, playbook, client context
+      access: read-only
+
+  instance:
+    # files that live in the instance repo declared in Space instructions
+    - path: .daneel.yml
+      role: user profile, roles, domains, language, timezone
+      access: read-only
+    - path: .registry.yml
+      role: cross-repo connections
+      access: read-only
+    - path: contacts/
+      role: external and internal contact profiles
+      access: read-write
+    - path: playbooks/
+      role: step-by-step instructions for recurring work types
+      access: read-write
     - path: "clients/*/context.yml"
       role: static client info
       access: read-write

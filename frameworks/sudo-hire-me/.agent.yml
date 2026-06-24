@@ -48,27 +48,33 @@ scenarios:
 
 # ---------------------------------------------------------------------------
 # WORKSPACE
+# Files are split by repo. "zeroth" = Malstrom/zeroth. "instance" = the
+# instance repo declared in Space instructions (e.g. Malstrom/sudo-hire-me).
 # ---------------------------------------------------------------------------
 workspace:
-  igor.yml:
-    role: candidate profile — skills, stack, targets
-    access: read-only
-  .scenarios.yml:
-    role: scenario index — list of scenarios with trigger + file path
-    access: read-only
-  .registry.yml:
-    role: cross-repo connections
-    access: read-only
-  stories.yml:
-    role: candidate stories — source of truth for personal narratives
-    access: read-write   # only after explicit user approval (hard_rules.stories_delta)
-  templates/:
-    role: issue and comment templates — read from zeroth
-    access: read-only
-  patterns:
+  zeroth:
+    # files that live in Malstrom/zeroth
+    - path: frameworks/sudo-hire-me/.scenarios.yml
+      role: scenario index — list of scenarios with trigger + file path
+      access: read-only
+    - path: "frameworks/sudo-hire-me/scenarios/*.md"
+      role: scenario files — one per scenario, fetched on demand
+      access: read-only
+    - path: frameworks/sudo-hire-me/templates/
+      role: issue and comment templates
+      access: read-only
+
+  instance:
+    # files that live in the instance repo declared in Space instructions
+    - path: igor.yml
+      role: candidate profile — skills, stack, targets
+      access: read-only
+    - path: .registry.yml
+      role: cross-repo connections
+      access: read-only
+    - path: stories.yml
+      role: candidate stories — source of truth for personal narratives
+      access: read-write   # only after explicit user approval (hard_rules.stories_delta)
     - path: "hunt/pipeline/*.yml"
       role: company pipeline state — one file per company
       access: read-write
-    - path: "scenarios/*.md"
-      role: scenario files — one per scenario, fetched on demand from zeroth
-      access: read-only
