@@ -1,542 +1,296 @@
 # rules/scenarios.yml
 # Question: "How do I write a scenario?"
-#
-# Model: GitHub Actions workflows
-# Each scenario = one workflow: trigger → read → steps → output
-# Canonical anatomy declared below. Validation rules at the bottom.
+# Model: GitHub Actions workflows — trigger → read → steps → output
 
 # ---------------------------------------------------------------------------
 # ROUTING
-# How the AI picks a scenario before executing anything.
 # ---------------------------------------------------------------------------
 routing:
-  precondition_check: before trigger match — scenarios with failing preconditions are excluded
-  rule: read ALL triggers before picking a scenario
-  match: first semantic match wins — pick the most specific
-  order: sorted by priority DESC, then declaration order
+  rule: read ALL triggers before picking — first semantic match wins (priority DESC, then declaration order)
+  precondition_check: scenarios with failing preconditions excluded before trigger match
   on_no_match: call unknown_scenario
   trigger_format:
     rule: |
-      Triggers must describe user intent in English — never literal phrases or keywords.
-      The AI matches meaning, not words. This makes triggers language-independent:
-      a user writing in Russian, Italian, or any other language is matched correctly
-      because the LLM evaluates intent, not string equality.
-    forbidden_patterns:
-      - 'user says "..."'
-      - 'user writes "..."'
-      - 'user types "..."'
-      - any trigger that is a quoted literal string the user must type verbatim
-    correct_examples:
-      - user greets the system or initiates a new session
-      - user wants to set a goal
-      - user wants to practice a concept
-    wrong_examples:
-      - 'user says "ciao", "inizio", "start"'
-      - '"ho ricevuto un offerta"'
-      - '"received offer from"'
-    rationale: |
-      Keyword triggers break silently for any language not explicitly listed.
-      Semantic intent triggers work universally because the LLM is multilingual.
+      Describe user intent in English — never literal phrases or keywords.
+      The AI matches meaning, not words — language-independent by design.
+    forbidden: 'user says "...", user writes "...", any quoted verbatim string'
+    correct: user wants to set a goal | user greets the system
+    wrong:   '"ho ricevuto un offerta" | user says "start"'
   escape_triggers:
-    description: |
-      Keywords that immediately interrupt ANY active scenario and return to routing.
-      The AI aborts the current scenario, says a brief interruption acknowledgement,
-      then re-routes the next user message from scratch.
-    default_keywords: ["stop", "cancel", "abort", "wrong", "reset", "esci", "annulla"]
-    override: frameworks can extend this list in their .agent.yml under hard_rules.escape_triggers
-    note: escape_triggers are evaluated BEFORE scenario trigger matching on every message.
-  note: |
-    The AI resolves the user's language, then matches intent.
-    triggers are always written in English — language-independent.
+    rule: keywords that abort ANY active scenario and return to routing
+    default: [stop, cancel, abort, wrong, reset, esci, annulla]
+    override: extend in framework .agent.yml under hard_rules.escape_triggers
 
 # ---------------------------------------------------------------------------
 # SCENARIO TYPES
-# Three types. Declared via on: form. Each has different constraints.
 # ---------------------------------------------------------------------------
 scenario_types:
 
   user_triggered:
     on_form: list of intent strings
-    description: |
-      Started by the user. Can use all step modules.
-      Interaction (say, ask, propose) is expected.
-    allowed_steps: all
-    note: compute is allowed — it has no side effects and is useful for
-          deriving values mid-scenario (e.g. score after an exam loop).
+    allowed: all modules
+    note: started by user — interaction (say, ask, propose) expected
 
   event_triggered:
-    on_form: "on: events: [event-name]"
-    description: |
-      Runs automatically when a matching event is emitted.
-      SILENT — no user interaction. Computes, writes, emits only.
-      Interaction delegated to a reporter scenario.
-    forbidden_steps: [say, ask, propose, issue]
-    allowed_steps: [compute, write, emit, if, call]
+    on_form: "events: [event-name]"
+    allowed: [compute, write, emit, if, call]
+    forbidden: [say, ask, propose, issue]
+    note: SILENT — no user interaction. Delegates communication to a reporter.
 
   reporter:
-    on_form: "on: events: [event-name]"
-    description: |
-      Runs automatically after event_triggered handlers complete.
-      User-facing — communicates results and proposes next actions.
-      Does NOT compute or write — reads results written by event_triggered handlers.
-      Declared with type: reporter to distinguish from silent event_triggered.
-    forbidden_steps: [compute, write, emit]
-    allowed_steps: [say, ask, propose, call, if]
+    on_form: "events: [event-name]"
+    allowed: [say, ask, propose, call, if]
+    forbidden: [compute, write, emit]
     required_field: type: reporter
-    note: |
-      Pattern: emit → event_triggered (compute + write + emit) → reporter (say + propose).
-      The reporter reads from files written by the event_triggered handler.
-      It never writes and never emits — it only communicates.
+    note: runs after event_triggered handlers. Reads their output, never writes.
 
 # ---------------------------------------------------------------------------
 # EVENT ROUTING
-# How the AI handles state_change events emitted by scenarios.
 # ---------------------------------------------------------------------------
 event_routing:
-  mechanism: sequential           # matching scenarios run one after the other
-  on_conflict: all_matches        # ALL matching scenarios run — not just first
-  execution: automatic            # no user prompt — runs immediately after emitting scenario
-  context_inheritance: true       # event-triggered and reporter scenarios inherit calling
-                                  # scenario's context (subject, topic, slug, etc.)
+  mechanism: sequential
+  on_conflict: all_matches        # ALL matching scenarios run
+  execution: automatic            # no user prompt
+  context_inheritance: true       # inherits calling scenario context
   execution_order: |
-    For a given event:
-    1. All event_triggered scenarios run first (silent, in declaration order)
-    2. All reporter scenarios run after (user-facing, in declaration order)
-  note: |
-    Pattern: emit → silent handler (compute + write + emit) → reporter (say + propose).
+    1. All event_triggered scenarios (silent, declaration order)
+    2. All reporter scenarios (user-facing, declaration order)
 
 # ---------------------------------------------------------------------------
 # SCENARIO ANATOMY
-# Every scenario is one named key under required_scenarios.
-# Fields are listed in reading order — top = evaluated first.
+# Fields in reading order — top = evaluated first.
 # ---------------------------------------------------------------------------
 anatomy:
 
-  # --- identity ---
-  name:
-    rule: snake_case, lowercase, English
-    examples: [study_open, shinsa, readme_sync]
+  name:         snake_case, lowercase, English
+  type:         omit unless reporter — required_values: [reporter]
+  dedup:        optional, event-triggered/reporter only — values: [once per session, once per {var} per session]
+  input_sources: optional — values: [google_drive, attached_file, pasted_text, ai_knowledge]
 
-  # --- type (optional, required for reporter) ---
-  type:
-    rule: omit for user_triggered and event_triggered — required only for reporter
-    values: [reporter]
-    note: the AI infers user_triggered vs event_triggered from the on: form.
-          reporter must be declared explicitly because it shares the events: on: form
-          with event_triggered but has different constraints.
-
-  # --- preconditions (optional) ---
   preconditions:
     rule: |
-      Optional. Declare when a scenario can only run if a specific state is present.
-      The AI checks all preconditions BEFORE evaluating trigger match.
-      A scenario whose preconditions are not met is EXCLUDED from routing candidates,
-      even if its triggers match the user message.
-      Use "any" to explicitly signal no precondition (always eligible).
-    format: list of condition identifiers
-    examples:
-      - active_goal_exists   # .gakusei.yml has at least one goal with status: active
-      - no_active_goal       # .gakusei.yml has no active goal OR file does not exist
-      - any                  # no precondition — always eligible
-    note: |
-      Preconditions are evaluated against already-read files — no extra reads are triggered.
-      Each condition identifier must be declared in the framework's overview.yml or
-      .agent.yml under state_conditions.
+      Optional. Checked BEFORE trigger match — failing scenarios excluded from routing.
+      Use "any" to signal no precondition.
+    identifiers: declared in framework overview.yml or .agent.yml under state_conditions
+    examples: [active_goal_exists, no_active_goal, any]
 
-  # --- routing ---
   on:
     rule: exactly one form — never both
-    forms:
-      user_triggered:
-        syntax: |
-          on:
-            - intent description in English
-            - another intent description
-        note: semantic intent — not literal phrases. The AI matches meaning, not words.
-      event_triggered_or_reporter:
-        syntax: |
-          on:
-            events: [event-name-1, event-name-2]
-        note: |
-          Used by both event_triggered and reporter types.
-          Disambiguated by presence of type: reporter field.
+    user_triggered:          "on: [intent in English, another intent]"
+    event_triggered/reporter: "on: events: [event-name-1, event-name-2]"
+    note: reporter disambiguated by type: reporter field
 
   # --- issue lifecycle ---
   creates_issue:
     rule: required on every scenario — the AI never decides autonomously
-    values:
-      true: AI opens issue before starting, closes on complete
-      false: no issue, no lifecycle management
+    values: {true: opens issue before start / closes on complete, false: no lifecycle management}
 
   issue:
     rule: required if and only if creates_issue == true
     fields:
-      title:
-        rule: short, English, may use {placeholder} for runtime values
-        example: "Topic shinsa: {topic}"
-      from:
-        rule: required — path to markdown template for the issue body
-        format: relative path from framework root
-        example: "templates/issue_topic_shinsa.md"
-        note: |
-          inline body: is not allowed — template file is the single source of truth.
-          The template may contain {placeholder} values, checklist items, and sections.
-      update:
-        rule: required — defines how mid-scenario issue steps update the issue
-        values:
-          check: |
-            issue: check: "item" steps edit the issue body and tick the matching checkbox.
-            Use when issue.from template contains - [ ] checklist items.
-          comment: |
-            issue: comment: "text" steps add a comment to the issue.
-            The body is never edited after creation.
-        default: check
-      approval:
-        rule: required
-        values:
-          none: create issue immediately — do not ask for confirmation under any circumstance
-        default: none
-        note: none is the only valid value — there is no approval flow for issue creation.
-      on_complete:
-        values: [close]
-        default: close
-      on_fail:
-        values: [comment]
-        default: comment
+      title:      short, English, {placeholder} allowed
+      from:       path to markdown template — inline body forbidden
+      update:     check (ticks checkbox) | comment (adds comment, never edits body) — default: check
+      approval:   none (only valid value — create immediately, no confirmation)
+      on_complete: close
+      on_fail:    comment
 
-  # --- issue_updates (creates_issue == false only) ---
   issue_updates:
     rule: |
-      Optional. Declare when a scenario with creates_issue == false needs to interact
-      with an existing external issue identified via compute.
-      Forbidden when creates_issue == true — use the issue: block instead.
-      Serves only as target declaration — the actual update is performed by update_issue steps.
+      Optional. Only when creates_issue == false.
+      Declares the external issue variable used by update_issue steps.
+      Forbidden when creates_issue == true — use issue: block instead.
     fields:
-      target:
-        rule: name of the compute variable holding the issue identifier
-        example: matching_goal_issue
-      condition:
-        rule: |
-          Optional. A condition expression evaluated at runtime.
-          If the condition is false, all update_issue steps targeting this issue are skipped
-          entirely — no error, no side effect.
-          Use when the target issue may not exist (e.g. topic not covered by any active goal).
-        example: matching_goal_issue exists
-    note: |
-      The target variable must be computed before any update_issue step.
-      issue: comment steps are no longer valid for external issue updates — use update_issue instead.
+      target:    compute variable holding the issue identifier
+      condition: optional runtime expression — if false, all update_issue steps silently skipped
 
-  # --- dedup (event-triggered and reporter only) ---
-  dedup:
-    rule: optional, event-triggered and reporter scenarios only
-    values:
-      - once per session
-      - once per {variable} per session
-
-  # --- input ---
+  # --- read set ---
   read:
-    rule: list all files to read BEFORE executing steps
-    format: block sequence
-    empty: use read: [] — never omit
-    note: use glob patterns for directories (e.g. "kata/{subject}/")
+    rule: list all files to read BEFORE steps. Use read: [] — never omit.
+    note: glob patterns ok (e.g. "kata/{subject}/")
     special_sources:
-      issues:
-        syntax: "issues: {repo} {state} ordered_by {field} {direction}"
-        examples:
-          - "issues: sudo-hire-me open ordered_by updated_at desc"
-        description: |
-          Makes the list of issues (title, body, status fields) from the given repo
-          available to compute steps. Use for picking target_issue, deriving company_slug,
-          role, language, and similar fields from the issue body.
-      comments:
-        syntax: "comments: {repo} issue {{variable}}"
-        examples:
-          - "comments: sudo-hire-me issue {{target_issue}}"
-        description: |
-          Makes all comments for the given issue available to compute steps.
-          Use to extract data from previous sessions (e.g. last_prep_questions).
-          The variable in {{}} must be computed before this source is consumed.
-          Declare it in read: — the AI resolves it after computing the variable.
+      issues:   "issues: {repo} {state} ordered_by {field} {direction}"
+      comments: "comments: {repo} issue {{variable}}"  # variable must be computed first
 
-  input_sources:
-    rule: optional — declare when scenario accepts multiple input types
-    allowed_values: [google_drive, attached_file, pasted_text, ai_knowledge]
-
-  # --- logic ---
+  # --- steps ---
   steps:
-    rule: ordered list of actions — each step uses exactly one module
-    modules:
+    rule: ordered list — each step uses exactly one module
 
-      say:
-        description: emit a message to the user
-        syntax: "- say: \"message text\""
-        note: may use {{token}} for runtime values
-        forbidden_in: [event_triggered]
+    # Simple modules — one-liners
+    simple_modules:
+      say:    "- say: \"text\"             # forbidden_in: [event_triggered]"
+      ask:    "- ask: \"question\"         # forbidden_in: [event_triggered]"
+      if:     "- if: {condition, then, else}  # else optional"
+      emit:   "- emit: event-name         # inside if/then/else only. forbidden_in: [reporter]"
+      stop:   "- stop"
+      continue: "- continue"
+      merge:  "- merge: {strategy, target}"
+      compute: "- compute: var_name       # derives value from read files. forbidden_in: [reporter]"
 
-      ask:
-        description: ask the user a question and wait for answer before continuing
-        syntax: "- ask: \"question text\""
-        note: may use {{token}} for runtime values
-        forbidden_in: [event_triggered]
+    propose:
+      syntax: |
+        - propose: "action description"
+          on_confirm:
+            - call:
+                scenario: scenario_name
+                file: path/to/file.yml
+                load: on_demand
+          on_reject:
+            - say: "fallback"
+      forbidden_in: [event_triggered]
 
-      propose:
-        description: present an option, wait for confirmation, then execute on_confirm
-        syntax: |
-          - propose: "action description"
-            on_confirm:
-              - call: scenario_name
-            on_reject:
-              - say: "fallback message"
-        forbidden_in: [event_triggered]
+    write:
+      syntax: |
+        - write:
+            path: "folder/"                   # or exact file path
+            filename: "YYYY-MM-DD_{slug}.yml" # required when path ends with /
+            from: templates/file.yml          # required for write-once / read-write
+            vars: {key: "{variable}"}         # optional — requires from:
+            fields: [f1, f2]                  # optional — limit to specific fields
+            access: append-only               # read-write | append-only | write-once | read-only
+            via: PR
+            approval: none
+      access:
+        read-write:  create if missing, overwrite if exists
+        append-only: create if missing, append if exists — from: forbidden
+        write-once:  create if missing, error if exists
+        read-only:   never write
+      rules:
+        - from: required when access is write-once or read-write
+        - from: forbidden when access is append-only
+        - vars: requires from:
+        - filename required when path ends with /
+        - filename must match a key in rules/files.yml#filename_patterns
+      forbidden_in: [reporter]
 
-      compute:
-        description: |
-          Calculate a derived value from available data — stores result as named variable.
-          No side effects. Available in all scenario types.
-        syntax: "- compute: variable_name"
-        note: |
-          The AI derives the value from read: files and inherited context.
-          Result is available as {{variable_name}} in subsequent steps.
-          Typical uses: score after exam loop, readiness metrics, gap lists.
-        forbidden_in: [reporter]
+    call:
+      description: invoke another scenario by ID — always explicit form
+      syntax:
+        - call:
+            scenario: scenario_id
+            file: path/to/scenarios/file.yml
+            load: on_demand
+            with: {key: value}    # optional
+      required: [scenario, file, "load: on_demand"]
+      forbidden: "call: scenario_id  # implicit form"
+      rationale: explicit file = self-documenting deps + safe on rename. on_demand = no eager loading.
+      examples:
+        correct:
+          - call: {scenario: study_open, file: frameworks/dojo/scenarios/study.yml, load: on_demand, with: {topic: "{{topic}}"}}
+          - call: {scenario: close_task, file: frameworks/daneel/scenarios/close_task.yml, load: on_demand}
+        wrong:
+          - call: study_open
+          - call: close_task
+            with: {issue_number: "{{issue_number}}"}
 
-      write:
-        description: write a file — behavior declared via access field
-        syntax: |
-          - write:
-              path: "folder/"              # folder path OR exact file path
-              filename: "YYYY-MM-DD_{slug}.yml"  # required when path is a folder
-              from: templates/file.yml     # required when access is write-once or read-write on new file
-              vars:                        # optional — runtime values to interpolate into the template
-                key: "{scenario_variable}" #   {key} placeholders in the template are replaced with the value
-              fields: [field1, field2]     # optional — limit write to specific fields
-              access: append-only          # required — see access values below
-              via: PR                      # always PR — create and merge, no approval needed
-              approval: none               # required — execute immediately, no confirmation
-        access_values:
-          read-write:   create if missing, overwrite if exists
-          append-only:  create if missing, append if exists — never overwrite
-          write-once:   create if missing, error if exists
-          read-only:    never write — error if attempted
-        from_rule: |
-          from: is required when access is write-once or read-write on a file that may not exist.
-          from: is forbidden when access is append-only.
-        vars_rule: |
-          vars: is optional. Use when the template (from:) contains {placeholder} values
-          that must be resolved at write time from the current scenario context.
-          Keys in vars: correspond exactly to {placeholder} names in the template.
-          vars: is forbidden when from: is absent.
-        approval:
-          rule: required on every write step
-          values:
-            none: create PR and merge immediately — do not ask for confirmation under any circumstance
-          default: none
-          note: none is the only valid value in this framework.
-        note: |
-          filename is required when path ends with /.
-          filename pattern must match a key in rules/files.yml#filename_patterns.
-        forbidden_in: [reporter]
+    commit_before_reply:
+      description: flush all pending writes before any say/emit/propose
+      syntax: "- commit_before_reply"
+      forbidden_in: [event_triggered, reporter]
 
-      commit_before_reply:
-        description: |
-          Execute all pending write steps and wait for PRs to merge before
-          any say, emit, or propose step runs.
-          Use when all writes for the current scenario must be persisted to
-          GitHub before the AI communicates any result to the user.
-          GitHub is the source of truth — chat is ephemeral.
-        syntax: "- commit_before_reply"
-        note: no parameters. Place after the last write, before the first say/emit/propose.
-        forbidden_in: [event_triggered, reporter]
+    issue:
+      description: mid-scenario issue update — only when creates_issue == true
+      syntax: |
+        - issue:
+            check: "item"          # ticks checkbox (requires update: check)
+        - issue:
+            comment: {from: templates/comment.md, vars: {key: "{{value}}"}}
+      note: for EXTERNAL issues use update_issue instead
+      forbidden_in: [event_triggered, reporter]
 
-      call:
-        description: invoke another scenario by name
-        syntax: "- call: scenario_name"
-        note: may be used inside on_confirm or if/then/else
-
-      issue:
-        description: mid-scenario issue update — opt-in, only when creates_issue == true
-        syntax: |
-          - issue:
-              check: "checklist item text"  # ticks that checkbox in issue body (requires update: check)
-          # OR
-          - issue:
-              comment:
-                from: templates/comment.md
-                vars:
-                  key: "{{value}}"
-        note: |
-          Only valid when creates_issue == true — targets the scenario's own issue.
-          issue: check requires issue.update == check.
-          issue: comment requires issue.update == comment.
-          For updates to EXTERNAL issues (creates_issue == false), use update_issue instead.
-        forbidden_in: [event_triggered, reporter]
-
-      update_issue:
-        description: |
-          Edit an external issue identified by a computed variable.
-          Only valid when issue_updates is declared and its condition is met.
-          This is the correct mechanism for inline body edits (e.g. adding kata links
-          next to topic checkboxes) and for closing external issues.
-          Does NOT create a new issue — only mutates an existing one.
-        syntax: |
-          - update_issue:
-              target: matching_goal_issue     # must match issue_updates.target
-              action: add_kata_link           # see actions below
-              topic: "{{topic}}"
-              kata_url: "{{kata_absolute_url}}"
-          # OR
-          - update_issue:
-              target: matching_goal_issue
-              action: close
-              comment: "{{optional closing comment}}"
-          # OR
-          - update_issue:
-              target: matching_goal_issue
-              action: add_comment
-              from: templates/comment.md
-              vars:
-                key: "{{value}}"
-        actions:
-          add_kata_link: |
-            Edits the issue body inline.
-            Finds the checklist item matching `topic`, appends the kata link next to it.
-            Format: `- [ ] \`{topic}\` — {description} — [kata]({kata_url})`
-            If kata has no open gaps (## Current gaps empty): also ticks the checkbox.
-          close: |
-            Closes the issue. Optionally adds a closing comment.
-          add_comment: |
-            Adds a comment to the issue without editing the body.
-            Use when you need to append session notes without touching the checklist.
-        required_fields:
-          - target   # must be declared in issue_updates.target
-          - action
-        conditional: |
-          If issue_updates.condition is false at runtime, all update_issue steps
-          targeting that issue are silently skipped — no error.
-        forbidden_in: [event_triggered, reporter]
-
-      if:
-        description: conditional branch
-        syntax: |
-          - if:
-              condition: expression
-              then:
-                - step
-              else:
-                - step
-        note: else is optional
-
-      emit:
-        description: emit a state_change event conditionally (inside if/then/else only)
-        syntax: "- emit: event-name"
-        note: use inside if/then/else only — never unconditionally outside if
-        forbidden_in: [reporter]
+    update_issue:
+      description: edit an external issue — only when issue_updates declared
+      actions:
+        add_kata_link: inline edit — appends kata link next to checklist item. required: [target, topic, kata_url]
+        close:         closes issue — optional comment field
+        add_comment:   adds comment without editing body — required: [from]
+      syntax: |
+        - update_issue:
+            target: matching_goal_issue
+            action: add_kata_link | close | add_comment
+      rules:
+        - target must match issue_updates.target
+        - if issue_updates.condition is false — step silently skipped
+      forbidden_in: [event_triggered, reporter]
 
   # --- output ---
   output:
-    rule: required on every scenario
-    fields:
-      state_changes:
-        rule: list of event names emitted when scenario completes unconditionally
-        format: block sequence or []
-        naming: kebab-case
-        empty: use state_changes: [] — never omit
-        note: |
-          Conditional emits go inside if/then/else steps using emit:.
-          Do not list conditional events here — only unconditional ones.
+    rule: required. Declare state_changes emitted on unconditional completion. Use [] if none.
+    note: conditional emits go inside if/then/else using emit: — do not list them here
 
 # ---------------------------------------------------------------------------
 # FILE FORMAT
-# Monolithic vs index. New frameworks should use index.
 # ---------------------------------------------------------------------------
 file_format:
-
-  monolithic:
-    description: all scenarios declared inline in .scenarios.yml
-    status: legacy — allowed, not recommended for frameworks with more than 4 scenarios
-    root_key: scenarios (named keys) or required_scenarios
-
+  monolithic: legacy — all scenarios inline in .scenarios.yml. root_key: required_scenarios
   index:
-    description: |
-      .scenarios.yml is a lightweight index.
-      Each scenario has its own .yml file under scenarios/.
-      AI reads index → identifies relevant scenario → fetches ONLY that file.
-      Never loads all scenario files at once.
-    root_key: scenarios (list of entries)
-    entry_required_fields:
-      - id          # snake_case, matches filename
-      - triggers    # list of English semantic descriptions of when this scenario runs
-      - file        # relative path from zeroth root, e.g. frameworks/sudo-hire-me/scenarios/job_offer_received.yml
-    entry_optional_fields:
-      - deprecated  # true | false
-      - replaced_by # id of the replacing scenario — required when deprecated: true
-      - priority    # non-negative integer, default 0 — higher value = evaluated first during routing
-      - preconditions  # list of condition identifiers — scenario excluded from routing if any fails
+    description: lightweight index — AI fetches only the matched scenario file
+    root_key: scenarios
+    entry_required_fields: [id, triggers, file]
+    entry_optional_fields: [deprecated, replaced_by, priority, preconditions]
     scenario_file_rules:
-      - must start with: "# source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
-      - filename: snake_case, lowercase, .yml extension
-      - location: scenarios/{scenario_id}.yml relative to framework root
-      - content: structured YAML — id, creates_issue, read, steps, output
-    fetch_pattern: |
-      get_file_contents(owner=Malstrom, repo=zeroth, path=entry.file)
-      fallback: fetch entry source URL directly if MCP unavailable
+      - starts with: "# source: https://raw.githubusercontent.com/{owner}/{repo}/main/{path}"
+      - filename: snake_case .yml under scenarios/
+      - content: id, creates_issue, read, steps, output
+    fetch_pattern: get_file_contents(owner=Malstrom, repo=zeroth, path=entry.file)
 
 # ---------------------------------------------------------------------------
 # REQUIRED SCENARIOS
-# Every .scenarios.yml must have these two, in this order.
 # ---------------------------------------------------------------------------
 required_scenarios:
   - session_start:
-      note: |
-        Must fire on conversation open. Recommended trigger pattern:
-        first message of the conversation with no other scenario match,
-        OR explicit greeting/start keywords.
-        Do NOT use "session opens automatically" — it is not a deterministic event.
-  - unknown_scenario:  # last — fallthrough for unmatched intents
-      note: |
-        Must surface the top 3 nearest scenarios by semantic proximity.
-        Never a silent dead end — always propose a recovery path.
+      note: first message with no other match OR explicit greeting. Never "session opens automatically".
+  - unknown_scenario:  # last — fallthrough
+      note: surface top 3 nearest scenarios. Never a silent dead end.
 
 # ---------------------------------------------------------------------------
 # VALIDATION
-# Rules enforced by giskard.
 # ---------------------------------------------------------------------------
 validation:
+  # structure
   - root key must be required_scenarios (monolithic) or scenarios (index)
   - session_start must be present
   - unknown_scenario must be present and last
   - every scenario must have: on, creates_issue, read, steps, output
-  - on: must be a list (user-triggered) OR have events: key (event-triggered/reporter) — never both
-  - if creates_issue == true, issue: block must be present with title, from, update, approval, on_complete, on_fail
-  - if creates_issue == true, issue.body inline is forbidden — use issue.from
-  - if creates_issue == false, issue: block must be absent
-  - if creates_issue == false, issue: steps are forbidden — use update_issue instead
-  - if issue_updates is declared, issue_updates.target must be a computed variable available before any update_issue step
-  - every update_issue step must have: target, action
+  - on: must be a list (user-triggered) OR have events: key — never both
+  # issue lifecycle
+  - if creates_issue == true: issue block required with title, from, update, approval, on_complete, on_fail
+  - if creates_issue == true: inline issue.body forbidden — use issue.from
+  - if creates_issue == false: issue block must be absent
+  - if creates_issue == false: issue: steps forbidden — use update_issue instead
+  - if issue_updates declared: target must be a computed variable available before update_issue
+  - update_issue requires: target, action
   - update_issue target must match issue_updates.target
-  - update_issue with action add_kata_link must have: topic, kata_url
-  - update_issue is forbidden when issue_updates is not declared
+  - update_issue action add_kata_link requires: topic, kata_url
+  - update_issue forbidden when issue_updates not declared
+  # write
   - every write step must have: path, access, via, approval
-  - every write step where access is write-once or read-write must have: from
-  - every write step where access is append-only must NOT have: from
-  - every write step where vars: is present must also have from:
-  - every write step where path ends with / must have filename
-  - filename must match a key in rules/files.yml#filename_patterns
-  - say, ask, propose, issue steps are forbidden in event_triggered scenarios
-  - compute, write, emit steps are forbidden in reporter scenarios
-  - commit_before_reply is forbidden in event_triggered and reporter scenarios
+  - write write-once or read-write: from required
+  - write append-only: from forbidden
+  - write with vars: from required
+  - write path ending /: filename required
+  - filename must match rules/files.yml#filename_patterns
+  # type constraints
+  - say, ask, propose, issue forbidden in event_triggered
+  - compute, write, emit forbidden in reporter
+  - commit_before_reply forbidden in event_triggered and reporter
+  - type: reporter required when events: on: form AND has say/propose steps
+  # output
   - output.state_changes must never be omitted
-  - dedup is only valid on event-triggered and reporter scenarios
-  - triggers must be in English
-  - triggers must describe user intent — keyword-literal triggers (user says "...", user writes "...") are forbidden
-  - type: reporter is required when scenario uses events: on: form AND has say/propose steps
-  - issue: check steps are only valid when issue.update == check (creates_issue == true)
-  - issue: comment steps are only valid when issue.update == comment (creates_issue == true)
-  - read: entries may be file paths, glob patterns, or special sources (issues:, comments:) as declared in read.special_sources
-  - if priority is present, it must be a non-negative integer
-  - if preconditions is present, each condition must be a known identifier declared in the framework's overview.yml or .agent.yml under state_conditions, or the literal "any"
+  # misc
+  - dedup only valid on event-triggered and reporter
+  - triggers must be in English, describe intent — keyword-literal form forbidden
+  - issue: check only valid when issue.update == check
+  - issue: comment only valid when issue.update == comment
+  - read: entries may be paths, globs, or special sources (issues:, comments:)
+  - priority must be non-negative integer
+  - preconditions: each identifier must be in framework state_conditions or literal "any"
   # index-specific
-  - if file_format is index: every entry must have id, triggers, file
-  - if file_format is index: deprecated entries must have replaced_by
-  - if file_format is index: every scenario file must start with # source: comment header
-  - if file_format is index: file path must match scenarios/{id}.yml (zeroth root) or frameworks/{framework}/scenarios/{id}.yml
+  - index entries must have: id, triggers, file
+  - deprecated entries must have replaced_by
+  - scenario files must start with # source: comment
+  - file path must match scenarios/{id}.yml or frameworks/{fw}/scenarios/{id}.yml
+  # call: explicit form (#322)
+  - every call: must have scenario, file, load: on_demand
+  - implicit call: scenario_id form forbidden
+  - call: without file: forbidden

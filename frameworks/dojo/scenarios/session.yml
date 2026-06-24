@@ -17,7 +17,10 @@ steps:
       condition: gakusei_missing OR student_name == ""
       then:
         - read: Malstrom/zeroth:frameworks/dojo/onboarding.yml
-        - call: onboarding
+        - call:
+            scenario: onboarding
+            file: frameworks/dojo/onboarding.yml
+            load: on_demand
         - stop
   - ensure_label:
       name: "Goal"
@@ -78,14 +81,20 @@ steps:
             # gap count: ## Current gaps section in kata/{slug}.md, non-empty lines
         - propose: propose continuing the active goal
           on_confirm:
-            - call: study_open
+            - call:
+                scenario: study_open
+                file: frameworks/dojo/scenarios/study.yml
+                load: on_demand
           on_reject:
             - say: ask the student what they want to do next (study, randori, topic shinsa, or declare a new goal)
       else:
         - say: inform the student they have no active goal
         - propose: propose declaring a new goal
           on_confirm:
-            - call: declare_goal
+            - call:
+                scenario: declare_goal
+                file: frameworks/dojo/scenarios/goal.yml
+                load: on_demand
           on_reject:
             - say: ask the student what they want to do next (study, randori, or topic shinsa)
 output:

@@ -56,7 +56,10 @@ steps:
             Score: {{randori_score}}% — {{sessions_without_gaps}} sessioni pulite.
         - propose: propose taking the topic shinsa now
           on_confirm:
-            - call: topic_shinsa
+            - call:
+                scenario: topic_shinsa
+                file: frameworks/dojo/scenarios/shinsa.yml
+                load: on_demand
           on_reject:
             - say: acknowledge and tell the student to come back when ready
       else:
@@ -68,10 +71,13 @@ steps:
                   Gap aperti: {{current_gaps | join}}
               - propose: propose studying the gaps now
                 on_confirm:
-                  - call: study_open
-                    with:
-                      topic: "{{topic}}"
-                      source: gaps_from_kata
+                  - call:
+                      scenario: study_open
+                      file: frameworks/dojo/scenarios/study.yml
+                      load: on_demand
+                      with:
+                        topic: "{{topic}}"
+                        source: gaps_from_kata
                 on_reject:
                   - say: acknowledge and remind the student the gaps are in the kata
             else:
@@ -80,9 +86,12 @@ steps:
                   Sessioni pulite: {{sessions_without_gaps}}/{{readiness_thresholds.min_sessions_without_gaps}}
               - propose: propose studying a new concept in the topic
                 on_confirm:
-                  - call: study_open
-                    with:
-                      topic: "{{topic}}"
+                  - call:
+                      scenario: study_open
+                      file: frameworks/dojo/scenarios/study.yml
+                      load: on_demand
+                      with:
+                        topic: "{{topic}}"
                 on_reject:
                   - say: acknowledge and close the session
 output:

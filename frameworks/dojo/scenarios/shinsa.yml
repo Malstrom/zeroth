@@ -130,10 +130,13 @@ steps:
             Score: {{score}}% — gap aggiornati nel kata.
         - propose: propose studying the weak spots now
           on_confirm:
-            - call: study_open
-              with:
-                topic: "{{topic}}"
-                source: gaps_from_kata
+            - call:
+                scenario: study_open
+                file: frameworks/dojo/scenarios/study.yml
+                load: on_demand
+                with:
+                  topic: "{{topic}}"
+                  source: gaps_from_kata
           on_reject:
             - say: acknowledge and remind the student the gaps are in the kata
 output:
