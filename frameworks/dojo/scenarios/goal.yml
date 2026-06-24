@@ -60,68 +60,62 @@ preconditions:
 on:
   - user wants to take the seniority exam for an active goal
   - user says they are ready to test their goal
-  - user wants to check if they have reached their goal
+  - user wants to validate completion of a goal
 creates_issue: false
 read:
   - github:issues:open:label:Goal
   - "kata/"
+  - "kiroku/nikki/"
 steps:
-  - compute: goal_readiness
+  - compute: active_goal
+  - compute: checked_topics
+  - compute: unchecked_topics
   - if:
-      condition: goal_readiness == "not_ready"
+      condition: unchecked_topics | count > 0
       then:
         - say: |
-            inform the student they are not ready for goal shinsa
-            Completati: {{checked_topics | join}}
-            Mancanti: {{unchecked_topics | join}}
-        - propose: propose proceeding anyway
-          on_reject:
-            - say: encourage the student to keep studying
-            - stop
-          on_confirm:
-            - continue
-
-  - say: announce the goal shinsa is starting — no feedback during exam, only final score
-
-  - for_each: question in exam.questions   # 15–20 questions from kata/ filtered by goal
-    do:
-      - ask: ask the exam question
-
-  - compute: score
-  - compute: weak_topics
-
+            inform the student the goal is not complete yet
+            Mancano ancora: {{unchecked_topics | join}}
+        - stop
+  - compute: passed_topic_shinsa_count
+  - compute: total_topics
+  - compute: goal_score
+  - ask: ask one synthesis question that forces cross-topic reasoning across the full goal
+  - ask: ask one transfer question using a new context not seen in previous study sessions
+  - compute: synthesis_result
+  - compute: transfer_result
+  - compute: final_result
   - write:
       path: "kiroku/nikki/"
-      filename: "YYYY-MM-DD_{goal_slug}_goal_shinsa.yml"
+      filename: "YYYY-MM-DD_goal_shinsa_{{active_goal.slug}}.yml"
       from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
       access: write-once
       via: PR
       approval: none
-
+      note: |
+        Record goal-level exam.
+        Fields: date, goal_slug, checked_topics, goal_score, synthesis_result, transfer_result, final_result.
   - if:
-      condition: score >= 80
+      condition: final_result == "passed"
       then:
+        - update_issue:
+            target: active_goal
+            action: close_goal
+            nikki: "{{nikki_url}}"
+            score: "{{goal_score}}"
+            synthesis_result: "{{synthesis_result}}"
+            transfer_result: "{{transfer_result}}"
         - write:
             path: "kiroku/makimono/"
-            filename: "YYYY-MM-DD_{goal_slug}_passed.yml"
+            filename: "YYYY-MM-DD_goal_shinsa_{{active_goal.slug}}_passed.yml"
             from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_makimono.yml
             access: write-once
             via: PR
             approval: none
-        - update_issue:
-            target: matching_goal_issue
-            action: close
-            makimono: "{{makimono_url}}"
+            note: Record this goal shinsa pass.
         - emit: goal-shinsa-passed
       else:
-        - update_issue:
-            target: matching_goal_issue
-            action: append_shinsa_log
-            score: "{{score}}"
-            weak_topics: "{{weak_topics | join}}"
-            result: failed
         - emit: goal-shinsa-failed
-
   - merge:
       strategy: squash
       target: main
@@ -136,27 +130,29 @@ type: reporter
 on:
   events: [goal-shinsa-passed, goal-shinsa-failed]
 creates_issue: false
-read: []
+read:
+  - github:issues:open:label:Goal
 steps:
   - if:
       condition: event == "goal-shinsa-passed"
       then:
         - say: |
-            inform the student the goal shinsa was passed
-            Score: {{score}}%
-            {{goal_slug}} raggiunto — makimono scritto.
+            inform the student the goal was passed and the issue was closed
+            Goal completato: {{active_goal.title}} — score complessivo {{goal_score}}%.
       else:
         - say: |
-            inform the student the goal shinsa was not passed
-            Score: {{score}}%
-            Weak topics: {{weak_topics | join}}
+            inform the student the goal was not passed
+            Il goal non è ancora consolidato.
+        - compute: weak_topics
         - propose: propose studying the weak topics now
           on_confirm:
-            - call: study_open
-              with:
-                topic: "{{weak_topics.first}}"
-                source: gaps_from_kata
+            - call:
+                scenario: study_open
+                file: frameworks/dojo/scenarios/study.yml
+                load: on_demand
+                with:
+                  topic: "{{weak_topics.first}}"
           on_reject:
-            - say: acknowledge and close the session
+            - say: acknowledge and close the goal shinsa session
 output:
   state_changes: []
