@@ -2,10 +2,9 @@
 
 id: round_completed_debrief
 on:
-  - user says finished round with X
-  - user says finished interview
-  - user says just finished the screening
-  - user says done with tech interview
+  - user says they just finished an interview or screening round with a company
+  - user wants to debrief after a call or interview
+  - user completed a round and wants to log the outcome and gaps
 creates_issue: false
 read:
   - hunt/pipeline/{{company_slug}}.yml
@@ -39,24 +38,21 @@ preprocess:
         - no match                          -> leave missing (steps block will ask)
 
 steps:
-  # --- always-on debug header (Step 3b) ---
+  # --- always-on debug header ---
   - say:
       mode: debug
       always: true
-      text: |
-        **Scenario:** round_completed_debrief
-        **Company:** {{company_slug | default: "unknown"}}
-        **Round:** {{round_name | default: "unknown"}}
+      text: show active scenario name, inferred company_slug and round_name (or "unknown" if missing)
 
   # --- guard: ask only if preprocess failed ---
   - if:
       condition: company_slug is missing
       then:
-        - ask: "Which company?"
+        - ask: ask the user which company the round was with
   - if:
       condition: round_name is missing
       then:
-        - ask: "What type of round was it? (HR screening / technical / tech lead / ...)"
+        - ask: ask the user what type of round it was (HR screening, technical, tech lead, CTO, etc.)
 
   - compute:
       id: target_pipeline
@@ -74,15 +70,15 @@ steps:
       id: topic_list
       sources:
         - target_pipeline.analysis.stack_required
-        - prep comments on sub_issue matching screening_prep format
+        - prep comments on sub_issue matching round_prep format
         - target_pipeline.open_gaps
   - loop: topic_list
     each:
-      - ask: "Did they ask you anything about **{{topic}}**?"
+      - ask: ask whether the interviewer covered this specific topic during the round
       - if:
           condition: answer is yes
           then:
-            - ask: "How did you answer?"
+            - ask: ask how the user answered on this topic
             - compute:
                 id: assessment
                 values: [solid, partial, weak]
@@ -90,10 +86,10 @@ steps:
                 condition: assessment in [partial, weak]
                 then:
                   - compute: gap_entry
-  - ask: "Anything I didn't cover? Topics they raised that are not in this list?"
+  - ask: ask if there were any topics the interviewer raised that were not in the list above
   - loop: extra_topics
     each:
-      - ask: "How did you answer on {{topic}}?"
+      - ask: ask how the user answered on this extra topic
       - compute:
           id: assessment
           values: [solid, partial, weak]
@@ -112,7 +108,10 @@ steps:
           high: weak assessment OR topic is core to next round stack
           medium: partial assessment, secondary topic
           low: partial assessment, nice-to-have
-  - call: update_stories
+  - call:
+      scenario: update_stories
+      file: frameworks/sudo-hire-me/scenarios/update_stories.yml
+      load: on_demand
   - write:
       path: hunt/pipeline/{{company_slug}}.yml
       fields:
@@ -139,16 +138,25 @@ steps:
           topics_table: "{{topics_assessed}}"
           open_gaps: "{{open_gaps_merged}}"
   - commit_before_reply
-  - say: |
-      PR: {{pr.url}}
-
-      Open gaps:
-      {{open_gaps_merged | each: "- {{priority_icon}} **{{topic}}** — {{description}}"}}
+  - say: show PR URL and summarize open gaps with priority icons
   - if:
       condition: round outcome == passed
       then:
-        - propose: "Shall I create the sub-issue for the next round?"
+        - propose: ask whether to create the sub-issue for the next round
           on_confirm:
-            - call: create_next_round_sub_issue
+            - compute:
+                id: next_round_name
+                rule: derive next round from target_pipeline.rounds order
+            - compute:
+                id: next_sub_issue
+                rule: create sub-issue from issue_round.md template using next_round_name
+            - write:
+                path: hunt/pipeline/{{company_slug}}.yml
+                fields:
+                  - rounds[next_round_name].sub_issue: "{{next_sub_issue}}"
+                access: read-write
+                via: PR
+                approval: none
+            - say: confirm next round sub-issue created — include issue URL
 output:
   state_changes: [pipeline-updated]
