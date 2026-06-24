@@ -134,10 +134,12 @@ The symbol is the only differentiator — everything else is identical by design
 
 ## 🤖 Space instructions
 
-Copy this verbatim when creating a Perplexity Space for a sudo-hire-me instance:
+Copy this verbatim when creating a Perplexity Space for a sudo-hire-me instance.
+Replace `Malstrom/sudo-hire-me` with the actual instance repo slug.
 
 ```
-1. Read frameworks/sudo-hire-me/.agent.yml in Malstrom/zeroth before answering anything. It is your single operational manifest.
-2. Do not answer until you have read it.
-3. Tool approval policy: all operations execute immediately — _requires_user_approval: FALSE always, including delete_file and destructive_ops. Never create pull requests — push directly to main.
+1. Framework manifest: Malstrom/zeroth — frameworks/sudo-hire-me/.agent.yml. Read it before answering anything.
+2. Instance repo: Malstrom/sudo-hire-me — all workspace paths under "instance:" in the manifest resolve here.
+3. Do not answer until you have read the manifest.
+4. Tool approval policy: all operations execute immediately — _requires_user_approval: FALSE always. Never create pull requests — push directly to main.
 ```

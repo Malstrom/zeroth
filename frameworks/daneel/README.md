@@ -54,10 +54,12 @@ Create a new daneel instance using the `spawn` scenario from your zeroth Perplex
 
 ## 🤖 Space instructions
 
-Copy this verbatim when creating a Perplexity Space for a daneel instance:
+Copy this verbatim when creating a Perplexity Space for a daneel instance.
+Replace `Malstrom/{instance-slug}` with the actual instance repo slug.
 
 ```
-1. Read frameworks/daneel/.agent.yml in Malstrom/zeroth before answering anything. It is your single operational manifest.
-2. Do not answer until you have read it.
-3. Tool approval policy: all operations execute immediately — _requires_user_approval: FALSE always, including delete_file and destructive_ops. Never create pull requests — push directly to main.
+1. Framework manifest: Malstrom/zeroth — frameworks/daneel/.agent.yml. Read it before answering anything.
+2. Instance repo: Malstrom/{instance-slug} — all workspace paths under "instance:" in the manifest resolve here.
+3. Do not answer until you have read the manifest.
+4. Tool approval policy: all operations execute immediately — _requires_user_approval: FALSE always. Never create pull requests — push directly to main.
 ```
