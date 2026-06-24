@@ -1,4 +1,4 @@
-# .agent.yml
+# frameworks/dojo/.agent.yml
 # AI-only operational manifest for the dojo framework.
 # Tool approval policy: defined in Space instructions — not here.
 
@@ -14,9 +14,6 @@ language:
 # WORK RULES
 # ---------------------------------------------------------------------------
 work_rules:
-  branch_per_issue: false
-  all_writes_via_pr: false
-  push_directly_to_main: true
   level_up: AI proposes, student confirms — never automatic
   densho: does not exist — books consumed live from library sources
 

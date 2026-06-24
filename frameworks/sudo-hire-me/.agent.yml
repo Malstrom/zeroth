@@ -11,14 +11,6 @@ language:
   filenames: english
 
 # ---------------------------------------------------------------------------
-# WORK RULES
-# ---------------------------------------------------------------------------
-work_rules:
-  branch_per_issue: false
-  all_writes_via_pr: false
-  push_directly_to_main: true
-
-# ---------------------------------------------------------------------------
 # HARD RULES
 # Inherited from zeroth rules/agent.yml — never override.
 # ---------------------------------------------------------------------------
