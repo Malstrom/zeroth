@@ -1,6 +1,3 @@
-# source: frameworks/dojo/scenarios/study.yml
-# Scenario: study_open
-
 id: study_open
 on:
   - user wants to study a specific topic
@@ -12,45 +9,100 @@ creates_issue: false
 issue_updates:
   target: matching_goal_issue
   condition: matching_goal_issue exists
+
 read:
   - .gakusei.yml
   - github:issues:open:label:Goal
-  - "kata/{topic}.md"           # existing concepts and ## Current gaps
-  - "kiroku/nikki/"             # filenames only — to detect previously asked questions
+  - "kata/{topic}.yml"
+  - "kiroku/nikki/"
+
 steps:
+
+  - if:
+      condition: "kata/{topic}.yml does NOT exist"
+      then:
+
+        - say: assessment_intro
+
+        - ask: assessment
+          rules:
+            questions: 3
+            format: open_ended
+            no_live_coding: true
+            structure:
+              - context: "Have you ever used this topic? In what context?"
+              - foundational: one foundational concept for this topic
+              - intermediate: one intermediate concept — only if foundational correct
+
+        - compute: assessment_result
+          fields: [level, concepts_known, initial_gaps]
+          mapping:
+            0_correct: beginner
+            1_correct: beginner
+            2_correct: intermediate
+            3_correct: advanced
+
+        - write:
+            path: "kata/{topic}.yml"
+            from: frameworks/dojo/templates/kata.yml
+            fill:
+              level: "{{assessment_result.level}}"
+              assessed: "{{today}}"               # YYYY-MM-DD
+              concepts_covered: "{{assessment_result.concepts_known}}"
+              current_gaps: "{{assessment_result.initial_gaps}}"
+            via: direct_commit
+            branch: main
+
+        - write:
+            path: "kata/{topic}.md"
+            from: frameworks/dojo/templates/kata.md
+            fill_from: "kata/{topic}.yml"
+            via: direct_commit
+            branch: main
+
   - compute: matching_goal_issue
+
   - compute: agenda
-    # Priority order — AI builds agenda before starting:
-    # 1. concepts in ## Current gaps of kata/{topic}.md (close gaps first)
-    # 2. concepts of this topic not yet present in kata/{topic}.md (add new knowledge)
-    # 3. concepts already in kata with no recent randori (reinforce)
-    # Session target: ~20 minutes. AI stops adding concepts when estimated time is reached.
-    # Never repeat a concept+question combination already present in a nikki for this topic.
+      source: "kata/{topic}.yml"
+      priority:
+        - current_gaps
+        - concepts not in concepts_covered
+        - concepts in concepts_covered with no recent nikki
+
+  - say: agenda_summary
+    format: "{{agenda.count}} concepts today ({{gaps.count}} gaps + {{new.count}} new)"
+
+  - wait: user confirms or adjusts agenda
 
   - for_each: concept in agenda
     do:
+
       - call: randori
         with:
           concept: "{{concept}}"
           topic: "{{topic}}"
 
+      - write:
+          path: "kata/{topic}.yml"
+          action: update
+          fields: [concepts_covered, current_gaps]
+          via: direct_commit
+          branch: main
+
   - write:
       path: "kiroku/nikki/"
-      filename: "YYYY-MM-DD_{topic}_study.yml"
-      from: Malstrom/zeroth:frameworks/dojo/templates/kiroku_nikki.yml
+      filename: "YYYY-MM-DD_{topic}_study.yml"   # YYYY-MM-DD
+      from: frameworks/dojo/templates/kiroku_nikki.yml
       access: write-once
-      via: PR
-      approval: none
+      via: direct_commit
+      branch: main
 
   - write:
       path: "kata/{topic}.md"
-      access: read-write
-      via: PR
-      approval: none
-      note: |
-        Append new concepts covered this session.
-        Update ## Current gaps: remove closed gaps, keep open ones.
-        If no gaps remain: write '- None.' under ## Current gaps.
+      action: regenerate
+      fill_from: "kata/{topic}.yml"
+      via: direct_commit
+      branch: main
 
   - update_issue:
       target: matching_goal_issue
@@ -58,15 +110,6 @@ steps:
       action: update_topic_kata_link
       topic: "{{topic}}"
       kata_url: "https://github.com/Malstrom/dojo/blob/main/kata/{{topic}}.md"
-      note: |
-        Find the checklist row for this topic in the goal issue and append
-        [kata](kata_url) inline if not already present.
-        Do not tick the checkbox — that is reserved for topic_shinsa on pass.
 
-  - merge:
-      strategy: squash
-      target: main
-      via: PR
-      approval: none
 output:
   state_changes: [study-completed]
