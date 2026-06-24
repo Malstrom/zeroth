@@ -1,6 +1,3 @@
-# source: frameworks/dojo/scenarios/randori.yml
-# Scenario: randori
-
 id: randori
 on:
   - user wants to drill on the current topic
@@ -12,69 +9,65 @@ preconditions:
   - any
 creates_issue: false
 read:
-  - "kata/{topic}.md"
-  - "kiroku/nikki/"             # filenames only — detect previously asked questions per topic
+  - "kata/{topic}.yml"
+  - "kiroku/nikki/"
 
 sensei_rules:
   no_live_coding: true
-  rationale: >
-    Live coding has no diagnostic value in a chat session.
-    The AI cannot run code or evaluate tests.
-    Syntax correctness is not a signal of understanding.
   allowed_question_types:
-    - reasoning:      ask WHY a design choice was made
-    - edge_cases:     ask what happens when a condition changes
-    - tradeoffs:      compare two approaches, justify preference
-    - mental_model:   describe what happens internally when X is called
-    - error_diagnosis: describe a symptom, identify the likely cause
+    - reasoning
+    - edge_cases
+    - tradeoffs
+    - mental_model
+    - error_diagnosis
   forbidden_question_types:
     - write_this_function
     - implement_this
     - live_coding
   progression:
-    # first time seeing concept → basic comprehension question
-    # concept seen before, no gap → intermediate (edge case or tradeoff)
-    # concept seen before, gap exists → start from the gap, then advance
-    # Never ask a question already present in a previous nikki for this topic.
+    first_time: basic comprehension question
+    seen_no_gap: intermediate — edge case or tradeoff
+    seen_with_gap: start from the gap, then advance
+    never_repeat: question already in kiroku/nikki/ for this topic
 
 steps:
-  - if:
-      condition: called_from_study_open
-      then:
-        - say: explain the concept to the student
 
   - if:
       condition: NOT called_from_study_open AND topic is missing
       then:
-        - ask: ask the student which topic they want to practice
+        - ask: which topic do you want to practice?
+
+  - if:
+      condition: called_from_study_open
+      then:
+        - say: explain the concept
+
+  - ask: any questions before we continue?
+  - wait: answer student questions until student signals ready to proceed
 
   - compute: question
-    # Select one question for this concept following sensei_rules.progression.
-    # Must not repeat any question already in kiroku/nikki/ for this topic.
 
-  - ask: ask the question for this concept
+  - ask: randori question for this concept
 
   - if:
       condition: answer_correct OR answer_substantially_correct
       then:
-        - say: confirm the answer is correct with brief reinforcement
+        - say: confirm correct with brief reinforcement
       else:
-        - say: explain why the answer is wrong and what the gap is
-        - ask: ask a simpler follow-up question on the same concept
+        - say: explain why wrong and what the gap is
+        - ask: simpler follow-up question on the same concept
         - if:
             condition: followup_correct OR followup_substantially_correct
             then:
-              - say: acknowledge improvement and briefly explain the gap
+              - say: acknowledge improvement, briefly explain the gap
             else:
               - say: fully re-explain the concept
         - write:
-            path: "kata/{topic}.md"
+            path: "kata/{topic}.yml"
             fields: [current_gaps]
-            access: read-write
-            via: PR
-            approval: none
-            note: |
-              Add this concept to ## Current gaps if not already listed.
-              Format: - `concept` — description of specific gap
+            action: upsert
+            via: direct_commit
+            branch: main
+
 output:
   state_changes: [randori-completed]
