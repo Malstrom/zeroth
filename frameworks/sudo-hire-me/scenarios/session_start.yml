@@ -1,0 +1,36 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/scenarios/session_start.yml
+
+id: session_start
+on:
+  - this is the first message of the conversation and no other scenario matches
+  - user greets the system or opens a new session
+  - user wants to see the status of their job hunt
+creates_issue: false
+read:
+  - hunt/pipeline/*.yml
+  - issues: sudo-hire-me open ordered_by updated_at desc
+
+steps:
+  - compute:
+      id: active_pipelines
+      rule: |
+        Read all hunt/pipeline/*.yml files.
+        For each, extract: company_slug, role_name, status, last_updated,
+        next_round (first round with outcome pending or nearest scheduled date),
+        open_gaps count.
+        Sort by last_updated desc.
+  - compute:
+      id: urgent_action
+      rule: |
+        From active_pipelines, identify the most urgent action:
+        - round scheduled within 48h       -> suggest round_prep for that company
+        - round completed with no debrief  -> suggest round_completed_debrief
+        - no active pipelines              -> suggest adding a new offer
+  - say: |
+      show a session opening summary:
+      - list active candidatures (company, role, status, next round)
+      - highlight open_gaps count per company if > 0
+      - propose the most urgent action (urgent_action)
+      - invite the user to say what they want to do
+output:
+  state_changes: []
