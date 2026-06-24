@@ -1,0 +1,16 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/sudo-hire-me/scenarios/unknown.yml
+
+id: unknown_scenario
+on:
+  - any message that does not match any other scenario
+creates_issue: false
+
+steps:
+  - say: |
+      inform the user that the message did not match any known scenario.
+      briefly list available scenarios (session_start, job_offer_received,
+      round_prep, round_completed_debrief, update_stories) with a one-line
+      description of each.
+      invite the user to rephrase or pick one.
+output:
+  state_changes: []
