@@ -2,49 +2,68 @@
 # Scenario index for sudo-hire-me framework.
 # Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
 # AI reads this first, then fetches ONLY the relevant scenario file.
+#
+# TRIGGER MATCHING: semantic and language-independent.
+# Match user intent regardless of the language they write in (Italian, Russian, English, etc.).
+# Never match literal strings — always match meaning.
 
 scenarios:
-  - id: job_offer_received
+  - id: session_start
+    priority: 0
+    preconditions:
+      - any
     triggers:
-      - "received offer from"
-      - "got an offer from"
-      - "they sent me an offer"
-      - "ho ricevuto un'offerta"
-      - "mi hanno mandato l'offerta"
-      - "offerta ricevuta"
+      - this is the first message of the conversation and no other scenario matches
+      - user greets the system or opens a new session
+      - user wants to see the status of their job hunt
+    file: frameworks/sudo-hire-me/scenarios/session_start.yml
+
+  - id: job_offer_received
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user received or was sent a job offer
+      - user shares or pastes a job offer or recruiter message
+      - user describes a new job opportunity they want to track
     file: frameworks/sudo-hire-me/scenarios/job_offer_received.yml
 
-  - id: screening_prep
+  - id: round_prep
+    priority: 10
+    preconditions:
+      - any
     triggers:
-      - "prepare for screening with"
-      - "prepare for interview with"
-      - "prep for the call with"
-      - "devo prepararmi per"
-      - "preparami per il colloquio con"
-      - "ho uno screening con"
-      - "ho un colloquio con"
-      - "ho una call con"
-    file: frameworks/sudo-hire-me/scenarios/screening_prep.yml
+      - user wants to prepare for an upcoming interview or screening round
+      - user has a call or interview scheduled and wants to practice
+      - user wants to simulate an interview with a specific company
+      - user wants to prepare for a technical, HR, or leadership round
+    file: frameworks/sudo-hire-me/scenarios/round_prep.yml
 
   - id: round_completed_debrief
+    priority: 10
+    preconditions:
+      - any
     triggers:
-      - "finished round with"
-      - "just finished the screening"
-      - "done with the interview"
-      - "done with the tech interview"
-      - "ho finito lo screening"
-      - "ho appena finito lo screening"
-      - "ho finito il colloquio"
-      - "ho fatto il tech interview"
-      - "colloquio finito"
-      - "call finita"
-      - "appena finito"
+      - user says they just finished an interview or screening round with a company
+      - user wants to debrief after a call or interview
+      - user completed a round and wants to log the outcome and gaps
     file: frameworks/sudo-hire-me/scenarios/round_completed_debrief.yml
 
   - id: update_stories
+    priority: 5
+    preconditions:
+      - any
     triggers:
-      - "update stories"
-      - "update my stories"
-      - "aggiorna le storie"
-      - "aggiorna i miei esempi"
+      - user wants to update their personal stories or examples
+      - user says they have a new story or example to add
+      - user wants to review and update their narrative bank
+      - called from another scenario after stories delta gate
     file: frameworks/sudo-hire-me/scenarios/update_stories.yml
+
+  - id: unknown_scenario
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - any message that does not match any other scenario
+    file: frameworks/sudo-hire-me/scenarios/unknown.yml
