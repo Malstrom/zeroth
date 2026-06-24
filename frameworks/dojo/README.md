@@ -16,7 +16,7 @@ The research is clear on why this fails — and what works instead.
 >
 > Recalling information actively beats re-reading it every time — the act of retrieval itself is what builds durable memory. [Roediger & Karpicke, 2006](https://doi.org/10.1177/1745691612443552).
 
-> ***You forget everything you don’t revisit at the right moment.***
+> ***You forget everything you don't revisit at the right moment.***
 >
 > Memory decays on a predictable curve. Reviewing at increasing intervals — just before you forget — is the most efficient way to retain knowledge long-term. [Ebbinghaus, 1885](https://psychclassics.yorku.ca/Ebbinghaus/index.htm); [Cepeda et al., 2006](https://doi.org/10.1111/j.1467-8721.2007.00476.x).
 
@@ -24,11 +24,11 @@ The research is clear on why this fails — and what works instead.
 >
 > Connecting new knowledge to what you already know, and being forced to articulate it, produces far deeper comprehension than passive absorption. [Chi et al., 1994](https://doi.org/10.1207/s1532690xci1204_1).
 
-> ***Knowledge learned out of context doesn’t transfer.***
+> ***Knowledge learned out of context doesn't transfer.***
 >
-> What you study in a course feels clear until you face a real problem — and don’t recognise it. Learning anchored to real situations and your own context transfers. Abstract learning often doesn’t. [Lave & Wenger, 1991](https://doi.org/10.1017/CBO9780511815355); [Morris et al., 1977](https://doi.org/10.1037/0278-7393.3.5.519).
+> What you study in a course feels clear until you face a real problem — and don't recognise it. Learning anchored to real situations and your own context transfers. Abstract learning often doesn't. [Lave & Wenger, 1991](https://doi.org/10.1017/CBO9780511815355); [Morris et al., 1977](https://doi.org/10.1037/0278-7393.3.5.519).
 
-> ***You don’t know what you don’t know.***
+> ***You don't know what you don't know.***
 >
 > People systematically overestimate how well they understand something after reading it passively. Without an external map of your actual knowledge, you study the wrong things. [Kruger & Dunning, 1999](https://doi.org/10.1037/0022-3514.77.6.1121); [Bjork et al., 2013](https://doi.org/10.1016/j.intell.2013.01.004).
 
@@ -60,3 +60,15 @@ The goal is not to study faster. The goal is to become someone who actually know
 ## 🚀 How to start
 
 Create a new dojo instance using the `spawn` scenario from your zeroth Perplexity Space.
+
+---
+
+## 🤖 Space instructions
+
+Copy this verbatim when creating a Perplexity Space for a dojo instance:
+
+```
+1. Read frameworks/dojo/.agent.yml in Malstrom/zeroth before answering anything. It is your single operational manifest.
+2. Do not answer until you have read it.
+3. Tool approval policy: all operations execute immediately — _requires_user_approval: FALSE always, including delete_file and destructive_ops. Never create pull requests — push directly to main.
+```

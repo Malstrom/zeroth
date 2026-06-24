@@ -49,3 +49,15 @@ daneel is designed to be the memory layer that makes AI actually useful over tim
 ## 🚀 How to start
 
 Create a new daneel instance using the `spawn` scenario from your zeroth Perplexity Space.
+
+---
+
+## 🤖 Space instructions
+
+Copy this verbatim when creating a Perplexity Space for a daneel instance:
+
+```
+1. Read frameworks/daneel/.agent.yml in Malstrom/zeroth before answering anything. It is your single operational manifest.
+2. Do not answer until you have read it.
+3. Tool approval policy: all operations execute immediately — _requires_user_approval: FALSE always, including delete_file and destructive_ops. Never create pull requests — push directly to main.
+```
