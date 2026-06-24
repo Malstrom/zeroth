@@ -34,19 +34,7 @@ steps:
     - communication_language
     - questions_stack       # IT+RU questions from stack_required gaps vs igor.yml
     - questions_red_flags   # IT+RU questions from red_flags
-  - say: |
-      **Analisi offerta — {{company_name}}**
-
-      Fit: {{fit_pct}}% — Raccomandazione: {{recommendation}}
-
-      Punti di forza:
-      {{strengths | each: "- {{item}}"}}
-
-      Red flags:
-      {{red_flags | each: "- {{item}}"}}
-
-      Stack richiesto: {{stack_required | join: ", "}}
-      Stack nice-to-have: {{stack_nice_to_have | join: ", "}}
+  - say: present offer analysis — include company name, fit percentage, recommendation, strengths list, red flags list, required stack, nice-to-have stack
   - write:
       path: hunt/pipeline/
       filename: "{{company_slug}}.yml"
@@ -71,6 +59,6 @@ steps:
   - issue:
       check: pipeline file created
   - commit_before_reply
-  - say: "Candidatura {{company_name}} aperta. Issue: {{issue.url}}"
+  - say: confirm pipeline created — include company name and issue URL
 output:
   state_changes: [pipeline-created]
