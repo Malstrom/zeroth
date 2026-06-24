@@ -1,0 +1,7 @@
+topic: "{topic}"
+level: null                  # beginner / intermediate / advanced
+assessed: null               # YYYY-MM-DD
+concepts_covered: []
+current_gaps:
+  - concept: ""
+    description: ""
