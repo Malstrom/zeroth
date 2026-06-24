@@ -2,7 +2,9 @@
 
 id: update_stories
 on:
-  - user asks to update stories
+  - user wants to update their personal stories or examples
+  - user says they have a new story or example to add
+  - user wants to review and update their narrative bank
   - called from another scenario after stories delta gate
 creates_issue: false
 hard_rule: stories_delta   # gate defined in .agent.yml hard_rules
@@ -21,15 +23,10 @@ steps:
   - if:
       condition: stories_delta is empty
       then:
-        - say: "Nessuna storia da aggiornare in questa sessione."
+        - say: inform the user there are no stories to update from this session
       else:
-        - say: |
-            ## Stories delta
-
-            | Story ID | Storia attuale (sintesi) | Proposta (sintesi) |
-            |---|---|---|
-            {{stories_delta | each: "| {{topic}} | {{current_summary | default: '—'}} | {{proposed_summary}} |"}}
-        - ask: "Approvi? Dimmi quali topic approvare (o 'tutti')."
+        - say: show stories delta table — columns: story ID, current summary (or empty), proposed summary
+        - ask: ask the user which topics to approve (they can say specific IDs or "all")
         - loop: approved_topics
           each:
             - write:
