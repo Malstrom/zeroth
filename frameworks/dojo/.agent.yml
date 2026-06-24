@@ -1,5 +1,6 @@
 # .agent.yml
 # AI-only operational manifest for the dojo framework.
+# Tool approval policy: defined in Space instructions — not here.
 
 # ---------------------------------------------------------------------------
 # LANGUAGE
@@ -13,28 +14,11 @@ language:
 # WORK RULES
 # ---------------------------------------------------------------------------
 work_rules:
-  branch_per_issue: true
-  branch_naming: "{type}/{short-description}"
-  all_writes_via_pr: true
-  merge_strategy: squash
+  branch_per_issue: false
+  all_writes_via_pr: false
+  push_directly_to_main: true
   level_up: AI proposes, student confirms — never automatic
   densho: does not exist — books consumed live from library sources
-
-# ---------------------------------------------------------------------------
-# TOOL APPROVAL
-# false = execute immediately, no exceptions — irreversibility is not a reason to ask
-# true  = always ask before executing
-# ---------------------------------------------------------------------------
-tool_approval:
-  create_branch: false
-  push_files: false
-  create_pr: false
-  create_issue: false
-  create_sub_issue: false
-  update_issue: false
-  merge_to_main: false
-  delete_file: true
-  destructive_ops: true
 
 # ---------------------------------------------------------------------------
 # STATE MODEL
