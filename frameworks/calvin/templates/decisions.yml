@@ -1,15 +1,12 @@
 # .calvin/decisions.yml
-# Append-only architectural decisions log.
-# Qwen reads this to avoid re-introducing rejected patterns.
-# Format: one entry per decision. Never delete entries.
-
-# Template entry — remove this comment block after first real entry.
-#
-# - id: 1
-#   date: YYYY-MM-DD
-#   decision: short imperative statement of what was decided
-#   context: one sentence why
-#   rejected: what was considered and rejected (optional)
-#   source: issue #N | PR #N | manual
+# Qwen: these are hard constraints — never introduce rejected patterns.
+# Append-only. Never delete entries.
+# Format: one constraint per line, imperative.
 
 decisions: []
+
+# Example entries (remove this comment after first real decision):
+# decisions:
+#   - "serializer: blueprinter, not jbuilder"
+#   - "no after_create callbacks — use explicit service calls"
+#   - "AuditLog: no updated_at — append-only table"
