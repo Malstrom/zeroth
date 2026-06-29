@@ -1,0 +1,18 @@
+# frameworks/calvin/scenarios/unknown.yml
+
+id: unknown_scenario
+on:
+  - any message that does not match any other scenario
+preconditions:
+  - any
+
+steps:
+  - say: |
+      Non ho riconosciuto un scenario preciso per questa richiesta.
+      Posso aiutarti con:
+      - lavorare su una issue ("lavoriamo sulla issue #N")
+      - revieware una PR ("review PR #N")
+      - aggiornare il contesto progetto
+      - vedere lo stato del progetto
+
+      Cosa intendevi fare?

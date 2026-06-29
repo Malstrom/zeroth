@@ -1,0 +1,74 @@
+# frameworks/calvin/scenarios/review_pr.yml
+# Review a PR: checklist + Calvin notes extraction + context update proposal
+
+id: review_pr
+on:
+  - user wants to review a PR
+  - user references a PR number
+  - there are open PRs with label agent:review
+preconditions:
+  - any
+
+read:
+  - instance:.context.yml
+  - instance:github:pr:{{pr_number}}:diff
+  - instance:github:pr:{{pr_number}}:comments
+  - instance:github:issue:{{pr.linked_issue}}
+
+steps:
+  - if:
+      condition: pr_number not provided
+      then:
+        - fetch: instance:github:prs:open:label:agent:review
+        - say: |
+            Mostra lista PR con label agent:review.
+            Chiedi a Igor quale revieware.
+        - stop
+
+  - say: |
+      Esegui la review del PR #{{pr_number}} seguendo questo ordine:
+
+      ### 1. Goal check
+      Il PR risolve esattamente il goal dell'issue? Né di più né di meno?
+
+      ### 2. Conventions check
+      Rispetta le convenzioni in .context.yml conventions?
+      Elenca le violazioni specifiche (file:riga).
+
+      ### 3. Test check
+      I test richiesti in .context.yml testing sono presenti?
+      I test coprono i casi edge rilevanti?
+
+      ### 4. File scope check
+      Sono stati modificati file fuori scope dell'issue?
+      Se sì: lista file con motivazione.
+
+      ### 5. Code quality
+      Problemi di leggibilità, duplicazione, o design che vale la pena segnalare.
+      Non essere pedante su stile se rubocop passa.
+
+      Formato output:
+      ✅ pass | ⚠️ warning | ❌ block — per ogni sezione.
+      Se almeno un ❌: raccomanda REQUEST_CHANGES.
+      Se solo ⚠️: raccomanda APPROVE con commento.
+      Se tutto ✅: raccomanda APPROVE.
+
+  - say: |
+      Estrai la sezione `## Calvin notes` dal body del PR se presente.
+      Mostra le note a Igor.
+      Proponi aggiornamenti a .context.yml basati sulle Calvin notes.
+
+  - confirm:
+      ask: "Vuoi che aggiorni .context.yml con queste note? (sì/no/modifica)"
+      on_confirm:
+        - call:
+            scenario: update_context
+            file: frameworks/calvin/scenarios/update_context.yml
+            load: on_demand
+            params:
+              source: pr_calvin_notes
+              pr_number: "{{pr_number}}"
+
+output:
+  state_changes:
+    - on context update confirmed: .context.yml updated

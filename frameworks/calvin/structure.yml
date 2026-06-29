@@ -1,0 +1,42 @@
+# frameworks/calvin — instance repo structure
+# Defines files expected in the target project repo.
+# Read by Giskard at runtime to generate checks dynamically.
+
+# ---------------------------------------------------------------------------
+# CONTEXT FILE (required)
+# ---------------------------------------------------------------------------
+context_file: .context.yml
+
+structure:
+
+  .context.yml:
+    description: |
+      Single source of truth for project context.
+      Contains stack, conventions, testing strategy, and decisions log.
+      Read by Perplexity at every session start.
+      Updated by update_context scenario after merge, on Igor's confirmation.
+    template: frameworks/calvin/templates/project_context.yml
+    access: read-write
+    managed_by: [update_context]
+    required_keys: [project, stack, conventions, testing, decisions]
+    note: created manually or via `cp` from template — no onboarding script
+
+  .calvin/poll.rb:
+    description: |
+      Async execution loop. Polls GitHub for issues with label `agent`,
+      runs Mistral (codestral-latest), opens PRs.
+      Present only when async mode is active.
+    template: frameworks/calvin/scripts/poll.rb
+    access: read-write
+    managed_by: [igor]
+    optional: true
+    note: copy from frameworks/calvin/scripts/poll.rb and configure env vars
+
+# ---------------------------------------------------------------------------
+# CROSS REFS
+# ---------------------------------------------------------------------------
+cross_refs:
+  - label: ".context.yml decisions entries must have required keys"
+    source: .context.yml
+    target_keys: [date, decision, rationale]
+    level: warning

@@ -1,0 +1,86 @@
+# frameworks/calvin — overview
+
+framework: calvin
+purpose: |
+  AI-assisted development framework.
+  Perplexity reads issues, defines them, produces model-ready prompts,
+  and either executes tasks directly (sync) or delegates to an async execution
+  loop (poll.rb + Mistral) via the `agent` label.
+
+# ---------------------------------------------------------------------------
+# ACTORS
+# ---------------------------------------------------------------------------
+actors:
+  igor:
+    role: creates issues, reviews PRs, confirms all writes and label changes
+    source_of_truth: conversation
+
+  perplexity:
+    role: |
+      Reads .context.yml + open issues at session start.
+      On work_issue: reads issue, proposes model-ready prompt, Igor confirms.
+      Executes task sync (writes code, opens PR) OR marks issue for async execution.
+      Updates .context.yml after merge on Igor's confirmation.
+    reads: [frameworks/calvin/, instance:.context.yml, instance:issues]
+    writes: [instance:.context.yml, instance:code, instance:PRs]
+    source_of_truth: frameworks/calvin/ in zeroth
+
+  mistral:
+    role: |
+      Future async executor. Runs poll.rb on WSL, polls issues with label `agent`,
+      implements them, opens PRs. Not active in Phase 1.
+    status: future
+    activation: label `agent` on issue + poll.rb running on WSL
+
+# ---------------------------------------------------------------------------
+# FLOW
+# ---------------------------------------------------------------------------
+flow:
+  sync_execution:
+    description: Perplexity executes the task in the current session
+    steps:
+      - igor mentions or points to an issue
+      - perplexity reads issue + .context.yml
+      - perplexity proposes model-ready prompt — Igor confirms
+      - perplexity implements the task (writes code, opens PR)
+      - igor reviews and merges
+      - perplexity proposes .context.yml updates — Igor confirms
+
+  async_execution:
+    description: Issue is delegated to poll.rb + Mistral (future)
+    steps:
+      - perplexity produces model-ready comment on the issue
+      - igor confirms and adds label `agent`
+      - poll.rb picks up the issue, runs Mistral, opens PR
+      - igor reviews and merges
+    requires: poll.rb running on WSL, Mistral API key set
+
+# ---------------------------------------------------------------------------
+# LABEL VOCABULARY
+# ---------------------------------------------------------------------------
+labels:
+  agent:
+    set_by: igor (explicit instruction only)
+    meaning: issue has model-ready comment, queued for async execution
+  agent:review:
+    set_by: poll.rb
+    meaning: PR opened by async executor, waiting for Igor review
+  agent:blocked:
+    set_by: poll.rb
+    meaning: async executor could not proceed
+  agent:skip:
+    set_by: igor
+    meaning: skip this issue in async execution
+
+# ---------------------------------------------------------------------------
+# CONTEXT FILE
+# ---------------------------------------------------------------------------
+context_file:
+  path: .context.yml
+  location: instance repo root
+  purpose: |
+    Single source of truth for project context.
+    Read by Perplexity at every session start.
+    Read by Mistral (future) before executing any issue.
+  template: frameworks/calvin/templates/project_context.yml
+  sections: [project, stack, conventions, testing, decisions]

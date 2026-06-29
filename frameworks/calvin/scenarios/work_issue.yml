@@ -1,0 +1,106 @@
+# frameworks/calvin/scenarios/work_issue.yml
+# Core scenario: read issue → define it → produce model-ready prompt
+# → Igor decides: execute now (sync) or delegate (async label: agent)
+
+id: work_issue
+on:
+  - user wants to work on a specific issue
+  - user references an issue number or title
+  - user wants to define, refine, or implement a task
+preconditions:
+  - any
+
+read:
+  - instance:.context.yml
+  - instance:github:issue:{{issue_number}}
+
+steps:
+  # --- STEP 1: identify issue ---
+  - if:
+      condition: issue_number not provided
+      then:
+        - say: ask Igor for the issue number or title
+        - stop
+
+  - fetch: instance:github:issue:{{issue_number}}
+
+  # --- STEP 2: define the issue ---
+  - say: |
+      Leggi l'issue e producila in forma strutturata:
+
+      ## Issue #{{issue_number}} — {{issue.title}}
+
+      **Goal:** una riga chiara su cosa deve fare questa issue
+
+      **Entry points:** file/classi/route da cui partire
+        (ricavali da .context.yml stack + convenzioni + corpo issue)
+
+      **Constraints:** regole da rispettare (convenzioni, file da non toccare, dipendenze)
+
+      **Tests:** cosa deve essere testato e come
+
+      **Depends on:** issue bloccanti (se presenti)
+
+      Se manca informazione per compilare un campo, chiedi a Igor prima di procedere.
+      Non assumere il caso migliore.
+
+  - confirm:
+      ask: "Questa definizione è corretta? Vuoi modificare qualcosa prima di procedere?"
+      on_reject:
+        - say: ask Igor what to change
+        - repeat: step 2
+
+  # --- STEP 3: produce model-ready prompt ---
+  - say: |
+      Produci il commento model-ready usando il template:
+      `zeroth:frameworks/calvin/templates/issue_model_ready.md`
+
+      Il commento deve essere autosufficiente:
+      il modello che lo legge non ha accesso a nulla oltre al commento + .context.yml.
+
+      Includi alla fine la sezione `## Calvin notes` vuota
+      (il modello la compilerà con decisioni prese durante l'implementazione).
+
+  - action: post_comment
+      target: instance:github:issue:{{issue_number}}
+      template: frameworks/calvin/templates/issue_model_ready.md
+      confirm_before_posting: true
+
+  # --- STEP 4: decide execution mode ---
+  - say: |
+      Come vuoi procedere?
+      A) **Esegui ora** — implemento la task in questa sessione
+      B) **Delega async** — aggiungo label `agent`, verrà eseguita da poll.rb quando attivo
+
+  - if:
+      condition: igor_chooses == "A"
+      then:
+        - say: |
+            Procedo con l'implementazione.
+            Leggo .context.yml + issue e scrivo il codice.
+        - execute:
+            reads: [instance:.context.yml, instance:github:issue:{{issue_number}}]
+            writes: instance:code
+            opens_pr: true
+            pr_label: agent:review
+            pr_body_includes: "## Calvin notes"
+            confirm_each_file: false
+            confirm_pr_before_push: true
+
+  - if:
+      condition: igor_chooses == "B"
+      then:
+        - say: |
+            Il commento model-ready è già stato postato.
+            Aggiungo label `agent` all'issue #{{issue_number}}.
+        - action: add_label
+            target: instance:github:issue:{{issue_number}}
+            label: agent
+            confirm_before_action: true
+        - say: "Issue #{{issue_number}} in coda per esecuzione asincrona."
+
+output:
+  state_changes:
+    - issue_has_model_ready_comment: true
+    - if sync: pr_opened with label agent:review
+    - if async: issue label set to agent

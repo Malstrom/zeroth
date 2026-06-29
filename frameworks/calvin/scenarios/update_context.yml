@@ -1,0 +1,51 @@
+# frameworks/calvin/scenarios/update_context.yml
+# Update .context.yml after a merge or explicit decision record request.
+# NEVER writes without Igor's explicit confirmation.
+
+id: update_context
+on:
+  - user merged a PR and wants to update project context
+  - user wants to record a decision
+  - called from review_pr after Calvin notes are confirmed
+preconditions:
+  - any
+
+read:
+  - instance:.context.yml
+
+steps:
+  - if:
+      condition: source == pr_calvin_notes
+      then:
+        - say: |
+            Mostro le modifiche proposte a .context.yml basate sulle Calvin notes del PR #{{pr_number}}:
+
+            ```diff
+            {{proposed_diff}}
+            ```
+
+            Le modifiche rispettano queste regole:
+            - decisions[] è append-only — non rimuovere mai voci esistenti
+            - conventions e testing si aggiornano solo se c'è una regola nuova esplicita
+            - stack si aggiorna solo se aggiunta/rimossa una dipendenza reale
+
+  - if:
+      condition: source == explicit
+      then:
+        - say: ask Igor what decision or context change to record
+        - say: produce proposed diff to .context.yml
+
+  - confirm:
+      ask: "Confermo le modifiche a .context.yml?"
+      on_confirm:
+        - action: update_file
+            target: instance:.context.yml
+            apply: proposed_diff
+            commit_message: "chore: update .context.yml after #{{source_ref}}"
+      on_reject:
+        - say: ask Igor what to change in the proposed diff
+        - repeat: from proposed diff
+
+output:
+  state_changes:
+    - .context.yml updated (append to decisions, optional update to conventions/testing/stack)
