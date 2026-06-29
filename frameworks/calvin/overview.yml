@@ -1,37 +1,35 @@
 framework: calvin
-purpose: AI-assisted development. Perplexity defines issues and executes tasks (sync) or queues them for async execution via poll.rb + Mistral (label: agent).
+purpose: Dev assistant. Helps develop issues synchronously in chat or asynchronously via LLM (calvin.rb loop + label agent).
 
 actors:
   igor:
     role: creates issues, reviews PRs, confirms all writes
   perplexity:
-    role: reads .context.yml + issues, defines tasks, executes sync or marks async
-    reads: [frameworks/calvin/, .context.yml, github:issues, github:prs]
-  mistral:
-    role: async executor via poll.rb — Phase 2, not active yet
-    activation: label `agent` on issue + poll.rb running
+    role: reads .calvin/ + issues, defines tasks, produces async-ready comments, marks async
+    reads: [frameworks/calvin/, .calvin/, github:issues, github:prs]
+  model:
+    role: async executor via calvin.rb — reads .calvin/ + async-ready comment, writes code, opens PR
+    activation: label `agent` on issue + calvin.rb loop running
 
 flow:
-  sync:
-    - Igor points to issue
-    - Perplexity reads issue + .context.yml, proposes definition
-    - Perplexity produces model-ready comment (Igor confirms before post)
-    - Igor chooses: execute now → Perplexity writes code + opens PR
-    - Igor merges, Perplexity proposes .context.yml update
-  async:
-    - Perplexity produces model-ready comment
-    - Igor confirms + adds label `agent`
-    - poll.rb picks up, Mistral executes, opens PR
-    - Igor reviews + merges
+  - Igor creates issue informally
+  - Perplexity runs write_issue: reads issue + .calvin/, produces async-ready comment
+  - Igor confirms → Perplexity posts comment + adds label `agent`
+  - calvin.rb picks up, model executes, opens PR with label `agent:review`
+  - Igor reviews + merges in ~10 min
+  - Perplexity proposes .calvin/ update from Calvin notes
 
 labels:
-  agent: queued for async execution (set by Igor only)
+  agent: queued for async execution — set only after Igor confirmation
   agent:review: PR opened by async executor
-  agent:blocked: async executor could not proceed
+  agent:blocked: executor could not proceed
   agent:skip: excluded from async execution
 
-context_file:
-  path: .context.yml
-  location: instance repo root
-  template: frameworks/calvin/templates/project_context.yml
-  sections: [project, stack, conventions, testing, decisions]
+context_path: .calvin/
+context_files:
+  - .calvin/stack.yml
+  - .calvin/conventions.yml
+  - .calvin/testing.yml
+  - .calvin/decisions.yml
+  - .calvin/schema.yml        # auto-generated, optional
+template: frameworks/calvin/templates/calvin_context/

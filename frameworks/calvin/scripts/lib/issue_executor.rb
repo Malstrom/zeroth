@@ -1,77 +1,40 @@
-require_relative 'github_client'
-require_relative 'file_writer'
+# frozen_string_literal: true
 
-class IssueExecutor
-  REPO_PATH = ENV.fetch('CALVIN_REPO_PATH')
-  PROVIDER  = 'mistral/codestral-latest'
-
-  def initialize(issue)
-    @issue  = issue
-    @number = issue.number
-    @status_id = nil
-  end
-
-  def run
-    puts "##{@number}: #{@issue.title}"
-    mr = GithubClient.fetch_model_ready_comment(@number)
-    return block!('no model-ready comment') unless mr
-
-    post_status("⏳ #{PROVIDER}")
-    head_sha = FileWriter.head_sha(REPO_PATH)
-    prompt   = write_prompt(mr.body)
-    result   = FileWriter.run_aider(prompt, PROVIDER, REPO_PATH)
-
-    if result[:success]
-      branch = "calvin/issue-#{@number}"
-      FileWriter.commit_and_push(REPO_PATH, branch, "fix: ##{@number}")
-      pr = GithubClient.create_pr(
-        title: "[Calvin] #{@issue.title}",
-        head:  branch,
-        body:  pr_body(mr.body)
-      )
-      GithubClient.remove_label(@number, 'agent')
-      GithubClient.add_label(@number, 'agent:review')
-      update_status("✅ PR ##{pr.number} · #{PROVIDER}")
-    else
-      FileWriter.reset_hard(REPO_PATH, head_sha)
-      block!(result[:reason])
+module Calvin
+  class IssueExecutor
+    def initialize(issue, github)
+      @issue   = issue
+      @github  = github
+      @branch  = "calvin/issue-#{issue.number}"
+      @prompt_file = "/tmp/calvin_prompt_#{issue.number}.txt"
     end
-  rescue StandardError => e
-    block!(e.message)
-  ensure
-    File.delete(prompt) if prompt && File.exist?(prompt)
-  end
 
-  private
+    def run
+      LOG.info "processing ##{@issue.number}: #{@issue.title}"
 
-  def write_prompt(mr_body)
-    context = File.read(File.join(REPO_PATH, '.context.yml')) rescue ''
-    path = "/tmp/calvin_#{@number}.txt"
-    File.write(path, "#{mr_body}\n\n---\n\n#{context}")
-    path
-  end
+      async_comment = @github.async_ready_comment(@issue)
+      unless async_comment
+        LOG.warn "##{@issue.number}: no Async-ready comment — skipping"
+        return
+      end
 
-  def pr_body(mr_body)
-    <<~MD
-      Closes ##{@number}
+      @github.post_status(@issue, "⏳ processing...")
 
-      #{mr_body.split('## Calvin notes').first.strip}
+      context = ContextBuilder.build(@issue).merge(async_ready_comment: async_comment)
+      prompt  = PromptBuilder.build(@issue, context)
+      File.write(@prompt_file, prompt)
 
-      ## Calvin notes
-    MD
-  end
+      result = AiderRunner.run(@prompt_file)
 
-  def post_status(text)
-    @status_id = GithubClient.post_comment(@number, text).id
-  end
-
-  def update_status(text)
-    @status_id ? GithubClient.edit_comment(@status_id, text) : post_status(text)
-  end
-
-  def block!(reason)
-    GithubClient.remove_label(@number, 'agent') rescue nil
-    GithubClient.add_label(@number, 'agent:blocked') rescue nil
-    update_status("🚫 #{reason}")
+      if result[:success]
+        commit = GitCommitter.commit(@issue, @branch)
+        pr     = PullRequestOpener.open(@issue, commit, result, @github)
+        Finalizer.finalize(@issue, pr, result, @github)
+      else
+        @github.set_labels(@issue, remove: "agent", add: "agent:blocked")
+        @github.post_status(@issue, "🚫 blocked\n\n```\n#{result[:reason].lines.last(5).join}\n```")
+        `git -C #{REPO_PATH} checkout main`
+      end
+    end
   end
 end

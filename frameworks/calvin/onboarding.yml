@@ -1,0 +1,53 @@
+id: onboarding
+purpose: guide for bootstrapping Calvin on a new target repo
+
+prerequisites:
+  zeroth:
+    - frameworks/calvin/.agent.yml read by Perplexity (Space instructions configured)
+    - target repo declared in Space instructions
+  target_repo:
+    - repo cloned locally in WSL at CALVIN_REPO_PATH
+    - Ruby + bundler installed
+    - gh CLI installed and authenticated
+    - labels created: agent, agent:review, agent:blocked, agent:skip
+  providers:
+    - at least one API key set: CODESTRAL_API_KEY or CEREBRAS_API_KEY
+    - aider installed: pip install aider-chat
+
+steps:
+  1_space_setup:
+    what: configure Perplexity Space instructions
+    value: |
+      1. Read github Malstrom/zeroth/frameworks/calvin/.agent.yml
+      2. Target repo: {owner}/{repo}
+
+  2_calvanize:
+    what: run calvanize scenario
+    how: tell Perplexity "calvanize" in the Space
+    result: .calvin/ created via PR on target repo
+
+  3_merge_bootstrap:
+    what: review and merge PR calvin/bootstrap
+    check:
+      - stack.yml reflects real stack
+      - conventions.yml reflects real patterns
+      - testing.yml reflects real test strategy
+
+  4_start_poll:
+    what: start poll.rb on WSL
+    how: |
+      cd $CALVIN_REPO_PATH
+      bundle exec ruby .calvin/poll.rb
+    env_required: [GITHUB_TOKEN, CALVIN_REPO, CALVIN_REPO_PATH, CODESTRAL_API_KEY]
+
+  5_first_issue:
+    what: run write_issue on a simple issue to validate the full loop
+    recommended_type: refactor or test — avoid complex feature for first run
+
+validation_gate:
+  after_20_issues:
+    - compiles_and_tests: "≥ 90%"
+    - conventions_respected: "≥ 80%"
+    - scope_correct: "≥ 85%"
+    - review_under_10_min: "≥ 70%"
+  on_failure: review .calvin/conventions.yml — likely too vague

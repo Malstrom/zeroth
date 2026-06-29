@@ -4,32 +4,44 @@ on:
   - user wants project status
 preconditions: any
 
-read:
-  - instance:.context.yml
+reads:
+  - instance:.calvin/stack.yml
+  - instance:.calvin/conventions.yml
+  - instance:.calvin/decisions.yml
   - instance:github:issues:open
   - instance:github:prs:open:label:agent:review
 
-steps:
-  - if:
-      condition: .context.yml missing
-      then:
-        - say: |
-            .context.yml non trovato in {{target_repo}}.
-            Crea il file: `cp zeroth:frameworks/calvin/templates/project_context.yml .context.yml`
-            poi compilalo e committa.
-        - stop
+states:
+  check_context:
+    condition: .calvin/ exists
+    on_missing:
+      action: suggest_calvanize
+      message: |
+        `.calvin/` not found in {{target_repo}}.
+        Run scenario `calvanize` to initialize Calvin on this repo.
+      next: stop
+    on_present:
+      next: render_summary
 
-  - say: |
-      ## Calvin — {{project.name}}
-      Stack: {{stack | one_line}}
+  render_summary:
+    action: output
+    format: |
+      ## Calvin — {{stack.project_name}}
+      Stack: {{stack.language}} / {{stack.framework}} {{stack.version}}
 
-      ### PR da revieware
-      {{prs | label:agent:review | format: "#N title" | or: "nessuna"}}
+      ### PRs to review
+      {{prs | label:agent:review | format:"#N title" | fallback:"none"}}
 
-      ### Issue aperte
-      {{issues | open | group_by_label | format: "#N title [labels]" | max:10}}
+      ### Issues in queue
+      {{issues | label:agent | format:"#N title" | fallback:"none"}}
 
-      ### Ultime decisioni
-      {{decisions | last:3 | format: "date: decision"}}
+      ### Open issues
+      {{issues | open | exclude_label:agent | format:"#N title [labels]" | max:10}}
 
-  - propose: su cosa vuoi lavorare? (issue, PR, aggiorna contesto)
+      ### Latest decisions
+      {{decisions | last:3 | format:"date: decision"}}
+    next: propose_action
+
+  propose_action:
+    action: ask
+    message: what do you want to work on?

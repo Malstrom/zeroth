@@ -1,44 +1,44 @@
-require 'octokit'
+# frozen_string_literal: true
 
-module GithubClient
-  REPO = ENV.fetch('CALVIN_REPO')
+module Calvin
+  class GitHubClient
+    def initialize
+      @client = Octokit::Client.new(access_token: ENV.fetch("GITHUB_TOKEN"))
+    end
 
-  def self.client
-    @client ||= Octokit::Client.new(access_token: ENV.fetch('GITHUB_TOKEN'))
-  end
+    def agent_issues
+      @client.list_issues(REPO, labels: "agent", state: "open")
+    end
 
-  def self.fetch_agent_issues
-    client.issues(REPO, state: 'open', labels: 'agent', sort: 'created', direction: 'asc')
-  rescue Octokit::TooManyRequests => e
-    reset = e.response_headers['x-ratelimit-reset'].to_i
-    sleep([reset - Time.now.to_i + 5, 0].max)
-    retry
-  end
+    def async_ready_comment(issue)
+      @client.issue_comments(REPO, issue.number)
+             .find { |c| c.body.include?("## Async-ready") }
+             &.body
+    end
 
-  def self.fetch_model_ready_comment(issue_number)
-    client.issue_comments(REPO, issue_number)
-          .reverse
-          .find { |c| c.body.include?('## Model-ready') }
-  end
+    def post_status(issue, msg)
+      marker   = "<!-- calvin-status -->"
+      body     = "#{marker}\n#{msg}"
+      existing = @client.issue_comments(REPO, issue.number)
+                        .find { |c| c.body.start_with?(marker) }
+      if existing
+        @client.update_comment(REPO, existing.id, body)
+      else
+        @client.add_comment(REPO, issue.number, body)
+      end
+    end
 
-  def self.post_comment(issue_number, body)
-    client.add_comment(REPO, issue_number, body)
-  end
+    def open_pr(issue, branch, provider)
+      @client.create_pull_request(
+        REPO, "main", branch,
+        "[Calvin] #{issue.title}",
+        "Closes ##{issue.number}\nProvider: `#{provider}`\n\n## Calvin notes\n"
+      )
+    end
 
-  def self.edit_comment(comment_id, body)
-    client.update_comment(REPO, comment_id, body)
-  end
-
-  def self.add_label(issue_number, label)
-    client.add_labels_to_an_issue(REPO, issue_number, [label])
-  end
-
-  def self.remove_label(issue_number, label)
-    client.remove_label(REPO, issue_number, label)
-  rescue Octokit::NotFound
-  end
-
-  def self.create_pr(title:, head:, base: 'main', body: '')
-    client.create_pull_request(REPO, base, head, title, body)
+    def set_labels(issue, remove:, add:)
+      @client.remove_label(REPO, issue.number, remove) rescue nil
+      @client.add_label(REPO, issue.number, add)       rescue nil
+    end
   end
 end

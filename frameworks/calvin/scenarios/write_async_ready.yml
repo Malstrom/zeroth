@@ -1,0 +1,89 @@
+id: write_async_ready
+on:
+  - user wants to prepare a task for async execution
+  - user says "prepara per il modello", "async ready", "manda al modello"
+  - user references a task issue number
+preconditions: issue has label task
+
+reads:
+  - instance:.calvin/stack.yml
+  - instance:.calvin/conventions.yml
+  - instance:.calvin/testing.yml
+  - instance:github:issue:{{issue_number}}
+  - instance:github:issue:{{epic_number}} (parent, if present)
+
+states:
+  resolve_issue:
+    condition: issue_number present
+    on_missing:
+      action: ask
+      message: which task issue do you want to prepare?
+      next: stop
+    on_present:
+      next: check_dependencies
+
+  check_dependencies:
+    condition: task.dependencies resolved (merged or none)
+    on_blocked:
+      action: warn
+      message: |
+        Task #{{issue_number}} depends on #{{blocking_issue}} which is not merged yet.
+        Proceed anyway?
+      next: confirm_proceed
+    on_clear:
+      next: draft_comment
+
+  confirm_proceed:
+    action: confirm
+    message: proceed despite unresolved dependency?
+    on_confirm:
+      next: draft_comment
+    on_reject:
+      next: stop
+
+  draft_comment:
+    action: output
+    template: frameworks/calvin/templates/issue_async_ready.md
+    instructions:
+      - Goal: one sentence, concrete, what to do not how
+      - Entry points: specific files/classes/routes from .calvin/conventions.yml + issue scope
+      - Constraints: rules from .calvin/conventions.yml relevant to this task
+      - Tests: from .calvin/testing.yml — what must be tested for this specific task
+      - Do not touch: explicit list of files/classes out of scope
+      - Context: anything from the parent epic or chat that the model needs but is not in the issue body
+    note: comment must be self-contained — model reads only this comment + .calvin/, nothing else
+    next: confirm_comment
+
+  confirm_comment:
+    action: confirm
+    message: is the async-ready comment correct?
+    on_confirm:
+      next: post_comment
+    on_changes:
+      next: draft_comment
+
+  post_comment:
+    action: github_post_comment
+    target: instance:github:issue:{{issue_number}}
+    content: draft_comment
+    next: confirm_label
+
+  confirm_label:
+    action: confirm
+    message: add label `agent` to queue for async execution?
+    on_confirm:
+      next: add_label
+    on_reject:
+      next: stop
+
+  add_label:
+    action: github_add_label
+    target: instance:github:issue:{{issue_number}}
+    label: agent
+    next: done
+
+  done:
+    action: output
+    message: |
+      ✅ Issue #{{issue_number}} queued.
+      calvin.rb will pick it up on the next cycle.

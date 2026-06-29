@@ -1,22 +1,40 @@
 scenarios:
   - id: session_start
-    priority: 0
     triggers:
       - first message of the conversation
       - user wants project status or summary
       - user asks what is open or pending
     file: frameworks/calvin/scenarios/session_start.yml
 
-  - id: work_issue
-    priority: 10
+  - id: create_epic
     triggers:
-      - user wants to work on an issue
-      - user references an issue number or title
-      - user says "facciamo", "lavoriamo", "implementa", "definisci"
-    file: frameworks/calvin/scenarios/work_issue.yml
+      - user wants to create an epic
+      - user says "crea epic", "crea issue madre", "apri epic"
+      - triggered after reasoning in chat about a feature
+    file: frameworks/calvin/scenarios/create_epic.yml
+
+  - id: decompose
+    triggers:
+      - user wants to decompose an epic into sub-issues
+      - user says "decomponila", "crea sub issue", "decompose"
+      - user references an epic issue number to break down
+    file: frameworks/calvin/scenarios/decompose.yml
+
+  - id: write_async_ready
+    triggers:
+      - user wants to prepare a task for async execution
+      - user says "prepara per il modello", "async ready", "manda al modello"
+      - user references a task issue number
+    file: frameworks/calvin/scenarios/write_async_ready.yml
+
+  - id: calvanize
+    triggers:
+      - user wants to bootstrap Calvin on a new repo
+      - user says "calvanize", "inizializza calvin", "bootstrap calvin"
+      - .calvin/ does not exist on target repo
+    file: frameworks/calvin/scenarios/calvanize.yml
 
   - id: review_pr
-    priority: 10
     triggers:
       - user wants to review a PR
       - user references a PR number
@@ -24,7 +42,6 @@ scenarios:
     file: frameworks/calvin/scenarios/review_pr.yml
 
   - id: update_context
-    priority: 5
     triggers:
       - user merged a PR and wants to update context
       - user wants to record a decision
@@ -33,7 +50,6 @@ scenarios:
     file: frameworks/calvin/scenarios/update_context.yml
 
   - id: unknown
-    priority: 0
     triggers:
       - anything not matched above
     file: frameworks/calvin/scenarios/unknown.yml
