@@ -1,6 +1,5 @@
 scenarios:
   - id: session_start
-    priority: 0
     triggers:
       - first message of the conversation
       - user wants project status or summary
@@ -8,7 +7,6 @@ scenarios:
     file: frameworks/calvin/scenarios/session_start.yml
 
   - id: write_issue
-    priority: 10
     triggers:
       - user wants to work on an issue
       - user references an issue number or title
@@ -17,7 +15,6 @@ scenarios:
     file: frameworks/calvin/scenarios/write_issue.yml
 
   - id: calvanize
-    priority: 10
     triggers:
       - user wants to bootstrap Calvin on a new repo
       - user says "calvanize", "inizializza calvin", "bootstrap calvin"
@@ -25,7 +22,6 @@ scenarios:
     file: frameworks/calvin/scenarios/calvanize.yml
 
   - id: review_pr
-    priority: 10
     triggers:
       - user wants to review a PR
       - user references a PR number
@@ -33,7 +29,6 @@ scenarios:
     file: frameworks/calvin/scenarios/review_pr.yml
 
   - id: update_context
-    priority: 5
     triggers:
       - user merged a PR and wants to update context
       - user wants to record a decision
@@ -42,7 +37,6 @@ scenarios:
     file: frameworks/calvin/scenarios/update_context.yml
 
   - id: unknown
-    priority: 0
     triggers:
       - anything not matched above
     file: frameworks/calvin/scenarios/unknown.yml

@@ -15,7 +15,7 @@ states:
     condition: issue_number present
     on_missing:
       action: ask
-      message: qual è il numero o titolo dell'issue?
+      message: what is the issue number or title?
       next: stop
     on_present:
       next: draft_definition
@@ -24,19 +24,19 @@ states:
     action: output
     format: |
       ## #{{issue_number}} — {{issue.title}}
-      **Goal:** [una riga — cosa deve fare, non come]
-      **Entry points:** [file/classi/route coinvolti]
-      **Constraints:** [convenzioni da .calvin/conventions.yml, file da non toccare, dipendenze]
-      **Tests:** [cosa testare, edge cases da .calvin/testing.yml]
-      **Do not touch:** [file/classi fuori scope]
+      **Goal:** [one line — what to do, not how]
+      **Entry points:** [files/classes/routes involved]
+      **Constraints:** [conventions from .calvin/conventions.yml, files not to touch, dependencies]
+      **Tests:** [what to test, edge cases from .calvin/testing.yml]
+      **Do not touch:** [files/classes out of scope]
       **Depends on:** [#N | none]
-      **Context:** [info non nel body che il modello deve avere]
+      **Context:** [info not in the body that the model needs]
     note: if any field is unclear, ask before proceeding — do not assume
     next: confirm_definition
 
   confirm_definition:
     action: confirm
-    message: definizione corretta? modifica se necessario
+    message: is the definition correct? edit if needed
     on_confirm:
       next: draft_comment
     on_changes:
@@ -44,13 +44,13 @@ states:
 
   draft_comment:
     action: output
-    template: frameworks/calvin/templates/issue_qwen_ready.md
+    template: frameworks/calvin/templates/issue_async_ready.md
     note: comment must be self-contained — model reads only comment + .calvin/, nothing else
     next: confirm_post
 
   confirm_post:
     action: confirm
-    message: posto il commento sulla issue?
+    message: post the comment on the issue?
     on_confirm:
       next: post_comment
     on_reject:
@@ -64,7 +64,7 @@ states:
 
   confirm_label:
     action: confirm
-    message: aggiungo label `agent` per esecuzione async?
+    message: add label `agent` for async execution?
     on_confirm:
       next: add_label
     on_reject:
@@ -79,5 +79,5 @@ states:
   done:
     action: output
     message: |
-      ✅ Issue #{{issue_number}} in coda.
-      poll.rb eseguirà al prossimo ciclo.
+      ✅ Issue #{{issue_number}} queued.
+      calvin.rb will pick it up on the next cycle.

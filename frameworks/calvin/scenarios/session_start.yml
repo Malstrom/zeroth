@@ -17,8 +17,8 @@ states:
     on_missing:
       action: suggest_calvanize
       message: |
-        `.calvin/` non trovato in {{target_repo}}.
-        Esegui scenario `calvanize` per inizializzare Calvin su questo repo.
+        `.calvin/` not found in {{target_repo}}.
+        Run scenario `calvanize` to initialize Calvin on this repo.
       next: stop
     on_present:
       next: render_summary
@@ -29,19 +29,19 @@ states:
       ## Calvin — {{stack.project_name}}
       Stack: {{stack.language}} / {{stack.framework}} {{stack.version}}
 
-      ### PR da revieware
-      {{prs | label:agent:review | format:"#N title" | fallback:"nessuna"}}
+      ### PRs to review
+      {{prs | label:agent:review | format:"#N title" | fallback:"none"}}
 
-      ### Issue in coda
-      {{issues | label:agent | format:"#N title" | fallback:"nessuna"}}
+      ### Issues in queue
+      {{issues | label:agent | format:"#N title" | fallback:"none"}}
 
-      ### Issue aperte
+      ### Open issues
       {{issues | open | exclude_label:agent | format:"#N title [labels]" | max:10}}
 
-      ### Ultime decisioni
+      ### Latest decisions
       {{decisions | last:3 | format:"date: decision"}}
     next: propose_action
 
   propose_action:
     action: ask
-    message: su cosa vuoi lavorare?
+    message: what do you want to work on?

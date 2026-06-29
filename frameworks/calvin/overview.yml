@@ -1,21 +1,21 @@
 framework: calvin
-purpose: AI-assisted development. Perplexity defines issues, produces Qwen-ready comments, queues for async execution via poll.rb (label: agent).
+purpose: Dev assistant. Helps develop issues synchronously in chat or asynchronously via LLM (calvin.rb loop + label agent).
 
 actors:
   igor:
     role: creates issues, reviews PRs, confirms all writes
   perplexity:
-    role: reads .calvin/ + issues, defines tasks, produces Qwen-ready comments, marks async
+    role: reads .calvin/ + issues, defines tasks, produces async-ready comments, marks async
     reads: [frameworks/calvin/, .calvin/, github:issues, github:prs]
   model:
-    role: async executor via poll.rb — reads .calvin/ + Qwen-ready comment, writes code, opens PR
-    activation: label `agent` on issue + poll.rb running
+    role: async executor via calvin.rb — reads .calvin/ + async-ready comment, writes code, opens PR
+    activation: label `agent` on issue + calvin.rb loop running
 
 flow:
   - Igor creates issue informally
-  - Perplexity runs write_issue: reads issue + .calvin/, produces Qwen-ready comment
+  - Perplexity runs write_issue: reads issue + .calvin/, produces async-ready comment
   - Igor confirms → Perplexity posts comment + adds label `agent`
-  - poll.rb picks up, model executes, opens PR with label `agent:review`
+  - calvin.rb picks up, model executes, opens PR with label `agent:review`
   - Igor reviews + merges in ~10 min
   - Perplexity proposes .calvin/ update from Calvin notes
 
@@ -31,4 +31,5 @@ context_files:
   - .calvin/conventions.yml
   - .calvin/testing.yml
   - .calvin/decisions.yml
+  - .calvin/schema.yml        # auto-generated, optional
 template: frameworks/calvin/templates/calvin_context/

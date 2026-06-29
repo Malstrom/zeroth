@@ -16,7 +16,7 @@ states:
     on_missing:
       action: fetch_and_ask
       fetch: instance:github:prs:open:label:agent:review
-      message: quale PR vuoi revieware?
+      message: which PR do you want to review?
       next: stop
     on_present:
       next: run_checklist
@@ -26,14 +26,14 @@ states:
     format: |
       ## Review PR #{{pr_number}}
 
-      1. **Goal** — il PR risolve esattamente l'issue? né di più né di meno?
-      2. **Conventions** — rispetta .calvin/conventions.yml? elenca violazioni con file:riga
-      3. **Tests** — i test richiesti in .calvin/testing.yml sono presenti?
-      4. **Scope** — file modificati fuori scope? lista con motivazione
-      5. **Quality** — problemi di design o duplicazione rilevanti
+      1. **Goal** — does the PR solve exactly the issue? neither more nor less?
+      2. **Conventions** — respects .calvin/conventions.yml? list violations with file:line
+      3. **Tests** — are the tests required by .calvin/testing.yml present?
+      4. **Scope** — files modified out of scope? list with reason
+      5. **Quality** — relevant design or duplication issues
 
-      Per ogni punto: ✅ pass | ⚠️ warning | ❌ block
-      Raccomandazione: APPROVE | APPROVE+commento | REQUEST_CHANGES
+      Per item: ✅ pass | ⚠️ warning | ❌ block
+      Recommendation: APPROVE | APPROVE+comment | REQUEST_CHANGES
     next: extract_calvin_notes
 
   extract_calvin_notes:
@@ -43,18 +43,23 @@ states:
     on_found:
       action: output
       message: |
-        **Calvin notes trovate:**
+        **Calvin notes found:**
         {{calvin_notes}}
 
-        Proposta aggiornamento .calvin/:
+        Reading current .calvin/ state before proposing diff...
         {{proposed_diff}}
+      reads_before_diff:
+        - instance:.calvin/conventions.yml
+        - instance:.calvin/decisions.yml
+        - instance:.calvin/testing.yml
+      note: proposed_diff must be incremental — never overwrite existing entries
       next: confirm_update
     on_missing:
       next: stop
 
   confirm_update:
     action: confirm
-    message: aggiorno .calvin/ con queste note?
+    message: update .calvin/ with these notes?
     on_confirm:
       next: call_update_context
     on_reject:

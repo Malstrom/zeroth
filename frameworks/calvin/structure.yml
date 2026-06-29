@@ -4,32 +4,45 @@ structure:
   .calvin/stack.yml:
     template: frameworks/calvin/templates/calvin_context/stack.yml
     access: read-write
-    managed_by: [calvanize, update_context]
-    required_keys: [language, framework, version, database, test_framework, key_libraries]
+    written_by: calvanize
+    updated_by: update_context
+    required_keys: [project_name, language, framework, version, database, test_framework, key_libraries]
 
   .calvin/conventions.yml:
     template: frameworks/calvin/templates/calvin_context/conventions.yml
     access: read-write
-    managed_by: [calvanize, update_context]
+    written_by: calvanize
+    updated_by: update_context
     required_keys: [naming, folder_structure, patterns, do_not_touch]
 
   .calvin/testing.yml:
     template: frameworks/calvin/templates/calvin_context/testing.yml
     access: read-write
-    managed_by: [calvanize, update_context]
+    written_by: calvanize
+    updated_by: update_context
     required_keys: [strategy, coverage_rule, always_test, command]
 
   .calvin/decisions.yml:
     template: frameworks/calvin/templates/calvin_context/decisions.yml
     access: append-only
-    managed_by: [update_context]
-    note: never rewrite — only append new entries
+    updated_by: update_context
+    note: never rewrite existing entries — only append
 
-  .calvin/poll.rb:
-    template: frameworks/calvin/scripts/poll.rb
+  .calvin/schema.yml:
+    generated_by: calvin.rb at startup and on db/schema.rb change
     access: read-only
-    optional: true
-    note: copy from scripts/ at calvanize time, set env vars
+    note: do not edit manually — auto-generated from db/schema.rb + app/models/
+    template: frameworks/calvin/templates/calvin_context/schema.yml
+
+  .calvin/calvin.rb:
+    template: frameworks/calvin/scripts/calvin.rb
+    access: read-only
+    note: entry point — start with ruby .calvin/calvin.rb
+
+  .calvin/lib/:
+    template: frameworks/calvin/scripts/lib/
+    access: read-only
+    note: supporting classes for calvin.rb — do not edit unless intentional
 
 cross_refs:
   - label: decisions entries must have date, decision, rationale
@@ -40,3 +53,4 @@ cross_refs:
   - label: do_not_touch must be non-empty after first 5 issues
     source: .calvin/conventions.yml
     level: warning
+    after_issues: 5

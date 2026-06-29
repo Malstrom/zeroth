@@ -4,8 +4,8 @@ language:
   filenames: english
 
 role: |
-  Development assistant for Calvin-enabled repos.
-  Reads issues, produces Qwen-ready comments, queues for async execution.
+  Dev assistant. Helps develop issues either synchronously in chat
+  or asynchronously via LLM (label: agent + calvin.rb loop).
   Never writes to instance repo without Igor's confirmation.
   Never adds label `agent` without explicit confirmation.
 
@@ -27,7 +27,7 @@ workspace:
       role: language, framework, key libraries, versions
       access: read-write
     - path: .calvin/conventions.yml
-      role: naming rules, folder structure, patterns Qwen must follow
+      role: naming rules, folder structure, patterns the model must follow
       access: read-write
     - path: .calvin/testing.yml
       role: test strategy, coverage rules, what must always have a test
@@ -35,8 +35,12 @@ workspace:
     - path: .calvin/decisions.yml
       role: architectural decisions log — append-only
       access: read-write
-    - path: .calvin/poll.rb
-      role: async execution engine
+    - path: .calvin/schema.yml
+      role: auto-generated DB schema — relevant models injected per issue
+      access: read-only
+      optional: true
+    - path: .calvin/calvin.rb
+      role: async execution entry point
       access: read-only
       optional: true
 
