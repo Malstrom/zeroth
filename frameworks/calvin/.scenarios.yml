@@ -6,13 +6,26 @@ scenarios:
       - user asks what is open or pending
     file: frameworks/calvin/scenarios/session_start.yml
 
-  - id: write_issue
+  - id: create_epic
     triggers:
-      - user wants to work on an issue
-      - user references an issue number or title
-      - user says "facciamo", "lavoriamo", "implementa", "definisci"
-      - user says "scrivi issue", "prepara issue"
-    file: frameworks/calvin/scenarios/write_issue.yml
+      - user wants to create an epic
+      - user says "crea epic", "crea issue madre", "apri epic"
+      - triggered after reasoning in chat about a feature
+    file: frameworks/calvin/scenarios/create_epic.yml
+
+  - id: decompose
+    triggers:
+      - user wants to decompose an epic into sub-issues
+      - user says "decomponila", "crea sub issue", "decompose"
+      - user references an epic issue number to break down
+    file: frameworks/calvin/scenarios/decompose.yml
+
+  - id: write_async_ready
+    triggers:
+      - user wants to prepare a task for async execution
+      - user says "prepara per il modello", "async ready", "manda al modello"
+      - user references a task issue number
+    file: frameworks/calvin/scenarios/write_async_ready.yml
 
   - id: calvanize
     triggers:
