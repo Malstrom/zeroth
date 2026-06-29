@@ -1,56 +1,108 @@
-context_path: .calvin/
+root: frameworks/calvin/
 
-structure:
-  .calvin/stack.yml:
-    template: frameworks/calvin/templates/calvin_context/stack.yml
-    access: read-write
-    written_by: calvanize
-    updated_by: update_context
-    required_keys: [project_name, language, framework, version, database, test_framework, key_libraries]
+files:
+  .agent.yml:
+    role: operational manifest — read by Perplexity at session start
+    written_by: Igor + Perplexity
+    updated_by: manual when framework evolves
 
-  .calvin/conventions.yml:
-    template: frameworks/calvin/templates/calvin_context/conventions.yml
-    access: read-write
-    written_by: calvanize
-    updated_by: update_context
-    required_keys: [naming, folder_structure, patterns, do_not_touch]
+  .scenarios.yml:
+    role: scenario index — maps triggers to scenario files
+    written_by: Perplexity
+    updated_by: when scenarios are added or renamed
 
-  .calvin/testing.yml:
-    template: frameworks/calvin/templates/calvin_context/testing.yml
-    access: read-write
-    written_by: calvanize
-    updated_by: update_context
-    required_keys: [strategy, coverage_rule, always_test, command]
+  overview.yml:
+    role: decisions, label lifecycle, actor definitions
+    written_by: Perplexity
+    updated_by: when decisions change
 
-  .calvin/decisions.yml:
-    template: frameworks/calvin/templates/calvin_context/decisions.yml
-    access: append-only
-    updated_by: update_context
-    note: never rewrite existing entries — only append
+  structure.yml:
+    role: this file — map of all framework files with roles
+    written_by: Perplexity
+    updated_by: when files are added or removed
 
-  .calvin/schema.yml:
-    generated_by: calvin.rb at startup and on db/schema.rb change
-    access: read-only
-    note: do not edit manually — auto-generated from db/schema.rb + app/models/
-    template: frameworks/calvin/templates/calvin_context/schema.yml
+  README.md:
+    role: human entry point — quick start and file map
+    written_by: Perplexity
+    updated_by: when structure or flow changes
 
-  .calvin/calvin.rb:
-    template: frameworks/calvin/scripts/calvin.rb
-    access: read-only
-    note: entry point — start with ruby .calvin/calvin.rb
+scenarios/:
+  create_epic.yml:
+    role: create parent issue from chat context, link docs/ paragraphs
+    triggers: ["crea epic", "crea issue madre", "apri epic"]
 
-  .calvin/lib/:
-    template: frameworks/calvin/scripts/lib/
-    access: read-only
-    note: supporting classes for calvin.rb — do not edit unless intentional
+  decompose.yml:
+    role: read epic + docs/, propose and create atomic sub-issues
+    triggers: ["decomponila", "crea sub issue", "decompose"]
 
-cross_refs:
-  - label: decisions entries must have date, decision, rationale
-    source: .calvin/decisions.yml
-    target_keys: [date, decision, rationale]
-    level: warning
+  write_async_ready.yml:
+    role: produce and post async-ready comment on a task issue, add label:agent
+    triggers: ["prepara per il modello", "async ready", "manda al modello"]
 
-  - label: do_not_touch must be non-empty after first 5 issues
-    source: .calvin/conventions.yml
-    level: warning
-    after_issues: 5
+  calvanize.yml:
+    role: bootstrap .calvin/ on a new target repo
+    triggers: ["calvanize", "inizializza calvin", "bootstrap calvin"]
+
+  review_pr.yml:
+    role: review a PR, read Calvin notes, propose .calvin/ updates
+    triggers: ["review", "guarda la PR", "controlla"]
+
+  update_context.yml:
+    role: apply confirmed .calvin/ updates after PR merge
+    triggers: ["aggiorna contesto", "salva decisione", called from review_pr]
+
+  session_start.yml:
+    role: orient at session start, show open issues and pending work
+    triggers: [first message, status request]
+
+templates/:
+  issue_epic.md:
+    role: body template for parent issues (epic)
+    fields: [Goal, Why, Stack, Docs, Scope, Sub-issues, Notes]
+
+  issue_task.md:
+    role: body template for atomic sub-issues (task)
+    fields: [Goal, Parent, Stack, Acceptance criteria, Dependencies, Notes]
+
+  issue_async_ready.md:
+    role: comment template for model execution — self-contained context
+    fields: [Goal, Entry points, Constraints, Tests, Do not touch, Depends on, Context]
+    note: model reads only this comment + .calvin/ — nothing else
+
+scripts/:
+  calvin.rb:
+    role: entry point — polling loop + provider list + logger
+    run: ruby .calvin/calvin.rb
+    env: [GITHUB_TOKEN, CALVIN_REPO, CALVIN_REPO_PATH, CALVIN_POLL_INTERVAL]
+
+  lib/issue_executor.rb:
+    role: orchestrates the full pipeline per issue
+
+  lib/github_client.rb:
+    role: Octokit wrapper — fetch issues, post comments, manage labels, open PRs
+
+  lib/context_builder.rb:
+    role: loads .calvin/ files + relevant schema entries
+
+  lib/prompt_builder.rb:
+    role: assembles final prompt from context + issue
+
+  lib/aider_runner.rb:
+    role: runs Aider with provider fallback stack, handles 429 + git reset
+
+  lib/git_committer.rb:
+    role: checkout branch, commit, push
+
+  lib/pull_request_opener.rb:
+    role: opens PR via GitHub API
+
+  lib/finalizer.rb:
+    role: updates labels, posts status comment, cleanup
+
+instance_layout:
+  note: per-repo files created by calvanize scenario
+  .calvin/stack.yml: tech stack + key libraries
+  .calvin/conventions.yml: naming, patterns, do-not-touch rules
+  .calvin/testing.yml: test strategy and coverage rules
+  .calvin/decisions.yml: append-only architecture decisions
+  .calvin/schema.yml: logical model schema (relevant models for prompt injection)

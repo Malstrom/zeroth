@@ -1,43 +1,60 @@
 # Calvin
 
-AI-assisted development framework. Perplexity defines issues and executes them (sync) or queues for async execution via poll.rb + Mistral (label: `agent`).
-
-## Setup
-
-**1. Space instructions** (create one Space per project):
-```
-1. Read github malstrom/zeroth/frameworks/calvin/.agent.yml before answering anything.
-2. Do not answer until you have read it.
-3. Target repo: {owner}/{repo}
-
-TOOL APPROVAL POLICY:
-- create_branch, push_files, create_pr, create_issue, update_issue, add_label → _requires_user_approval: FALSE
-- delete_file, destructive_ops → _requires_user_approval: TRUE
-```
-
-**2. Add `.context.yml` to target repo:**
-```bash
-cp zeroth/frameworks/calvin/templates/project_context.yml .context.yml
-# fill in stack, conventions, testing
-git add .context.yml && git commit -m "chore: add Calvin context"
-```
+Autonomous development loop for any repo. Igor creates issues. Perplexity writes the async-ready comment. The model executes, opens a PR. Igor reviews and merges.
 
 ## Flow
 
 ```
-Igor: "lavoriamo sulla issue #N"
-→ Perplexity legge issue + .context.yml
-→ definisce la task in forma strutturata
-→ produce commento model-ready (conferma prima del post)
-→ A) esegue ora — scrive codice, apre PR
-   B) label agent — poll.rb eseguirà con Mistral
+Igor + Perplexity reason in chat
+  → create_epic    : create parent issue (label: epic)
+  → decompose      : break into sub-issues (label: task)
+  → write_async_ready : post model-ready comment + label: agent
+  → calvin.rb      : picks up issue, runs Aider, opens PR
+  → review_pr      : Igor reviews, Perplexity proposes .calvin/ updates
+  → update_context : .calvin/ updated, context never lost
 ```
 
-## Async setup (Phase 2)
+## Actors
 
-```bash
-cp -r zeroth/frameworks/calvin/scripts .calvin
-bundle add octokit && pip install aider-chat
-export GITHUB_TOKEN=... CALVIN_REPO=owner/repo CALVIN_REPO_PATH=/path CODESTRAL_API_KEY=...
-ruby .calvin/poll.rb
+| Actor | Role |
+|---|---|
+| Igor | creates issues, reviews PRs |
+| Perplexity | writes async-ready comments, manages labels, updates .calvin/ |
+| calvin.rb | polls `agent` label, runs Aider, opens PR |
+| Model (Aider) | executes task, opens PR, writes Calvin notes |
+
+## Bootstrap a new repo
+
+Tell Perplexity: `calvanize` — creates `.calvin/` in the target repo.
+
+## Files
+
 ```
+frameworks/calvin/
+  .agent.yml          ← operational manifest (read first)
+  .scenarios.yml      ← scenario index
+  overview.yml        ← decisions, label lifecycle, actors
+  structure.yml       ← file map with roles
+  scenarios/          ← 6 scenario files
+  templates/          ← issue_epic, issue_task, issue_async_ready
+  scripts/
+    calvin.rb         ← entry point (ruby calvin.rb)
+    lib/              ← 8 classes
+```
+
+## Instance layout (per repo)
+
+```
+.calvin/
+  stack.yml           ← tech stack + key libs
+  conventions.yml     ← naming, patterns, do-not-touch rules
+  testing.yml         ← test strategy, coverage rules
+  decisions.yml       ← append-only architecture decisions
+  schema.yml          ← logical model schema
+```
+
+## Requirements
+
+- Ruby, `octokit` gem, `aider`, `gh` CLI
+- `GITHUB_TOKEN`, `CALVIN_REPO`, `CALVIN_REPO_PATH` env vars
+- Labels `agent`, `agent:review`, `agent:blocked` created in target repo
