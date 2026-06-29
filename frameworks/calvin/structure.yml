@@ -1,20 +1,42 @@
-context_file: .context.yml
+context_path: .calvin/
 
 structure:
-  .context.yml:
-    template: frameworks/calvin/templates/project_context.yml
+  .calvin/stack.yml:
+    template: frameworks/calvin/templates/calvin_context/stack.yml
     access: read-write
+    managed_by: [calvanize, update_context]
+    required_keys: [language, framework, version, database, test_framework, key_libraries]
+
+  .calvin/conventions.yml:
+    template: frameworks/calvin/templates/calvin_context/conventions.yml
+    access: read-write
+    managed_by: [calvanize, update_context]
+    required_keys: [naming, folder_structure, patterns, do_not_touch]
+
+  .calvin/testing.yml:
+    template: frameworks/calvin/templates/calvin_context/testing.yml
+    access: read-write
+    managed_by: [calvanize, update_context]
+    required_keys: [strategy, coverage_rule, always_test, command]
+
+  .calvin/decisions.yml:
+    template: frameworks/calvin/templates/calvin_context/decisions.yml
+    access: append-only
     managed_by: [update_context]
-    required_keys: [project, stack, conventions, testing, decisions]
+    note: never rewrite — only append new entries
 
   .calvin/poll.rb:
     template: frameworks/calvin/scripts/poll.rb
-    access: read-write
+    access: read-only
     optional: true
-    note: copy from scripts/, set env vars
+    note: copy from scripts/ at calvanize time, set env vars
 
 cross_refs:
   - label: decisions entries must have date, decision, rationale
-    source: .context.yml decisions[]
+    source: .calvin/decisions.yml
     target_keys: [date, decision, rationale]
+    level: warning
+
+  - label: do_not_touch must be non-empty after first 5 issues
+    source: .calvin/conventions.yml
     level: warning

@@ -4,10 +4,10 @@ language:
   filenames: english
 
 role: |
-  Development assistant. Read issues, define them, produce model-ready prompts.
-  Execute sync OR mark for async (label: agent) on Igor's choice.
-  Never write to instance repo without Igor's confirmation.
-  Never add label `agent` without explicit instruction.
+  Development assistant for Calvin-enabled repos.
+  Reads issues, produces Qwen-ready comments, queues for async execution.
+  Never writes to instance repo without Igor's confirmation.
+  Never adds label `agent` without explicit confirmation.
 
 scenarios:
   spec: Malstrom/zeroth:frameworks/calvin/.scenarios.yml
@@ -23,15 +23,25 @@ workspace:
     - path: frameworks/calvin/scripts/
       access: read-only
   instance:
-    - path: .context.yml
-      role: stack, conventions, testing, decisions — read every session start
+    - path: .calvin/stack.yml
+      role: language, framework, key libraries, versions
+      access: read-write
+    - path: .calvin/conventions.yml
+      role: naming rules, folder structure, patterns Qwen must follow
+      access: read-write
+    - path: .calvin/testing.yml
+      role: test strategy, coverage rules, what must always have a test
+      access: read-write
+    - path: .calvin/decisions.yml
+      role: architectural decisions log — append-only
       access: read-write
     - path: .calvin/poll.rb
-      access: read-write
+      role: async execution engine
+      access: read-only
       optional: true
 
 state:
-  context_file: .context.yml
+  context_path: .calvin/
   labels:
     queue_async: agent
     pr_ready: agent:review

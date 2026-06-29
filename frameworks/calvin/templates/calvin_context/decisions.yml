@@ -1,0 +1,7 @@
+decisions: []
+# append-only — never rewrite existing entries
+# format:
+# - date: "YYYY-MM-DD"
+#   decision: ""
+#   rationale: ""
+#   source: "PR #N | conversation"

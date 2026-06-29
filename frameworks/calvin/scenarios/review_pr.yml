@@ -4,37 +4,65 @@ on:
   - user references a PR number
 preconditions: any
 
-read:
-  - instance:.context.yml
+reads:
+  - instance:.calvin/conventions.yml
+  - instance:.calvin/testing.yml
   - instance:github:pr:{{pr_number}}:diff
-  - instance:github:pr:{{pr_number}}:comments
+  - instance:github:pr:{{pr_number}}:body
 
-steps:
-  - if:
-      condition: pr_number missing
-      then:
-        - fetch: instance:github:prs:open:label:agent:review
-        - say: lista PR aperte con agent:review. quale vuoi revieware?
-        - stop
+states:
+  resolve_pr:
+    condition: pr_number present
+    on_missing:
+      action: fetch_and_ask
+      fetch: instance:github:prs:open:label:agent:review
+      message: quale PR vuoi revieware?
+      next: stop
+    on_present:
+      next: run_checklist
 
-  - say: |
-      Review PR #{{pr_number}}:
+  run_checklist:
+    action: output
+    format: |
+      ## Review PR #{{pr_number}}
 
-      1. **Goal check** — il PR risolve esattamente l'issue? né di più né di meno?
-      2. **Conventions** — rispetta .context.yml conventions? elenca violazioni con file:riga
-      3. **Tests** — i test richiesti in .context.yml testing sono presenti?
+      1. **Goal** — il PR risolve esattamente l'issue? né di più né di meno?
+      2. **Conventions** — rispetta .calvin/conventions.yml? elenca violazioni con file:riga
+      3. **Tests** — i test richiesti in .calvin/testing.yml sono presenti?
       4. **Scope** — file modificati fuori scope? lista con motivazione
-      5. **Code quality** — problemi rilevanti di design o duplicazione
+      5. **Quality** — problemi di design o duplicazione rilevanti
 
-      Per ogni sezione: ✅ pass | ⚠️ warning | ❌ block
-      Raccomandazione finale: APPROVE | APPROVE+commento | REQUEST_CHANGES
+      Per ogni punto: ✅ pass | ⚠️ warning | ❌ block
+      Raccomandazione: APPROVE | APPROVE+commento | REQUEST_CHANGES
+    next: extract_calvin_notes
 
-  - say: |
-      Estrai sezione `## Calvin notes` dal body del PR.
-      Mostra le note. Proponi diff a .context.yml basato sulle note.
+  extract_calvin_notes:
+    action: extract
+    source: github:pr:{{pr_number}}:body
+    section: "## Calvin notes"
+    on_found:
+      action: output
+      message: |
+        **Calvin notes trovate:**
+        {{calvin_notes}}
 
-  - confirm:
-      ask: aggiorno .context.yml con queste note?
-      on_confirm:
-        - call: update_context
-            params: {source: pr_calvin_notes, pr_number: "{{pr_number}}"}
+        Proposta aggiornamento .calvin/:
+        {{proposed_diff}}
+      next: confirm_update
+    on_missing:
+      next: stop
+
+  confirm_update:
+    action: confirm
+    message: aggiorno .calvin/ con queste note?
+    on_confirm:
+      next: call_update_context
+    on_reject:
+      next: stop
+
+  call_update_context:
+    action: call_scenario
+    scenario: update_context
+    params:
+      source: pr_calvin_notes
+      pr_number: "{{pr_number}}"

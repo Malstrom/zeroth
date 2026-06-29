@@ -1,28 +1,37 @@
 checks:
-  - id: agent_yml_exists
-    path: frameworks/calvin/.agent.yml
-    type: file_exists
+  - id: context_path_exists
+    description: .calvin/ directory must exist on target repo
+    rule: directory_exists .calvin/
+    applies_to: instance
     level: error
 
-  - id: scenarios_yml_exists
-    path: frameworks/calvin/.scenarios.yml
-    type: file_exists
+  - id: required_context_files
+    description: all .calvin/ context files must be present
+    rule: files_exist [.calvin/stack.yml, .calvin/conventions.yml, .calvin/testing.yml, .calvin/decisions.yml]
+    applies_to: instance
     level: error
 
-  - id: all_scenario_files_exist
-    path: frameworks/calvin/.scenarios.yml
-    type: scenario_files_exist
+  - id: decisions_append_only
+    description: decisions.yml must never have entries removed
+    rule: decisions_count >= previous_decisions_count
+    applies_to: instance:.calvin/decisions.yml
     level: error
 
-  - id: templates_exist
-    paths:
-      - frameworks/calvin/templates/project_context.yml
-      - frameworks/calvin/templates/issue_model_ready.md
-    type: files_exist
+  - id: do_not_touch_non_empty
+    description: conventions.yml do_not_touch must be non-empty after first 5 issues
+    rule: do_not_touch.length > 0
+    applies_to: instance:.calvin/conventions.yml
+    level: warning
+    after_issues: 5
+
+  - id: no_imperative_steps
+    description: scenario files must not contain top-level steps key
+    rule: file.keys does not contain steps
+    applies_to: frameworks/calvin/scenarios/*.yml
     level: error
 
-  - id: overview_keys
-    path: frameworks/calvin/overview.yml
-    type: yaml_keys_present
-    keys: [framework, purpose, actors, flow, labels, context_file]
-    level: error
+  - id: no_decorative_separators
+    description: .agent.yml must not contain separator comment lines
+    rule: file does not match /^# -{10,}/m
+    applies_to: frameworks/calvin/.agent.yml
+    level: warning
