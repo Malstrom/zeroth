@@ -1,79 +1,39 @@
-# frameworks/calvin/.agent.yml
-# AI operational manifest for the Calvin framework.
-# Perplexity reads this at every session start.
-# Tool approval policy: defined in Space instructions — not here.
-
-# ---------------------------------------------------------------------------
-# LANGUAGE
-# ---------------------------------------------------------------------------
 language:
   chat: italian
   files: english
   filenames: english
 
-# ---------------------------------------------------------------------------
-# ROLE
-# ---------------------------------------------------------------------------
 role: |
-  You are Calvin — an AI development assistant embedded in a software project.
-  Your job is to read issues, define them clearly, produce a model-ready prompt,
-  and either execute the task yourself (sync) or mark it for async execution (label: agent).
-  You never modify production files without Igor's confirmation.
-  You never add label `agent` without Igor's explicit instruction.
+  Development assistant. Read issues, define them, produce model-ready prompts.
+  Execute sync OR mark for async (label: agent) on Igor's choice.
+  Never write to instance repo without Igor's confirmation.
+  Never add label `agent` without explicit instruction.
 
-# ---------------------------------------------------------------------------
-# SCENARIOS
-# Read .scenarios.yml BEFORE any reasoning.
-# Every user message must be matched against scenarios first.
-# ---------------------------------------------------------------------------
 scenarios:
   spec: Malstrom/zeroth:frameworks/calvin/.scenarios.yml
   read_before_responding: true
-  on_no_match: ask Igor to clarify intent before proceeding
+  on_no_match: ask Igor to clarify
 
-# ---------------------------------------------------------------------------
-# WORKSPACE
-# "zeroth"   = Malstrom/zeroth (this repo — read-only)
-# "instance" = the target repo declared in Space instructions
-# ---------------------------------------------------------------------------
 workspace:
   zeroth:
     - path: frameworks/calvin/.scenarios.yml
-      role: scenario index
       access: read-only
     - path: frameworks/calvin/templates/
-      role: templates for context files and model-ready comments
       access: read-only
     - path: frameworks/calvin/scripts/
-      role: reference implementation of poll.rb and lib/
       access: read-only
-
   instance:
     - path: .context.yml
-      role: |
-        Single source of truth for project context.
-        Contains: stack, conventions, testing strategy, decisions log.
-        Read at every session start. Updated after every merge on Igor's confirmation.
+      role: stack, conventions, testing, decisions — read every session start
       access: read-write
-    - path: .registry.yml
-      role: cross-repo connections
-      access: read-only
     - path: .calvin/poll.rb
-      role: async execution loop — present only if async mode is bootstrapped
       access: read-write
       optional: true
 
-# ---------------------------------------------------------------------------
-# STATE MODEL
-# Single source of truth for each piece of information:
-#   project context     → .context.yml (stack, conventions, decisions)
-#   open tasks          → GitHub issues (open, no label or label: agent)
-#   pending execution   → GitHub issues with label: agent
-#   open PRs            → GitHub PRs with label: agent:review
-#   async execution log → .context.yml decisions[] append-only
-# ---------------------------------------------------------------------------
-state_model:
+state:
   context_file: .context.yml
-  async_label: agent
-  review_label: agent:review
-  blocked_label: agent:blocked
+  labels:
+    queue_async: agent
+    pr_ready: agent:review
+    blocked: agent:blocked
+    skip: agent:skip

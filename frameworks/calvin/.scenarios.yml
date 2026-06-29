@@ -1,57 +1,39 @@
-# frameworks/calvin/.scenarios.yml
-# Scenario index for Calvin framework.
-# AI reads this first, then fetches ONLY the relevant scenario file.
-# TRIGGER MATCHING: semantic and language-independent.
-
 scenarios:
   - id: session_start
     priority: 0
-    preconditions:
-      - any
     triggers:
-      - this is the first message of the conversation
-      - user opens a Calvin session
-      - user wants a project status summary
+      - first message of the conversation
+      - user wants project status or summary
       - user asks what is open or pending
     file: frameworks/calvin/scenarios/session_start.yml
 
   - id: work_issue
     priority: 10
-    preconditions:
-      - any
     triggers:
-      - user wants to work on a specific issue
+      - user wants to work on an issue
       - user references an issue number or title
-      - user says "facciamo la issue X", "lavoriamo su X", "implementa X"
-      - user wants to define, refine, or implement a task
+      - user says "facciamo", "lavoriamo", "implementa", "definisci"
     file: frameworks/calvin/scenarios/work_issue.yml
 
   - id: review_pr
     priority: 10
-    preconditions:
-      - any
     triggers:
       - user wants to review a PR
       - user references a PR number
-      - user says "review", "guarda la PR", "controlla la pull request"
-      - there are open PRs with label agent:review
+      - user says "review", "guarda la PR", "controlla"
     file: frameworks/calvin/scenarios/review_pr.yml
 
   - id: update_context
     priority: 5
-    preconditions:
-      - any
     triggers:
-      - user merged a PR and wants to update project context
+      - user merged a PR and wants to update context
       - user wants to record a decision
-      - user says "aggiorna il contesto", "salva questa decisione"
-      - user confirms Calvin notes after a PR review
+      - user says "aggiorna contesto", "salva decisione"
+      - called from review_pr after Calvin notes confirmed
     file: frameworks/calvin/scenarios/update_context.yml
 
-  - id: unknown_scenario
+  - id: unknown
     priority: 0
-    preconditions:
-      - any
     triggers:
-      - any message that does not match any other scenario
+      - anything not matched above
     file: frameworks/calvin/scenarios/unknown.yml

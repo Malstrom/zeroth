@@ -1,54 +1,33 @@
-# .context.yml — project context for Calvin
-# Copy this file to the root of your target repo and fill in each section.
-# Perplexity reads this at every session start.
-# Mistral (async) reads this before executing any issue.
-# Keep it accurate. Update via `update_context` scenario after each merge.
-
 project:
-  name: ""                    # e.g. Synca
-  repo: ""                    # e.g. Malstrom/synca
-  description: ""             # one sentence
-  phase: ""                   # e.g. alpha, beta, production
+  name: ""
+  repo: ""
+  description: ""
+  phase: ""
 
-# ---------------------------------------------------------------------------
-# STACK
-# ---------------------------------------------------------------------------
 stack:
   language: ""
   framework: ""
   version: ""
   database: ""
   test_framework: ""
-  key_libraries: []           # only libraries that affect code conventions
+  key_libraries: []
   deployment: ""
 
-# ---------------------------------------------------------------------------
-# CONVENTIONS
-# Rules the model MUST follow when writing code.
-# ---------------------------------------------------------------------------
 conventions:
   naming: ""
   folder_structure: ""
   patterns: []
-  do_not_touch: []            # files/folders the model must never modify
-  style_guide: ""             # e.g. rubocop, eslint — config file path
+  do_not_touch: []
+  style_guide: ""
 
-# ---------------------------------------------------------------------------
-# TESTING
-# ---------------------------------------------------------------------------
 testing:
-  strategy: ""                # e.g. unit + integration, TDD
-  coverage_rule: ""           # e.g. every public method must have a test
-  always_test: []             # entities that always require a test
-  command: ""                 # e.g. bundle exec rails test
+  strategy: ""
+  coverage_rule: ""
+  always_test: []
+  command: ""
 
-# ---------------------------------------------------------------------------
-# DECISIONS
-# Append-only architectural decision log.
-# Add new entries — never remove or edit existing ones.
-# ---------------------------------------------------------------------------
 decisions:
   - date: ""
     decision: ""
     rationale: ""
-    source: ""                # e.g. PR #42, session 2026-06-29
+    source: ""

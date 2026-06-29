@@ -1,12 +1,8 @@
-# frameworks/calvin/scenarios/session_start.yml
-
 id: session_start
 on:
-  - this is the first message of the conversation
-  - user opens a Calvin session
-  - user wants a project status summary
-preconditions:
-  - any
+  - first message of the conversation
+  - user wants project status
+preconditions: any
 
 read:
   - instance:.context.yml
@@ -18,35 +14,22 @@ steps:
       condition: .context.yml missing
       then:
         - say: |
-            .context.yml non trovato nel repo {{target_repo}}.
-            Per iniziare, copia il template:
-            `cp zeroth:frameworks/calvin/templates/project_context.yml .context.yml`
-            poi compilalo con stack, convenzioni e strategia di test del progetto.
+            .context.yml non trovato in {{target_repo}}.
+            Crea il file: `cp zeroth:frameworks/calvin/templates/project_context.yml .context.yml`
+            poi compilalo e committa.
         - stop
 
   - say: |
-      Mostra un summary del progetto in questo formato:
-
       ## Calvin — {{project.name}}
-      **Stack:** {{stack | one_line_summary}}
+      Stack: {{stack | one_line}}
 
-      ### PR in attesa di review
-      {{prs_agent_review | format_pr_list}}   ← se vuote: "nessuna"
+      ### PR da revieware
+      {{prs | label:agent:review | format: "#N title" | or: "nessuna"}}
 
       ### Issue aperte
-      {{open_issues | group_by_label | format_issue_list}}
-      # mostra numero, titolo, label principali
-      # evidenzia quelle con label `agent` (in coda async)
-      # non più di 10 — se ci sono più di 10 suggerisci filtro
+      {{issues | open | group_by_label | format: "#N title [labels]" | max:10}}
 
-      ### Contesto progetto
-      Ultime decisioni: {{decisions | last_3 | format_decisions}}
+      ### Ultime decisioni
+      {{decisions | last:3 | format: "date: decision"}}
 
-  - propose: |
-      Chiedi a Igor su cosa vuole lavorare:
-      - lavorare su una issue specifica
-      - revieware una PR
-      - aggiornare il contesto
-
-output:
-  state_changes: []
+  - propose: su cosa vuoi lavorare? (issue, PR, aggiorna contesto)

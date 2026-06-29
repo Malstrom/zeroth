@@ -1,74 +1,40 @@
-# frameworks/calvin/scenarios/review_pr.yml
-# Review a PR: checklist + Calvin notes extraction + context update proposal
-
 id: review_pr
 on:
   - user wants to review a PR
   - user references a PR number
-  - there are open PRs with label agent:review
-preconditions:
-  - any
+preconditions: any
 
 read:
   - instance:.context.yml
   - instance:github:pr:{{pr_number}}:diff
   - instance:github:pr:{{pr_number}}:comments
-  - instance:github:issue:{{pr.linked_issue}}
 
 steps:
   - if:
-      condition: pr_number not provided
+      condition: pr_number missing
       then:
         - fetch: instance:github:prs:open:label:agent:review
-        - say: |
-            Mostra lista PR con label agent:review.
-            Chiedi a Igor quale revieware.
+        - say: lista PR aperte con agent:review. quale vuoi revieware?
         - stop
 
   - say: |
-      Esegui la review del PR #{{pr_number}} seguendo questo ordine:
+      Review PR #{{pr_number}}:
 
-      ### 1. Goal check
-      Il PR risolve esattamente il goal dell'issue? Né di più né di meno?
+      1. **Goal check** — il PR risolve esattamente l'issue? né di più né di meno?
+      2. **Conventions** — rispetta .context.yml conventions? elenca violazioni con file:riga
+      3. **Tests** — i test richiesti in .context.yml testing sono presenti?
+      4. **Scope** — file modificati fuori scope? lista con motivazione
+      5. **Code quality** — problemi rilevanti di design o duplicazione
 
-      ### 2. Conventions check
-      Rispetta le convenzioni in .context.yml conventions?
-      Elenca le violazioni specifiche (file:riga).
-
-      ### 3. Test check
-      I test richiesti in .context.yml testing sono presenti?
-      I test coprono i casi edge rilevanti?
-
-      ### 4. File scope check
-      Sono stati modificati file fuori scope dell'issue?
-      Se sì: lista file con motivazione.
-
-      ### 5. Code quality
-      Problemi di leggibilità, duplicazione, o design che vale la pena segnalare.
-      Non essere pedante su stile se rubocop passa.
-
-      Formato output:
-      ✅ pass | ⚠️ warning | ❌ block — per ogni sezione.
-      Se almeno un ❌: raccomanda REQUEST_CHANGES.
-      Se solo ⚠️: raccomanda APPROVE con commento.
-      Se tutto ✅: raccomanda APPROVE.
+      Per ogni sezione: ✅ pass | ⚠️ warning | ❌ block
+      Raccomandazione finale: APPROVE | APPROVE+commento | REQUEST_CHANGES
 
   - say: |
-      Estrai la sezione `## Calvin notes` dal body del PR se presente.
-      Mostra le note a Igor.
-      Proponi aggiornamenti a .context.yml basati sulle Calvin notes.
+      Estrai sezione `## Calvin notes` dal body del PR.
+      Mostra le note. Proponi diff a .context.yml basato sulle note.
 
   - confirm:
-      ask: "Vuoi che aggiorni .context.yml con queste note? (sì/no/modifica)"
+      ask: aggiorno .context.yml con queste note?
       on_confirm:
-        - call:
-            scenario: update_context
-            file: frameworks/calvin/scenarios/update_context.yml
-            load: on_demand
-            params:
-              source: pr_calvin_notes
-              pr_number: "{{pr_number}}"
-
-output:
-  state_changes:
-    - on context update confirmed: .context.yml updated
+        - call: update_context
+            params: {source: pr_calvin_notes, pr_number: "{{pr_number}}"}

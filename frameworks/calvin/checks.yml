@@ -1,25 +1,18 @@
-# frameworks/calvin — Giskard checks
-# Checks for the frameworks/calvin/ folder itself (zeroth-side).
-
 checks:
-
   - id: agent_yml_exists
     path: frameworks/calvin/.agent.yml
     type: file_exists
     level: error
-    message: "frameworks/calvin/.agent.yml is missing"
 
   - id: scenarios_yml_exists
     path: frameworks/calvin/.scenarios.yml
     type: file_exists
     level: error
-    message: "frameworks/calvin/.scenarios.yml is missing"
 
-  - id: all_scenarios_have_files
+  - id: all_scenario_files_exist
     path: frameworks/calvin/.scenarios.yml
     type: scenario_files_exist
     level: error
-    message: "Every scenario listed in .scenarios.yml must have a corresponding file"
 
   - id: templates_exist
     paths:
@@ -27,18 +20,9 @@ checks:
       - frameworks/calvin/templates/issue_model_ready.md
     type: files_exist
     level: error
-    message: "Calvin templates are missing"
 
-  - id: scripts_exist
-    paths:
-      - frameworks/calvin/scripts/poll.rb
-    type: files_exist
-    level: warning
-    message: "poll.rb script is missing from frameworks/calvin/scripts/"
-
-  - id: overview_has_required_keys
+  - id: overview_keys
     path: frameworks/calvin/overview.yml
     type: yaml_keys_present
     keys: [framework, purpose, actors, flow, labels, context_file]
     level: error
-    message: "overview.yml is missing required keys"
