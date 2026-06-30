@@ -9,10 +9,16 @@ on:
       target_repo:
         required: true
         type: string
+    secrets:
+      SYNCA_TOKEN:
+        required: true
+      MISTRAL_API_KEY:
+        required: false
 
 jobs:
   calvin:
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       # 1. Clona zeroth per avere calvin.rb e lib/
       - name: Checkout zeroth (scripts)
@@ -27,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.target_repo }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SYNCA_TOKEN }}
           path: target
 
       - uses: ruby/setup-ruby@v1
@@ -50,5 +56,5 @@ jobs:
           BUNDLE_GEMFILE: ${{ github.workspace }}/zeroth/frameworks/calvin/scripts/Gemfile
           ISSUE_NUMBER: ${{ inputs.issue_number }}
           GITHUB_REPOSITORY: ${{ inputs.target_repo }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.SYNCA_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
