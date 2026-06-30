@@ -18,7 +18,6 @@ on:
 jobs:
   calvin:
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       # 1. Clona zeroth per avere calvin.rb e lib/ (pubblico, no token)
       - name: Checkout zeroth (scripts)
