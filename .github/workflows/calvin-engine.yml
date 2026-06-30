@@ -33,16 +33,21 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-          bundler-cache: true
-          working-directory: zeroth/frameworks/calvin/scripts
 
-      - run: pip install aider-chat
+      # 3. Installa le gem da Gemfile in scripts/
+      - name: Install Ruby dependencies
+        run: bundle install
+        working-directory: zeroth/frameworks/calvin/scripts
 
-      # 3. Esegue calvin.rb dalla cartella target (working dir = repo su cui lavorare)
+      - name: Install aider
+        run: pip install aider-chat
+
+      # 4. Esegue calvin.rb con working dir = repo target
       - name: Run Calvin
-        run: ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
+        run: bundle exec ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
         working-directory: target
         env:
+          BUNDLE_GEMFILE: ${{ github.workspace }}/zeroth/frameworks/calvin/scripts/Gemfile
           ISSUE_NUMBER: ${{ inputs.issue_number }}
           GITHUB_REPOSITORY: ${{ inputs.target_repo }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
