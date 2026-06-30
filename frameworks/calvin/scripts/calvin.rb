@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 # Entry point per GitHub Actions.
 # Viene chiamato dal workflow calvin-engine.yml con ISSUE_NUMBER nell'env.
-# Legge l'issue, costruisce il contesto, fa girare aider, apre la PR.
+# Legge l'issue, costruisce il contesto, chiama Mistral, (più avanti aider), apre la PR.
 
 require "octokit"
 require "open3"
@@ -11,7 +11,7 @@ require "logger"
 require_relative "lib/github_client"
 require_relative "lib/context_builder"
 require_relative "lib/prompt_builder"
-require_relative "lib/aider_runner"
+require_relative "lib/mistral_client"
 require_relative "lib/git_committer"
 require_relative "lib/finalizer"
 require_relative "lib/issue_executor"
@@ -22,9 +22,6 @@ module Calvin
 
   # Cartella .calvin nel repo target (clonato da actions/checkout)
   CALVIN_DIR = File.join(Dir.pwd, ".calvin")
-
-  # Unico provider: Mistral Codestral
-  MODEL = "mistral/codestral-latest"
 
   LOG = Logger.new($stdout).tap do |l|
     l.formatter = proc { |sev, _, _, msg| "[calvin] #{sev}: #{msg}\n" }
