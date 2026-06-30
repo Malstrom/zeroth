@@ -6,19 +6,44 @@ on:
       issue_number:
         required: true
         type: number
+      target_repo:
+        required: true
+        type: string
 
 jobs:
   calvin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # 1. Clona zeroth per avere calvin.rb e lib/
+      - name: Checkout zeroth (scripts)
+        uses: actions/checkout@v4
+        with:
+          repository: Malstrom/zeroth
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: zeroth
+
+      # 2. Clona il repo target dove Calvin deve lavorare
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.target_repo }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: target
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: zeroth/frameworks/calvin/scripts
+
       - run: pip install aider-chat
+
+      # 3. Esegue calvin.rb dalla cartella target (working dir = repo su cui lavorare)
       - name: Run Calvin
-        run: ruby frameworks/calvin/scripts/calvin.rb
+        run: ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
+        working-directory: target
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ inputs.target_repo }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
