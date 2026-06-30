@@ -70,9 +70,14 @@ templates/:
     note: model reads only this comment + .calvin/ — nothing else
 
 scripts/:
+  note: |
+    Scripts live in malstrom/zeroth and are NEVER copied to instance repos.
+    They are executed remotely via a GitHub Actions workflow triggered by the
+    `agent` label on the instance repo. The workflow checks out zeroth and
+    runs calvin.rb from there using the instance repo's SYNCA_TOKEN secret.
   calvin.rb:
     role: entry point — polling loop + provider list + logger
-    run: ruby .calvin/calvin.rb
+    run: triggered via GitHub Actions workflow in zeroth, not from instance repo
     env: [GITHUB_TOKEN, CALVIN_REPO, CALVIN_REPO_PATH, CALVIN_POLL_INTERVAL]
 
   lib/issue_executor.rb:
@@ -101,8 +106,12 @@ scripts/:
 
 instance_layout:
   note: per-repo files created by calvanize scenario
+  .calvin/agent.yml: Calvin configuration for this repo
   .calvin/stack.yml: tech stack + key libraries
   .calvin/conventions.yml: naming, patterns, do-not-touch rules
   .calvin/testing.yml: test strategy and coverage rules
   .calvin/decisions.yml: append-only architecture decisions
   .calvin/schema.yml: logical model schema (relevant models for prompt injection)
+  .github/workflows/calvin.yml:
+    role: GitHub Actions workflow — triggered by `agent` label, runs calvin.rb from zeroth
+    note: created during calvanize, uses SYNCA_TOKEN secret in `dev` environment
