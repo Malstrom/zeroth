@@ -17,7 +17,7 @@ jobs:
           ruby-version: '3.3'
       - run: pip install aider-chat
       - name: Run Calvin
-        run: ruby frameworks/calvin/calvin.rb
+        run: ruby frameworks/calvin/scripts/calvin.rb
         env:
           ISSUE_NUMBER: ${{ inputs.issue_number }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
