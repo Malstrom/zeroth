@@ -1,5 +1,7 @@
 # frozen_string_literal: true
-# .calvin/calvin.rb — entry point. Start: ruby .calvin/calvin.rb
+# Entry point per GitHub Actions.
+# Viene chiamato dal workflow calvin-engine.yml con ISSUE_NUMBER nell'env.
+# Legge l'issue, costruisce il contesto, fa girare aider, apre la PR.
 
 require "octokit"
 require "open3"
@@ -11,38 +13,29 @@ require_relative "lib/context_builder"
 require_relative "lib/prompt_builder"
 require_relative "lib/aider_runner"
 require_relative "lib/git_committer"
-require_relative "lib/pull_request_opener"
 require_relative "lib/finalizer"
 require_relative "lib/issue_executor"
 
 module Calvin
-  REPO          = ENV.fetch("CALVIN_REPO")
-  REPO_PATH     = ENV.fetch("CALVIN_REPO_PATH")
-  CALVIN_DIR    = File.join(REPO_PATH, ".calvin")
-  POLL_INTERVAL = ENV.fetch("CALVIN_POLL_INTERVAL", "300").to_i
-  LOG           = Logger.new($stdout).tap do |l|
+  # Repo target nel formato "owner/repo" — usato da Octokit
+  REPO = ENV.fetch("GITHUB_REPOSITORY")
+
+  # Cartella .calvin nel repo target (clonato da actions/checkout)
+  CALVIN_DIR = File.join(Dir.pwd, ".calvin")
+
+  # Unico provider: Mistral Codestral
+  MODEL = "mistral/codestral-latest"
+
+  LOG = Logger.new($stdout).tap do |l|
     l.formatter = proc { |sev, _, _, msg| "[calvin] #{sev}: #{msg}\n" }
   end
-  PROVIDERS = %w[
-    cerebras/gpt-oss-120b
-    mistral/codestral-latest
-    groq/llama-3.3-70b-versatile
-    gemini/gemini-2.5-flash
-    openrouter/deepseek/deepseek-chat-v4-flash:free
-    ollama/qwen2.5:32b
-  ].freeze
 end
+
+# Legge il numero di issue dall'env passato dal workflow
+issue_number = ENV.fetch("ISSUE_NUMBER").to_i
 
 github = Calvin::GitHubClient.new
-Calvin::LOG.info "started — repo: #{Calvin::REPO} — interval: #{Calvin::POLL_INTERVAL}s"
+issue  = github.fetch_issue(issue_number)
 
-loop do
-  begin
-    github.agent_issues.each do |issue|
-      Calvin::IssueExecutor.new(issue, github).run
-    end
-  rescue StandardError => e
-    Calvin::LOG.error "loop error: #{e.message}"
-  end
-  sleep Calvin::POLL_INTERVAL
-end
+Calvin::LOG.info "processing ##{issue_number}: #{issue.title}"
+Calvin::IssueExecutor.new(issue, github).run

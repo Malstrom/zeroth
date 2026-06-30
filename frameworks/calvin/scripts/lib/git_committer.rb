@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# Crea il branch per l'issue, committa le modifiche di aider e fa push.
 
 module Calvin
   class GitCommitter
@@ -11,18 +12,18 @@ module Calvin
 
     def commit
       checkout_branch
-      `git -C #{REPO_PATH} add -A`
-      `git -C #{REPO_PATH} commit -m "feat: #{@issue.title} [issue ##{@issue.number}]"`
-      sha = `git -C #{REPO_PATH} rev-parse HEAD`.strip
-      `git -C #{REPO_PATH} push origin #{@branch}`
+      `git add -A`
+      `git commit -m "feat: #{@issue.title} [issue ##{@issue.number}]"`
+      sha = `git rev-parse HEAD`.strip
+      `git push origin #{@branch}`
       { branch: @branch, sha: sha }
     end
 
     private
 
+    # Crea il branch se non esiste, altrimenti fa checkout
     def checkout_branch
-      `git -C #{REPO_PATH} checkout -b #{@branch} 2>/dev/null || \
-       git -C #{REPO_PATH} checkout #{@branch}`
+      `git checkout -b #{@branch} 2>/dev/null || git checkout #{@branch}`
     end
   end
 end

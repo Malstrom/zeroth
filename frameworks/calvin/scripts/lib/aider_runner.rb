@@ -1,56 +1,51 @@
 # frozen_string_literal: true
+# Esegue aider con il prompt file dato.
+# Provider fisso: Mistral Codestral.
+# In caso di errore ritorna { success: false, reason: ... }.
 
 module Calvin
   class AiderRunner
-    def self.run(prompt_file) = new(prompt_file).run_with_fallback
+    def self.run(prompt_file) = new(prompt_file).run
 
     def initialize(prompt_file)
       @prompt_file = prompt_file
     end
 
-    def run_with_fallback
-      head_sha = git("rev-parse HEAD").strip
+    def run
+      LOG.info "running aider with #{MODEL}"
 
-      PROVIDERS.each do |provider|
-        LOG.info "trying #{provider}"
-        git("checkout -- .")
-        git("clean -fd")
+      # Salva lo SHA corrente per poter fare reset in caso di fallimento
+      head_sha = `git rev-parse HEAD`.strip
 
-        result = call_aider(provider)
+      result = call_aider
 
-        if result[:success]
-          LOG.info "success with #{provider}"
-          return { success: true, provider: provider }
-        elsif result[:rate_limited]
-          LOG.info "#{provider} rate limited — next"
-          next
-        else
-          LOG.warn "#{provider} failed: #{result[:output].lines.last(3).join}"
-          git("reset --hard #{head_sha}")
-          return { success: false, reason: result[:output] }
-        end
+      if result[:success]
+        LOG.info "aider succeeded"
+        { success: true, model: MODEL }
+      else
+        LOG.warn "aider failed: #{result[:output].lines.last(3).join}"
+        # Ripristina il repo allo stato pre-aider
+        `git reset --hard #{head_sha}`
+        `git clean -fd`
+        { success: false, reason: result[:output] }
       end
-
-      git("reset --hard #{head_sha}")
-      { success: false, reason: "all providers exhausted" }
     end
 
     private
 
-    def call_aider(provider)
-      cmd = %W[aider --yes --no-auto-commits --no-pretty
-               --model #{provider} --message-file #{@prompt_file}]
-      stdout, stderr, status = Open3.capture3(*cmd, chdir: REPO_PATH)
+    def call_aider
+      cmd = %W[
+        aider --yes --no-auto-commits --no-pretty
+        --model #{MODEL}
+        --message-file #{@prompt_file}
+      ]
+      stdout, stderr, status = Open3.capture3(*cmd)
       output = stdout + stderr
       {
         success:      status.success? && !output.match?(/error|traceback/i),
         rate_limited: output.match?(/429|rate.?limit/i),
         output:       output
       }
-    end
-
-    def git(cmd)
-      `git -C #{REPO_PATH} #{cmd}`
     end
   end
 end

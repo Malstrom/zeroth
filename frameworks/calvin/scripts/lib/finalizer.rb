@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# Operazioni post-successo: aggiorna label, posta stato, torna su main.
 
 module Calvin
   class Finalizer
@@ -12,10 +13,15 @@ module Calvin
     end
 
     def finalize
+      # Sposta il label da agent → agent:review
       @github.set_labels(@issue, remove: "agent", add: "agent:review")
-      @github.post_status(@issue, "✅ PR ##{@pr.number} — #{@result[:provider]}")
-      `git -C #{REPO_PATH} checkout main`
-      FileUtils.rm_f("/tmp/calvin_prompt_#{@issue.number}.txt")
+
+      # Posta il link alla PR sull'issue
+      @github.post_status(@issue, "✅ PR ##{@pr.number} — #{@result[:model]}")
+
+      # Torna su main per lasciare il repo pulito
+      `git checkout main`
+
       LOG.info "##{@issue.number} done — PR ##{@pr.number}"
     end
   end
