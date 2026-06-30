@@ -1,0 +1,24 @@
+name: Calvin engine
+
+on:
+  workflow_call:
+    inputs:
+      issue_number:
+        required: true
+        type: number
+
+jobs:
+  calvin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: pip install aider-chat
+      - name: Run Calvin
+        run: ruby frameworks/calvin/calvin.rb
+        env:
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
