@@ -5,9 +5,15 @@
 
 module Calvin
   class IssueExecutor
+    # File sempre inclusi come contesto per aider (percorsi relativi alla root del repo target)
+    BASE_CONTEXT_FILES = %w[
+      backend/api/config/routes.rb
+      backend/api/app/controllers/application_controller.rb
+    ].freeze
+
     def initialize(issue, github)
-      @issue            = issue
-      @github           = github
+      @issue               = issue
+      @github              = github
       @mistral_prompt_file = "/tmp/calvin_mistral_#{issue.number}.txt"
       @aider_prompt_file   = "/tmp/calvin_aider_#{issue.number}.txt"
     end
@@ -25,12 +31,15 @@ module Calvin
       response = client.complete(mistral_prompt)
       LOG.info "Mistral response received (#{response&.length} chars)"
 
-      # Step 2: aider — prompt con direttiva esplicita di implementazione
+      # Step 2: aider — prompt con direttiva esplicita + file di contesto
       aider_prompt = PromptBuilder.build_for_aider(@issue, context)
       File.write(@aider_prompt_file, aider_prompt)
 
+      context_files = resolve_context_files
+      LOG.info "aider context files: #{context_files.join(', ')}"
+
       @github.post_status(@issue, "🤖 aider is working...")
-      aider_result = AiderRunner.run(@aider_prompt_file)
+      aider_result = AiderRunner.run(@aider_prompt_file, files: context_files)
 
       unless aider_result[:success]
         @github.post_status(@issue, "🚫 aider failed\n\n```\n#{aider_result[:reason]}\n```")
@@ -44,7 +53,7 @@ module Calvin
       commit_info = GitCommitter.commit(@issue, branch)
       LOG.info "committed #{commit_info[:sha]} on #{commit_info[:branch]}"
 
-      # Step 4: apre PR e posta link + note Mistral sull'issue (solo markdown pulito)
+      # Step 4: apre PR e posta link + note Mistral sull'issue
       pr = PullRequestOpener.open(@issue, commit_info, aider_result, @github)
       @github.post_status(@issue, "✅ Done! PR aperta: #{pr.html_url}\n\n---\n_Mistral notes:_\n\n#{response}")
     rescue StandardError => e
@@ -53,6 +62,24 @@ module Calvin
     ensure
       FileUtils.rm_f(@mistral_prompt_file)
       FileUtils.rm_f(@aider_prompt_file)
+    end
+
+    private
+
+    # Restituisce i file esistenti da passare ad aider come contesto.
+    # Parte dai BASE_CONTEXT_FILES + cerca controller analoghi all'issue.
+    def resolve_context_files
+      files = BASE_CONTEXT_FILES.select { |f| File.exist?(f) }
+
+      # Cerca controller già esistenti in app/controllers/api/v1/ come esempi di stile
+      existing_controllers = Dir.glob("backend/api/app/controllers/api/v1/*.rb").first(3)
+      files += existing_controllers
+
+      # Cerca test esistenti come riferimento per lo stile dei test
+      existing_tests = Dir.glob("backend/api/test/controllers/api/v1/*_test.rb").first(2)
+      files += existing_tests
+
+      files.uniq
     end
   end
 end

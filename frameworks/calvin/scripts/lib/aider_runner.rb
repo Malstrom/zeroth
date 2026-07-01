@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-# Esegue aider con il prompt file dato.
+# Esegue aider con il prompt file dato e una lista opzionale di file da includere nel contesto.
 # Provider fisso: Mistral Codestral.
 # In caso di errore ritorna { success: false, reason: ... }.
 
@@ -7,26 +7,24 @@ module Calvin
   class AiderRunner
     MODEL = "mistral/codestral-latest"
 
-    def self.run(prompt_file) = new(prompt_file).run
+    def self.run(prompt_file, files: []) = new(prompt_file, files:).run
 
-    def initialize(prompt_file)
+    def initialize(prompt_file, files: [])
       @prompt_file = prompt_file
+      @files       = files
     end
 
     def run
-      LOG.info "running aider with #{MODEL}"
+      LOG.info "running aider with #{MODEL} (#{@files.size} context files)"
 
-      # Salva lo SHA corrente per poter fare reset in caso di fallimento
       head_sha = `git rev-parse HEAD`.strip
-
-      result = call_aider
+      result   = call_aider
 
       if result[:success]
         LOG.info "aider succeeded"
         { success: true, model: MODEL }
       else
-        LOG.warn "aider failed: #{result[:output].lines.last(3).join}"
-        # Ripristina il repo allo stato pre-aider
+        LOG.warn "aider failed: #{result[:output].lines.last(5).join}"
         `git reset --hard #{head_sha}`
         `git clean -fd`
         { success: false, reason: result[:output] }
@@ -41,6 +39,10 @@ module Calvin
         --model #{MODEL}
         --message-file #{@prompt_file}
       ]
+
+      # Aggiunge i file di contesto: aider li legge e può modificarli
+      @files.each { |f| cmd += ["--file", f] }
+
       stdout, stderr, status = Open3.capture3(*cmd)
       output = stdout + stderr
       {
