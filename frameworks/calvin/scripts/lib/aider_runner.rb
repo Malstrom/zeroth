@@ -1,5 +1,6 @@
 # frozen_string_literal: true
-# Esegue aider con il prompt file dato e una lista opzionale di file da includere nel contesto.
+# Esegue aider in modalità --architect con il prompt file dato.
+# --architect: aider pianifica prima quali file creare/modificare, poi li implementa tutti.
 # Provider fisso: Mistral Codestral.
 # In caso di errore ritorna { success: false, reason: ... }.
 
@@ -15,7 +16,7 @@ module Calvin
     end
 
     def run
-      LOG.info "running aider with #{MODEL} (#{@files.size} context files)"
+      LOG.info "running aider --architect with #{MODEL} (#{@files.size} context files)"
 
       head_sha = `git rev-parse HEAD`.strip
       result   = call_aider
@@ -36,11 +37,12 @@ module Calvin
     def call_aider
       cmd = %W[
         aider --yes --no-auto-commits --no-pretty
+        --architect
         --model #{MODEL}
         --message-file #{@prompt_file}
       ]
 
-      # Aggiunge i file di contesto: aider li legge e può modificarli
+      # File di contesto: aider li legge come riferimento di stile e può modificarli
       @files.each { |f| cmd += ["--file", f] }
 
       stdout, stderr, status = Open3.capture3(*cmd)
