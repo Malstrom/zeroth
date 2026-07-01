@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 # Orchestratore Calvin — entry point per GitHub Actions.
-# Ogni step riceve il CalvinRun, lo arricchisce e lo passa al successivo.
-# Le classi in lib/ sono pure trasformazioni: nessuna sa del flusso globale.
+# Pipeline: issue → contesto → note Mistral → codice Mistral → scrivi file → commit → PR
 
 require "octokit"
 require "open3"
@@ -13,7 +12,7 @@ require_relative "lib/github_client"
 require_relative "lib/context_builder"
 require_relative "lib/prompt_builder"
 require_relative "lib/mistral_client"
-require_relative "lib/aider_runner"
+require_relative "lib/code_writer"
 require_relative "lib/git_committer"
 require_relative "lib/pull_request_opener"
 require_relative "lib/finalizer"
@@ -36,41 +35,35 @@ begin
   # 1. Contesto — legge .calvin/ e schema rilevante
   run.context = Calvin::ContextBuilder.build(run.issue)
 
-  # 2. Prompt separati: Mistral (solo analisi) e aider (implementazione completa)
+  # 2. Prompt
   run.mistral_prompt = Calvin::PromptBuilder.build_for_mistral(run.issue, run.context)
   run.aider_prompt   = Calvin::PromptBuilder.build_for_aider(run.issue, run.context)
 
-  # 3. Mistral — analisi, note architetturali, piano di implementazione
-  run.notes = Calvin::MistralClient.new.complete(run.mistral_prompt)
+  mistral = Calvin::MistralClient.new
+
+  # 3. Note architetturali (mistral-small)
+  run.notes = mistral.complete(run.mistral_prompt)
   Calvin::LOG.info "Mistral notes received (#{run.notes&.length} chars)"
 
-  # 4. File di contesto per aider — routes, application_controller, controller/test esistenti
-  run.context_files = [
-    "backend/api/config/routes.rb",
-    "backend/api/app/controllers/application_controller.rb",
-    *Dir.glob("backend/api/app/controllers/api/v1/*.rb").first(3),
-    *Dir.glob("backend/api/test/controllers/api/v1/*_test.rb").first(2)
-  ].select { |f| File.exist?(f) }
+  github.post_status(run.issue, "⚙️ generating code...")
 
-  Calvin::LOG.info "aider context: #{run.context_files.join(', ')}"
-  github.post_status(run.issue, "🤖 aider is working...")
+  # 4. Generazione codice (codestral) — ritorna [{path:, content:}]
+  generated = mistral.generate_files(run.aider_prompt)
+  Calvin::LOG.info "Mistral generated #{generated.size} file(s): #{generated.map { |f| f[:path] }.join(', ')}"
 
-  # 5. aider — implementa tutto nel working tree (no auto-commit)
-  run.aider_result = Calvin::AiderRunner.run(run.aider_prompt, files: run.context_files)
+  run.aider_result = { success: true, model: "codestral-latest" }
 
-  unless run.aider_result[:success]
-    github.post_status(run.issue, "🚫 aider failed\n\n```\n#{run.aider_result[:reason]}\n```")
-    exit 1
-  end
+  # 5. Scrivi i file nel working tree
+  Calvin::CodeWriter.write(generated)
 
   # 6. Commit + push su branch dedicato
   run.commit = Calvin::GitCommitter.commit(run.issue, "calvin/issue-#{run.issue.number}")
   Calvin::LOG.info "committed #{run.commit[:sha]} on #{run.commit[:branch]}"
 
-  # 7. Apre PR su GitHub
+  # 7. Apre PR
   run.pr = Calvin::PullRequestOpener.open(run.issue, run.commit, run.aider_result, github)
 
-  # 8. Finalizza: aggiorna label, posta stato, torna su main
+  # 8. Finalizza
   Calvin::Finalizer.finalize(run.issue, run.pr, run.aider_result, github)
 
   # 9. Posta note Mistral sull'issue
