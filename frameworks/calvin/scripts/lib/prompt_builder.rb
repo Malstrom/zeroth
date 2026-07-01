@@ -1,33 +1,43 @@
 # frozen_string_literal: true
-# Assembla il prompt testuale che viene passato ad aider.
-# Include contesto .calvin/ + titolo/body dell'issue.
+# Assembla il prompt testuale per Mistral (analisi) o aider (implementazione).
+# Usare PromptBuilder.build_for_mistral o PromptBuilder.build_for_aider.
 
 module Calvin
   class PromptBuilder
-    def self.build(issue, context) = new(issue, context).build
+    # Compatibilità con il vecchio singolo .build — ora alias di build_for_aider
+    def self.build(issue, context) = build_for_aider(issue, context)
+
+    def self.build_for_mistral(issue, context) = new(issue, context).build_for_mistral
+    def self.build_for_aider(issue, context)   = new(issue, context).build_for_aider
 
     def initialize(issue, context)
       @issue   = issue
       @context = context
     end
 
-    def build
-      parts = ["## Context\n"]
-
-      # Aggiunge conventions, stack e decisions se presenti
-      %i[conventions stack decisions].each do |key|
-        parts << "### #{key}\n```yaml\n#{@context[key]}\n```\n" if @context[key]
-      end
-
-      # Aggiunge schema filtrato per questa issue
-      if @context[:schema]
-        parts << "### schema (relevant models only)\n```yaml\n#{@context[:schema].to_yaml}```\n"
-      end
-
-      # L'issue stessa: titolo + body completo
+    # Prompt per Mistral: solo contesto + issue. Risponde con analisi/note in markdown.
+    # Non include mai la direttiva di implementazione — Mistral non è un executor.
+    def build_for_mistral
+      parts = context_parts
       parts << "\n## Issue ##{@issue.number}: #{@issue.title}\n\n#{@issue.body}\n"
+      parts << <<~MISTRAL
 
-      # Direttiva esplicita per aider: implementa tutto, non solo analizzare
+        ## Your task
+
+        Analyse this issue and reply in plain Markdown with:
+        1. A brief implementation plan (which files to create/edit and why).
+        2. Any conventions or architectural decisions worth noting.
+        3. Potential risks or edge cases.
+
+        Do NOT write code. Do NOT use XML tags or function calls. Plain Markdown only.
+      MISTRAL
+      parts.join
+    end
+
+    # Prompt per aider: contesto + issue + direttiva esplicita di implementazione completa.
+    def build_for_aider
+      parts = context_parts
+      parts << "\n## Issue ##{@issue.number}: #{@issue.title}\n\n#{@issue.body}\n"
       parts << <<~DIRECTIVE
 
         ## Implementation directive
@@ -52,6 +62,19 @@ module Calvin
       parts << "- patterns to add to conventions.yml\n"
       parts << "- decisions to add to decisions.yml\n"
       parts.join
+    end
+
+    private
+
+    def context_parts
+      parts = ["## Context\n"]
+      %i[conventions stack decisions].each do |key|
+        parts << "### #{key}\n```yaml\n#{@context[key]}\n```\n" if @context[key]
+      end
+      if @context[:schema]
+        parts << "### schema (relevant models only)\n```yaml\n#{@context[:schema].to_yaml}```\n"
+      end
+      parts
     end
   end
 end
