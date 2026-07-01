@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 # Esegue aider in modalità --architect con il prompt file dato.
 # --architect: aider pianifica prima quali file creare/modificare, poi li implementa tutti.
+# --auto-accept-architect: non chiede conferma interattiva (richiesto in CI senza terminal).
 # Provider fisso: Mistral Codestral.
 # In caso di errore ritorna { success: false, reason: ... }.
 
@@ -36,8 +37,13 @@ module Calvin
 
     def call_aider
       cmd = %W[
-        aider --yes --no-auto-commits --no-pretty
+        aider
+        --yes
+        --no-auto-commits
+        --no-pretty
+        --no-fancy-input
         --architect
+        --auto-accept-architect
         --model #{MODEL}
         --message-file #{@prompt_file}
       ]
