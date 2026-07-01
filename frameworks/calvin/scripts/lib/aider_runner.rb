@@ -5,6 +5,8 @@
 
 module Calvin
   class AiderRunner
+    MODEL = "mistral/codestral-latest"
+
     def self.run(prompt_file) = new(prompt_file).run
 
     def initialize(prompt_file)
