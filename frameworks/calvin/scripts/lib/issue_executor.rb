@@ -18,7 +18,7 @@ module Calvin
       prompt  = PromptBuilder.build(@issue, context)
       File.write(@prompt_file, prompt)
 
-      # Step 1: Mistral per design/guida (opzionale, aiuta aider a ragionare meglio)
+      # Step 1: Mistral per design/guida
       client   = MistralClient.new
       response = client.complete(prompt)
       LOG.info "Mistral response received (#{response&.length} chars)"
@@ -40,10 +40,10 @@ module Calvin
       LOG.info "committed #{commit_info[:sha]} on #{commit_info[:branch]}"
 
       # Step 4: apre PR e posta link sull'issue
-      pr = PullRequestOpener.open(@issue, branch, @github)
-      @github.post_status(@issue, "✅ Done! PR aperta: #{pr[:url]}\n\n---\n_Mistral notes:_\n\n#{response}")
+      pr = PullRequestOpener.open(@issue, commit_info, aider_result, @github)
+      @github.post_status(@issue, "✅ Done! PR aperta: #{pr.html_url}\n\n---\n_Mistral notes:_\n\n#{response}")
     rescue StandardError => e
-      @github.post_status(@issue, "🚫 error\n\n```\n#{e.message}\\n#{e.backtrace.first(3).join("\\n")}\n```")
+      @github.post_status(@issue, "🚫 error\n\n```\n#{e.message}\n#{e.backtrace.first(3).join("\n")}\n```")
       raise
     ensure
       FileUtils.rm_f(@prompt_file)
