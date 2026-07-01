@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 # Orchestratore Calvin — entry point per GitHub Actions.
-# Pipeline: issue → contesto → Mistral (analisi) → commento sull'issue
+# Pipeline: issue → contesto → Mistral → commento sull'issue
 
 require "octokit"
 require "yaml"
@@ -30,10 +30,10 @@ begin
   # 1. Contesto
   run.context = Calvin::ContextBuilder.build(run.issue)
 
-  # 2. Prompt per Mistral
-  run.mistral_prompt = Calvin::PromptBuilder.build_for_mistral(run.issue, run.context)
+  # 2. Prompt (contesto + issue, nessuna istruzione esplicita — Mistral risponde con codice)
+  run.mistral_prompt = Calvin::PromptBuilder.build(run.issue, run.context)
 
-  # 3. Mistral — analisi e piano implementazione
+  # 3. Mistral
   run.notes = Calvin::MistralClient.new.complete(run.mistral_prompt)
   Calvin::LOG.info "Mistral response received (#{run.notes&.length} chars)"
 
