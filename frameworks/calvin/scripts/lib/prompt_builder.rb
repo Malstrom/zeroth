@@ -1,22 +1,20 @@
 # frozen_string_literal: true
 # Assembla il prompt testuale per Mistral (analisi) o aider (implementazione).
-# Usare PromptBuilder.build_for_mistral o PromptBuilder.build_for_aider.
 
 module Calvin
   class PromptBuilder
-    # Compatibilità con il vecchio singolo .build — ora alias di build_for_aider
-    def self.build(issue, context) = build_for_aider(issue, context)
-
     def self.build_for_mistral(issue, context) = new(issue, context).build_for_mistral
     def self.build_for_aider(issue, context)   = new(issue, context).build_for_aider
+
+    # Compatibilità retroattiva
+    def self.build(issue, context) = build_for_aider(issue, context)
 
     def initialize(issue, context)
       @issue   = issue
       @context = context
     end
 
-    # Prompt per Mistral: solo contesto + issue. Risponde con analisi/note in markdown.
-    # Non include mai la direttiva di implementazione — Mistral non è un executor.
+    # Prompt per Mistral: analisi, piano, rischi. Niente codice, niente XML.
     def build_for_mistral
       parts = context_parts
       parts << "\n## Issue ##{@issue.number}: #{@issue.title}\n\n#{@issue.body}\n"
@@ -34,7 +32,7 @@ module Calvin
       parts.join
     end
 
-    # Prompt per aider: contesto + issue + direttiva esplicita di implementazione completa.
+    # Prompt per aider: implementazione completa con path espliciti dei file da creare.
     def build_for_aider
       parts = context_parts
       parts << "\n## Issue ##{@issue.number}: #{@issue.title}\n\n#{@issue.body}\n"
@@ -42,25 +40,26 @@ module Calvin
 
         ## Implementation directive
 
-        You are aider, an AI coding assistant. Your job is to fully implement
-        everything described in the issue above. Do NOT just analyse or suggest —
-        write all the code, create every file, and make every change needed so
-        the acceptance criteria are completely satisfied.
+        You are aider. Fully implement everything in the issue above.
+        Write all code now. Do not analyse, do not suggest — implement.
 
         Rules:
-        - Create every file that is missing (controllers, models, serializers, tests, etc.).
-        - Edit every existing file that needs to change (routes, initializers, etc.).
-        - Follow the conventions and stack defined in the Context section above.
-        - Write a Minitest test for every new public method / endpoint.
-        - Do not leave TODO comments — implement everything now.
-        - When done, all acceptance criteria in the issue must be met.
-      DIRECTIVE
+        - Follow the conventions and stack in the Context section.
+        - Create every missing file at the exact path shown below.
+        - Edit every existing file that needs to change.
+        - Write a Minitest test for every new endpoint or public method.
+        - No TODO comments — implement everything completely.
 
-      # Istruzioni per Calvin notes nella PR
-      parts << "\n## Calvin notes\n"
-      parts << "Add a `## Calvin notes` section in the PR body with:\n"
-      parts << "- patterns to add to conventions.yml\n"
-      parts << "- decisions to add to decisions.yml\n"
+        ## Files to create or edit
+
+        Based on the issue, you MUST create/edit these files:
+        #{file_list_for_issue}
+
+        ## Calvin notes
+        Add a `## Calvin notes` section in the PR body with:
+        - patterns to add to conventions.yml
+        - decisions to add to decisions.yml
+      DIRECTIVE
       parts.join
     end
 
@@ -75,6 +74,34 @@ module Calvin
         parts << "### schema (relevant models only)\n```yaml\n#{@context[:schema].to_yaml}```\n"
       end
       parts
+    end
+
+    # Deduce i path dei file da creare/modificare dal titolo e body dell'issue.
+    # Regole semplici per Rails API: controller, route, test.
+    def file_list_for_issue
+      title = @issue.title.downcase
+      body  = @issue.body.to_s.downcase
+      text  = "#{title} #{body}"
+
+      lines = []
+
+      # Cerca mention di controller (es. "health", "users", ecc.)
+      controller_names = text.scan(/([a-z_]+)_controller|controller\s+([a-z_]+)/).flatten.compact.uniq
+      controller_names += text.scan(/`([a-z_]+)#/).flatten
+
+      # Fallback: estrae la prima parola significativa dopo "add", "create", "implement"
+      if controller_names.empty?
+        controller_names = text.scan(/(?:add|create|implement)\s+(?:a\s+)?(?:get\s+\/[\w\/]+\/)?([a-z_]+)/).flatten
+      end
+
+      controller_names.uniq.each do |name|
+        lines << "- backend/api/app/controllers/api/v1/#{name}_controller.rb (create)"
+        lines << "- backend/api/test/controllers/api/v1/#{name}_controller_test.rb (create)"
+      end
+
+      lines << "- backend/api/config/routes.rb (edit)"
+
+      lines.empty? ? "(determine from the issue above)" : lines.join("\n")
     end
   end
 end

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
-# Esegue aider in modalità --architect con il prompt file dato.
-# --architect: aider pianifica prima quali file creare/modificare, poi li implementa tutti.
-# --auto-accept-architect: non chiede conferma interattiva (richiesto in CI senza terminal).
+# Esegue aider in modalità chat con --message-file.
+# I file da creare/modificare vengono passati esplicitamente nel prompt (via PromptBuilder)
+# e come --file per quelli già esistenti.
+# --architect è escluso: blocca in CI per mancanza di terminal.
 # Provider fisso: Mistral Codestral.
-# In caso di errore ritorna { success: false, reason: ... }.
 
 module Calvin
   class AiderRunner
@@ -17,7 +17,7 @@ module Calvin
     end
 
     def run
-      LOG.info "running aider --architect with #{MODEL} (#{@files.size} context files)"
+      LOG.info "running aider with #{MODEL} (#{@files.size} context files)"
 
       head_sha = `git rev-parse HEAD`.strip
       result   = call_aider
@@ -42,13 +42,10 @@ module Calvin
         --no-auto-commits
         --no-pretty
         --no-fancy-input
-        --architect
-        --auto-accept-architect
         --model #{MODEL}
         --message-file #{@prompt_file}
       ]
 
-      # File di contesto: aider li legge come riferimento di stile e può modificarli
       @files.each { |f| cmd += ["--file", f] }
 
       stdout, stderr, status = Open3.capture3(*cmd)
