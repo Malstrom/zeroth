@@ -24,20 +24,5 @@ module Calvin
         @client.add_comment(REPO, issue.number, body)
       end
     end
-
-    # Apre una PR da branch -> main con titolo e body standard Calvin
-    def open_pr(issue, branch, model)
-      @client.create_pull_request(
-        REPO, "main", branch,
-        "[Calvin] #{issue.title}",
-        "Closes ##{issue.number}\nModel: `#{model}`\n\n## Calvin notes\n"
-      )
-    end
-
-    # Rimuove un label e ne aggiunge un altro sull'issue
-    def set_labels(issue, remove:, add:)
-      @client.remove_label(REPO, issue.number, remove) rescue nil
-      @client.add_label(REPO, issue.number, add)       rescue nil
-    end
   end
 end
