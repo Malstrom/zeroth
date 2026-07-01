@@ -19,7 +19,7 @@ require_relative "lib/pull_request_opener"
 require_relative "lib/finalizer"
 
 module Calvin
-  REPO     = ENV.fetch("GITHUB_REPOSITORY")
+  REPO       = ENV.fetch("GITHUB_REPOSITORY")
   CALVIN_DIR = File.join(Dir.pwd, ".calvin")
   LOG = Logger.new($stdout).tap do |l|
     l.formatter = proc { |sev, _, _, msg| "[calvin] #{sev}: #{msg}\n" }
@@ -36,10 +36,9 @@ begin
   # 1. Contesto — legge .calvin/ e schema rilevante
   run.context = Calvin::ContextBuilder.build(run.issue)
 
-  # 2. Prompt separati: Mistral (analisi) e aider (implementazione)
-  prompts          = Calvin::PromptBuilder.build(run.issue, run.context)
-  run.mistral_prompt = prompts[:mistral]
-  run.aider_prompt   = prompts[:aider]
+  # 2. Prompt separati: Mistral (solo analisi) e aider (implementazione completa)
+  run.mistral_prompt = Calvin::PromptBuilder.build_for_mistral(run.issue, run.context)
+  run.aider_prompt   = Calvin::PromptBuilder.build_for_aider(run.issue, run.context)
 
   # 3. Mistral — analisi, note architetturali, piano di implementazione
   run.notes = Calvin::MistralClient.new.complete(run.mistral_prompt)
@@ -74,7 +73,7 @@ begin
   # 8. Finalizza: aggiorna label, posta stato, torna su main
   Calvin::Finalizer.finalize(run.issue, run.pr, run.aider_result, github)
 
-  # 9. Posta note Mistral sull'issue come commento separato
+  # 9. Posta note Mistral sull'issue
   github.post_status(run.issue, "✅ PR aperta: #{run.pr.html_url}\n\n---\n_Mistral notes:_\n\n#{run.notes}")
 
 rescue StandardError => e
