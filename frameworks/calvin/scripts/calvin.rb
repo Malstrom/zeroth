@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 # Orchestratore Calvin — entry point per GitHub Actions.
-# Pipeline: issue → contesto → Mistral → commento sull'issue
+# Pipeline: issue → contesto → Mistral → commento sull'issue con prompt + risposta
 
 require "octokit"
 require "yaml"
@@ -30,16 +30,36 @@ begin
   # 1. Contesto
   run.context = Calvin::ContextBuilder.build(run.issue)
 
-  # 2. Prompt (contesto + issue, nessuna istruzione esplicita — Mistral risponde con codice)
+  # 2. Prompt
   run.mistral_prompt = Calvin::PromptBuilder.build(run.issue, run.context)
+  Calvin::LOG.info "Prompt built (#{run.mistral_prompt.length} chars)"
 
   # 3. Mistral
   run.notes = Calvin::MistralClient.new.complete(run.mistral_prompt)
   Calvin::LOG.info "Mistral response received (#{run.notes&.length} chars)"
 
-  # 4. Posta il risultato come commento sull'issue
-  github.post_status(run.issue, run.notes)
+  # 4. Posta prompt + risposta come commento sull'issue
+  comment = <<~MD
+    <!-- calvin-status -->
+    ## 📤 Prompt inviato a Mistral
 
+    <details>
+    <summary>Espandi prompt</summary>
+
+    ```
+    #{run.mistral_prompt}
+    ```
+
+    </details>
+
+    ---
+
+    ## 🤖 Risposta Mistral
+
+    #{run.notes}
+  MD
+
+  github.post_status(run.issue, comment)
   Calvin::LOG.info "##{run.issue.number} done"
 
 rescue StandardError => e

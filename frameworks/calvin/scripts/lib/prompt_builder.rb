@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 # Assembla il prompt testuale che viene passato a Mistral.
 # Include contesto .calvin/ + titolo/body dell'issue.
+# L'obiettivo è ottenere codice Ruby implementativo pronto per il review.
 
 module Calvin
   class PromptBuilder
-    def self.build(issue, context)             = new(issue, context).build
-    def self.build_for_mistral(issue, context) = new(issue, context).build
-    def self.build_for_aider(issue, context)   = new(issue, context).build
+    def self.build(issue, context) = new(issue, context).build
 
     def initialize(issue, context)
       @issue   = issue
@@ -26,10 +25,30 @@ module Calvin
 
       parts << "\n## Issue ##{@issue.number}: #{@issue.title}\n\n#{@issue.body}\n"
 
-      parts << "\n## Calvin notes\n"
-      parts << "Add a `## Calvin notes` section in the PR body with:\n"
-      parts << "- patterns to add to conventions.yml\n"
-      parts << "- decisions to add to decisions.yml\n"
+      parts << <<~INSTRUCTIONS
+
+        ## Task
+
+        You are a senior Rails API developer. Implement the issue above.
+
+        Produce **only Ruby code** — no prose explanations before or after.
+        For every file that needs to be created or changed, output a fenced block:
+
+        ```ruby
+        # path: relative/path/from/repo/root.rb
+        <full file content here>
+        ```
+
+        Include:
+        - route entry in `backend/api/config/routes.rb` (show only the relevant lines with context)
+        - controller
+        - service / presenter if needed
+        - request spec (RSpec)
+
+        Follow the conventions and stack defined above.
+        Do not include migrations unless the issue explicitly asks for schema changes.
+      INSTRUCTIONS
+
       parts.join
     end
   end
