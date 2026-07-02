@@ -43,9 +43,6 @@ jobs:
         run: bundle install
         working-directory: zeroth/frameworks/calvin/scripts
 
-      - name: Install aider
-        run: pip install aider-chat
-
       # 4. Esegue calvin.rb con working dir = repo target
       - name: Run Calvin
         run: bundle exec ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
