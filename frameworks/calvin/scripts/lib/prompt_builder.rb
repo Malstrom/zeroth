@@ -11,7 +11,8 @@
 #   4. testing     — fixture catalogue, regole di test
 #   5. decisions   — decisioni architetturali
 #   6. source_files — contenuto attuale dei file che la issue tocca
-#   7. issue       — numero, titolo, corpo completo
+#   7. test_files   — file di test esistenti (counterpart o reference) per i file sopra
+#   8. issue       — numero, titolo, corpo completo
 
 module Calvin
   class PromptBuilder
@@ -46,6 +47,16 @@ module Calvin
       if @context[:source_files]&.any?
         parts << "### Existing Source Files\n\n"
         @context[:source_files].each do |path, content|
+          parts << "#### `#{path}`\n\n```ruby\n#{content.strip}\n```\n\n"
+        end
+      end
+
+      if @context[:test_files]&.any?
+        parts << "### Existing Test Files\n\n"
+        parts << "> These are the current test files for the source files above."\
+                 " Follow the same structure, helpers, and fixture usage."\
+                 " You MUST produce a test file for every production file you create or modify.\n\n"
+        @context[:test_files].each do |path, content|
           parts << "#### `#{path}`\n\n```ruby\n#{content.strip}\n```\n\n"
         end
       end
