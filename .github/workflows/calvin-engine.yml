@@ -18,8 +18,6 @@ on:
         required: true
       MISTRAL_API_KEY:
         required: false
-      CODESTRAL_API_KEY:
-        required: false
 
 jobs:
   calvin:
@@ -46,29 +44,25 @@ jobs:
           git config --global user.email "calvin@synca.app"
           git config --global user.name "Calvin"
 
-      # 4. Ruby per calvin.rb
+      # 4. Ruby per calvin.rb (scripts zeroth)
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
 
-      - name: Install Ruby dependencies
+      - name: Install Ruby dependencies (zeroth scripts)
         run: bundle install
         working-directory: zeroth/frameworks/calvin/scripts
 
-      # 5. Python + Aider (solo in modalità aider)
+      # 5. Python + Aider (solo modalità aider)
       - name: Install Aider
         if: ${{ inputs.aider_mode }}
-        run: |
-          pip install --quiet aider-chat
+        run: pip install --quiet aider-chat
 
-      # 6. Setup Ruby + bundle nel repo target (per bin/rails ci)
-      - name: Setup target Ruby + bundle
+      # 6. Bundle install nel repo target (necessario per rails test)
+      - name: Bundle install (target repo)
         if: ${{ inputs.aider_mode }}
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
-          working-directory: target/backend/api
+        run: bundle install
+        working-directory: target/backend/api
 
       # 7. Setup PostgreSQL per i test
       - name: Start PostgreSQL
@@ -79,7 +73,16 @@ jobs:
           password: postgres
           database: synca_test
 
-      # 8. Esegue Calvin
+      # 8. Crea il database di test
+      - name: Setup test database
+        if: ${{ inputs.aider_mode }}
+        run: bundle exec rails db:schema:load
+        working-directory: target/backend/api
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost/synca_test
+
+      # 9. Esegue Calvin
       - name: Run Calvin
         run: bundle exec ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
         working-directory: target
@@ -89,7 +92,6 @@ jobs:
           GITHUB_REPOSITORY: ${{ inputs.target_repo }}
           GITHUB_TOKEN: ${{ secrets.SYNCA_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          CODESTRAL_API_KEY: ${{ secrets.CODESTRAL_API_KEY }}
           CALVIN_MODEL: ${{ inputs.aider_mode && 'codestral-latest' || 'mistral-medium-3' }}
           DATABASE_URL: postgres://postgres:postgres@localhost/synca_test
           RAILS_ENV: test
