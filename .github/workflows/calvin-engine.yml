@@ -56,3 +56,4 @@ jobs:
           GITHUB_REPOSITORY: ${{ inputs.target_repo }}
           GITHUB_TOKEN: ${{ secrets.SYNCA_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          CALVIN_DIR: ${{ github.workspace }}/target/backend/api/.calvin
