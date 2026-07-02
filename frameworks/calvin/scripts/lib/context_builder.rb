@@ -8,6 +8,7 @@
 #   4. testing.yml     — fixture catalogue, what to test, forbidden patterns
 #   5. decisions.yml   — append-only architecture decisions with implementation notes
 #   6. source_files    — existing source files that the issue will touch (fetched live)
+#   7. test_files      — existing test counterparts for source_files + reference examples
 #
 # schema.yml filtering:
 #   Attempts to match model names from issue title+body (PascalCase -> snake_case lookup).
@@ -21,6 +22,15 @@
 #   Files that do not exist (404) are silently skipped.
 #   Fetched files are injected verbatim so the model sees the real current content
 #   and never has to reconstruct it from memory.
+#
+# test_files injection:
+#   For every file in source_files, derives the expected test counterpart path
+#   (app/foo/bar.rb -> test/foo/bar_test.rb) and fetches it if it exists.
+#   If no counterpart exists, injects a reference test file of the same layer
+#   (controller -> health_summary_controller_test.rb, service -> any service_test.rb)
+#   so Aider has a concrete structural example to follow.
+#   Test files are always injected — they are the primary signal that Aider must
+#   produce a test file alongside every production file it creates or modifies.
 
 require "yaml"
 require "octokit"
@@ -36,6 +46,16 @@ module Calvin
       backend/api/app/models/application_record.rb
       backend/api/app/controllers/application_controller.rb
     ].freeze
+
+    # Reference test files by layer — used when no counterpart exists yet.
+    # Aider needs to see at least one real test to understand the expected structure.
+    TEST_REFERENCE_BY_LAYER = {
+      "controllers" => "backend/api/test/controllers/api/v1/health_summary_controller_test.rb",
+      "services"    => "backend/api/test/services/update_health_summary_service_test.rb",
+      "models"      => "backend/api/test/models/user_test.rb",
+      "contracts"   => "backend/api/test/contracts/health_summary_contract_test.rb",
+      "serializers" => "backend/api/test/serializers/user_serializer_test.rb"
+    }.freeze
 
     def self.build(issue, github_client: nil) = new(issue, github_client).build
 
@@ -55,6 +75,7 @@ module Calvin
       ctx[:testing]      = load_static(:testing)
       ctx[:decisions]    = load_static(:decisions)
       ctx[:source_files] = fetch_source_files if @target_repo
+      ctx[:test_files]   = fetch_test_files(ctx[:source_files]) if @target_repo
 
       log_summary(ctx)
       ctx
@@ -130,6 +151,82 @@ module Calvin
       Calvin::LOG.info "  [context] source_files: #{result.size} loaded, #{skipped.size} skipped"
 
       result.empty? ? nil : result
+    end
+
+    # For every production file in source_files, derives its expected test counterpart
+    # (app/foo/bar.rb -> test/foo/bar_test.rb) and fetches it when it exists.
+    # When no counterpart is found for a given layer, injects the reference test file
+    # for that layer so Aider has a concrete structural example.
+    # This is the primary mechanism that drives Aider to write tests.
+    def fetch_test_files(source_files)
+      return nil unless source_files&.any?
+
+      result        = {}
+      layers_seen   = Set.new
+      layers_covered = Set.new
+
+      source_files.each_key do |path|
+        counterpart = test_counterpart_path(path)
+        next unless counterpart
+
+        layer = detect_layer(path)
+        layers_seen << layer if layer
+
+        content = fetch_github_file(counterpart)
+        if content
+          result[counterpart] = content
+          layers_covered << layer if layer
+          Calvin::LOG.info "  [context] test counterpart ✅ #{counterpart} (#{content.bytesize} bytes)"
+        else
+          Calvin::LOG.info "  [context] test counterpart not found — will inject reference for layer: #{layer}"
+        end
+      end
+
+      # For any layer that has no counterpart yet, inject the reference example.
+      (layers_seen - layers_covered).each do |layer|
+        ref_path = TEST_REFERENCE_BY_LAYER[layer]
+        next unless ref_path
+        next if result.key?(ref_path)
+
+        content = fetch_github_file(ref_path)
+        if content
+          result[ref_path] = content
+          Calvin::LOG.info "  [context] test reference (#{layer}) ✅ #{ref_path} (#{content.bytesize} bytes)"
+        else
+          Calvin::LOG.warn "  [context] test reference (#{layer}) ⚠️  not found: #{ref_path}"
+        end
+      end
+
+      Calvin::LOG.info "  [context] test_files: #{result.size} loaded"
+      result.empty? ? nil : result
+    end
+
+    # Converts a production file path to its expected test counterpart path.
+    # backend/api/app/controllers/api/v1/foo_controller.rb
+    #   -> backend/api/test/controllers/api/v1/foo_controller_test.rb
+    # Returns nil for paths that are not under app/ (e.g. config/, db/).
+    def test_counterpart_path(path)
+      # Normalise to relative-from-backend root
+      rel = path.sub(%r{\Abackend/api/}, "")
+      return nil unless rel.start_with?("app/")
+
+      # app/controllers/... -> test/controllers/...
+      test_rel = rel
+        .sub(%r{\Aapp/}, "test/")
+        .sub(/\.rb\z/, "_test.rb")
+
+      "backend/api/#{test_rel}"
+    end
+
+    # Detects the broad layer of a path for reference-test lookup.
+    def detect_layer(path)
+      case path
+      when %r{app/controllers} then "controllers"
+      when %r{app/services}    then "services"
+      when %r{app/models}      then "models"
+      when %r{app/contracts}   then "contracts"
+      when %r{app/serializers} then "serializers"
+      end
     end
 
     # Paths explicitly listed under a "## Source Files" or "## Files" section
