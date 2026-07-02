@@ -10,7 +10,7 @@
 #   6. source_files    — existing source files that the issue will touch (fetched live)
 #
 # schema.yml filtering:
-#   Attempts to match model names from issue title+body (PascalCase → snake_case lookup).
+#   Attempts to match model names from issue title+body (PascalCase -> snake_case lookup).
 #   Falls back to injecting the FULL schema if no match found.
 #   A partial schema is worse than no schema — never return nil silently.
 #
@@ -46,13 +46,17 @@ module Calvin
     end
 
     def build
+      Calvin::LOG.info "Context dir: #{calvin_dir}"
+
       ctx = {}
-      ctx[:stack]        = read_file("stack")
+      ctx[:stack]        = load_static(:stack)
       ctx[:schema]       = build_schema
-      ctx[:conventions]  = read_file("conventions")
-      ctx[:testing]      = read_file("testing")
-      ctx[:decisions]    = read_file("decisions")
+      ctx[:conventions]  = load_static(:conventions)
+      ctx[:testing]      = load_static(:testing)
+      ctx[:decisions]    = load_static(:decisions)
       ctx[:source_files] = fetch_source_files if @target_repo
+
+      log_summary(ctx)
       ctx
     end
 
@@ -62,9 +66,15 @@ module Calvin
       ENV.fetch("CALVIN_DIR", File.join(Dir.pwd, ".calvin"))
     end
 
-    def read_file(name)
+    def load_static(name)
       path = File.join(calvin_dir, "#{name}.yml")
-      File.exist?(path) ? File.read(path) : nil
+      if File.exist?(path)
+        Calvin::LOG.info "  [context] #{name}.yml ✅ loaded (#{File.size(path)} bytes)"
+        File.read(path)
+      else
+        Calvin::LOG.warn "  [context] #{name}.yml ⚠️  not found — skipped"
+        nil
+      end
     end
 
     # Returns a filtered schema YAML string when model names are identifiable,
@@ -72,7 +82,8 @@ module Calvin
     def build_schema
       path = File.join(calvin_dir, "schema.yml")
       unless File.exist?(path)
-        return "# WARNING: schema.yml not found in #{calvin_dir}"
+        Calvin::LOG.warn "  [context] schema.yml ⚠️  not found — skipped"
+        return nil
       end
 
       raw    = File.read(path)
@@ -82,30 +93,41 @@ module Calvin
       matched    = candidates.select { |t| schema.key?(t) }
 
       if matched.any?
+        Calvin::LOG.info "  [context] schema.yml ✅ loaded — filtered to: #{matched.join(', ')}"
         matched.each_with_object({}) { |t, h| h[t] = schema[t] }.to_yaml
       else
+        Calvin::LOG.info "  [context] schema.yml ✅ loaded — no model match, injecting full schema (#{raw.bytesize} bytes)"
         raw
       end
     end
 
     # Fetches existing source files from the target repo so the model sees real
     # current content instead of reconstructing it from memory.
-    #
-    # Priority order:
-    #   1. Paths listed under "## Source Files" section in the issue body
-    #   2. .rb path tokens found anywhere in title+body
-    #   3. ALWAYS_FETCH well-known files (routes.rb, user.rb, etc.)
-    #
-    # Returns a Hash { path => content } or nil if nothing was fetched.
     def fetch_source_files
-      paths = (explicit_source_paths + heuristic_paths + ALWAYS_FETCH).uniq
+      explicit  = explicit_source_paths
+      heuristic = heuristic_paths
+      always    = ALWAYS_FETCH
+
+      Calvin::LOG.info "  [context] source_files — explicit: #{explicit.size}, heuristic: #{heuristic.size}, always_fetch: #{always.size}"
+
+      paths = (explicit + heuristic + always).uniq
       return nil if paths.empty?
 
       result = {}
+      skipped = []
+
       paths.each do |path|
         content = fetch_github_file(path)
-        result[path] = content if content
+        if content
+          result[path] = content
+          Calvin::LOG.info "  [context]   ✅ #{path} (#{content.bytesize} bytes)"
+        else
+          skipped << path
+        end
       end
+
+      Calvin::LOG.warn "  [context]   ⚠️  skipped (not found): #{skipped.join(', ')}" if skipped.any?
+      Calvin::LOG.info "  [context] source_files: #{result.size} loaded, #{skipped.size} skipped"
 
       result.empty? ? nil : result
     end
@@ -165,6 +187,13 @@ module Calvin
         .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
         .gsub(/([a-z\d])([A-Z])/, '\1_\2')
         .downcase
+    end
+
+    def log_summary(ctx)
+      loaded  = ctx.reject { |_, v| v.nil? }.keys
+      missing = ctx.select { |_, v| v.nil? }.keys
+      Calvin::LOG.info "[context] loaded: #{loaded.join(', ')}"
+      Calvin::LOG.warn "[context] missing: #{missing.join(', ')}" if missing.any?
     end
   end
 end

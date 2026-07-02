@@ -93,5 +93,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.SYNCA_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           CALVIN_MODEL: ${{ inputs.aider_mode && 'codestral-latest' || 'mistral-medium-3' }}
+          CALVIN_DIR: ${{ github.workspace }}/target/backend/api/.calvin
           DATABASE_URL: postgres://postgres:postgres@localhost/synca_test
           RAILS_ENV: test
