@@ -1,33 +1,32 @@
 # frozen_string_literal: true
 # Wrapper per Aider CLI.
-# Usa il provider nativo Codestral di Aider (codestral/codestral-latest).
-# Richiede solo MISTRAL_API_KEY nell'env.
+# Riceve il prompt della issue e lascia che Aider legga il repo-map,
+# generi il codice e scriva i file autonomamente.
+# Calvin gestisce branch e commit — Aider usa --no-git.
 
 require "open3"
 
 module Calvin
   class AiderRunner
-    # Provider nativo Aider per Codestral — non richiede OPENAI_API_KEY
     AIDER_MODEL = "codestral/codestral-latest"
 
     def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
       @api_key = api_key
     end
 
-    # Applica il codice generato da Codestral sul branch corrente.
-    # code_message — stringa con blocchi ```ruby ... ``` prodotti da MistralClient#generate_code
+    # Passa il prompt ad Aider. Aider legge il repo-map, decide quali file
+    # creare o modificare, genera il codice e lo scrive su disco.
     # Ritorna true se il comando esce con status 0, false altrimenti.
-    def apply(code_message)
-      env = {
-        "CODESTRAL_API_KEY" => @api_key
-      }
+    def apply(prompt)
+      env = { "CODESTRAL_API_KEY" => @api_key }
 
       cmd = [
         "aider",
         "--model",        AIDER_MODEL,
         "--yes",
         "--no-auto-lint",
-        "--message",      code_message
+        "--no-git",
+        "--message",      prompt
       ]
 
       Calvin::LOG.info "Running aider (#{AIDER_MODEL})..."
