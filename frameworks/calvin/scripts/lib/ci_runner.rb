@@ -22,11 +22,15 @@ module Calvin
       Calvin::LOG.info "Running tests..."
 
       ci_path = File.join(Dir.pwd, "backend", "api")
-      # bundle exec rails test — niente rubocop, niente audit, niente push
-      cmd = ["bundle", "exec", "rails", "test"]
+      gemfile = File.join(ci_path, "Gemfile")
+      cmd     = ["bundle", "exec", "rails", "test"]
 
       output, status = Timeout.timeout(TIMEOUT) do
-        Open3.capture2e(*cmd, chdir: ci_path)
+        Open3.capture2e(
+          { "BUNDLE_GEMFILE" => gemfile },
+          *cmd,
+          chdir: ci_path
+        )
       end
 
       passed = status.success?

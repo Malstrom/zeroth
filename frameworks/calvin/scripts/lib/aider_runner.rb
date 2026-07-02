@@ -2,7 +2,9 @@
 # Wrapper per Aider CLI.
 # Riceve il prompt della issue e lascia che Aider legga il repo-map,
 # generi il codice e scriva i file autonomamente.
-# Calvin gestisce branch e commit — Aider usa --no-git.
+#
+# --no-auto-commits: Aider scrive i file ma non committa.
+# Calvin fa git add + commit + push dopo il CI verde.
 
 require "open3"
 
@@ -22,11 +24,11 @@ module Calvin
 
       cmd = [
         "aider",
-        "--model",        AIDER_MODEL,
+        "--model",           AIDER_MODEL,
         "--yes",
         "--no-auto-lint",
-        "--no-git",
-        "--message",      prompt
+        "--no-auto-commits",
+        "--message",         prompt
       ]
 
       Calvin::LOG.info "Running aider (#{AIDER_MODEL})..."

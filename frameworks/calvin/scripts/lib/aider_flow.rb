@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 # Gestisce il flusso agent-aider:
-# branch → Aider(prompt) → CI loop → push → PR → commento issue
+# branch → Aider(prompt) → CI loop → commit → push → PR → commento issue
 
 module Calvin
   class AiderFlow
@@ -35,6 +35,7 @@ module Calvin
         end
       end
 
+      commit_changes
       push_branch
       pr_url = PrBuilder.new.open(branch: @branch, issue: @issue)
       @github.post_status(@issue, status_comment(passed, pr_url))
@@ -47,6 +48,12 @@ module Calvin
       @branch = "feat/#{slug}-#{@issue.number}"
       system("git checkout -b #{@branch}") or raise "git checkout failed"
       Calvin::LOG.info "Branch: #{@branch}"
+    end
+
+    def commit_changes
+      system("git add -A")
+      committed = system("git commit -m 'feat: implement ##{@issue.number} via Calvin/Aider'")
+      Calvin::LOG.info committed ? "Committed changes" : "Nothing to commit"
     end
 
     def push_branch
