@@ -4,9 +4,8 @@
 #   mistral-medium-3   → flusso commento (label: agent)
 #   codestral-latest   → flusso aider (label: agent-aider)
 #
-# .complete(prompt)       → String (markdown)
-# .generate_code(prompt)  → String (blocchi ruby grezzi, passati ad Aider)
-# .fix_ci(prompt, ci)     → String (patch fix dopo CI fallito)
+# .complete(prompt)   → String (markdown)
+# .fix_ci(prompt, ci) → String (prompt arricchito per Aider, solo se errore non è di ambiente)
 
 require "net/http"
 require "json"
@@ -19,6 +18,22 @@ module Calvin
     OPEN_TIMEOUT = 15
     READ_TIMEOUT = 180
 
+    # Pattern che identificano errori di ambiente CI, non di codice.
+    # Se tutti i fallimenti rientrano in queste categorie, Aider non deve
+    # modificare nulla — il problema è nella configurazione del runner.
+    ENV_ERROR_PATTERNS = [
+      /HMAC key expected to be a String/i,
+      /Rails\.application\.credentials/i,
+      /SECRET_KEY_BASE/i,
+      /can't find executable/i,
+      /railties is not currently included/i,
+      /database.*does not exist/i,
+      /connection refused.*postgres/i,
+      /PG::ConnectionBad/i,
+      /RAILS_MASTER_KEY/i,
+      /ActiveRecord::NoDatabaseError/i
+    ].freeze
+
     def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
       @api_key = api_key
     end
@@ -28,39 +43,45 @@ module Calvin
       call(prompt, model: DEFAULT_MODEL)
     end
 
-    # Genera codice grezzo da passare ad Aider come messaggio.
-    # Ritorna la stringa raw (blocchi ```ruby ... ```) senza parsing.
-    def generate_code(prompt)
-      system_prompt = <<~SYS
-        You are a senior Rails 8 developer implementing a GitHub issue.
-        Output ONLY fenced ruby code blocks, one per file.
-        First line of each block must be a comment with the file path:
-          # path: relative/path/from/repo/root.rb
-        No prose before or after the code blocks.
-      SYS
-      call(prompt, model: DEFAULT_MODEL, system: system_prompt)
-    end
-
     # Genera una patch di fix dato l'output di CI fallito.
-    def fix_ci(prompt, ci_output)
+    # Se l'output contiene solo errori di ambiente (JWT key mancante, DB non
+    # raggiungibile, ecc.) restituisce il prompt originale invariato e logga
+    # un warning — non ha senso mandare Aider a toccare il codice.
+    def fix_ci(original_prompt, ci_output)
+      if environment_error?(ci_output)
+        Calvin::LOG.warn "fix_ci: CI failure is an environment error — skipping Aider fix pass"
+        Calvin::LOG.warn "fix_ci: pattern matched in output: #{matched_env_patterns(ci_output).join(', ')}"
+        return original_prompt
+      end
+
       fix_prompt = <<~PROMPT
-        The following CI output shows failing tests or errors.
-        Fix the code to make CI pass. Output ONLY the corrected files
-        in the same fenced ruby block format (# path: ... as first comment).
-        Do not output files that do not need changes.
+        The following CI output shows failing tests or errors in the code.
+        These are NOT environment/configuration errors — they are real code bugs.
+        Fix only the files needed to make the tests pass.
+        Do not change unrelated files.
 
         ## Original task
-        #{prompt}
+        #{original_prompt}
 
         ## CI failure output
         ```
         #{ci_output.slice(0, 8_000)}
         ```
       PROMPT
-      generate_code(fix_prompt)
+
+      Calvin::LOG.info "fix_ci: building Aider fix prompt for code errors"
+      fix_prompt
     end
 
     private
+
+    def environment_error?(ci_output)
+      ENV_ERROR_PATTERNS.any? { |pattern| ci_output.match?(pattern) }
+    end
+
+    def matched_env_patterns(ci_output)
+      ENV_ERROR_PATTERNS.select { |p| ci_output.match?(p) }.map(&:source)
+    end
 
     def call(prompt, model:, system: nil)
       http              = Net::HTTP.new(API_URL.host, API_URL.port)

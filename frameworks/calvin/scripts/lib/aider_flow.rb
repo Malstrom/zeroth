@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 # Gestisce il flusso agent-aider:
-# branch → Aider(prompt) → CI loop → commit → push → PR → commento issue
+# branch → Aider(prompt) → CI loop → squash commit → push → PR → commento issue
+#
+# Strategia commit:
+#   Aider usa --no-auto-commits: scrive i file ma non committa.
+#   Dopo il CI (verde o esauriti i tentativi) Calvin fa un unico commit
+#   con git add -A + git commit. History pulita: 1 commit per issue.
 
 module Calvin
   class AiderFlow
@@ -35,7 +40,7 @@ module Calvin
         end
       end
 
-      commit_changes
+      squash_commit
       push_branch
       pr_url = PrBuilder.new.open(branch: @branch, issue: @issue)
       @github.post_status(@issue, status_comment(passed, pr_url))
@@ -50,16 +55,30 @@ module Calvin
       Calvin::LOG.info "Branch: #{@branch}"
     end
 
-    def commit_changes
+    # Raccoglie tutte le modifiche di Aider in un unico commit pulito.
+    # Se non ci sono modifiche logga warning e continua senza crashare.
+    def squash_commit
       system("git add -A")
-      committed = system("git commit -m 'feat: implement ##{@issue.number} via Calvin/Aider'")
-      Calvin::LOG.info committed ? "Committed changes" : "Nothing to commit"
+      diff = `git diff --cached --name-only`.strip
+
+      if diff.empty?
+        Calvin::LOG.warn "squash_commit: nothing to commit — Aider did not modify any file"
+        return
+      end
+
+      Calvin::LOG.info "squash_commit: staging #{diff.lines.count} file(s):\n#{diff}"
+      message = "feat: implement ##{@issue.number} — #{@issue.title}"
+      system("git commit -m #{message.shellescape}") or raise "git commit failed"
+      Calvin::LOG.info "squash_commit: committed as single clean commit"
     end
 
+    # Usa --force invece di --force-with-lease perché i branch Calvin sono
+    # gestiti esclusivamente dal runner — nessun umano ci lavora sopra.
+    # --force-with-lease fallisce se il branch esiste già da un run precedente.
     def push_branch
       repo_url = "https://x-access-token:#{ENV.fetch('GITHUB_TOKEN')}@github.com/#{Calvin::REPO}.git"
       system("git remote set-url origin #{repo_url}")
-      system("git push origin #{@branch} --force-with-lease") or raise "git push failed"
+      system("git push origin #{@branch} --force") or raise "git push failed"
     end
 
     def status_comment(passed, pr_url)
