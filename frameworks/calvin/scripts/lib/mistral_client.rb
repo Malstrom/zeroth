@@ -1,27 +1,26 @@
 # frozen_string_literal: true
 # Client per Mistral / Codestral API.
 # Modello selezionato tramite variabile d'ambiente CALVIN_MODEL:
-#   mistral-medium-3   → commento sull'issue (default)
-#   codestral-latest   → modalità aider (generazione codice)
+#   mistral-medium-3   → flusso commento (label: agent)
+#   codestral-latest   → flusso aider (label: agent-aider)
 #
 # .complete(prompt)       → String (markdown)
 # .generate_code(prompt)  → String (blocchi ruby grezzi, passati ad Aider)
+# .fix_ci(prompt, ci)     → String (patch fix dopo CI fallito)
 
 require "net/http"
 require "json"
 
 module Calvin
   class MistralClient
-    API_URL      = URI("https://api.mistral.ai/v1/chat/completions")
+    API_URL       = URI("https://api.mistral.ai/v1/chat/completions")
     DEFAULT_MODEL = ENV.fetch("CALVIN_MODEL", "mistral-medium-3")
 
     OPEN_TIMEOUT = 15
     READ_TIMEOUT = 180
 
-    def initialize(api_key: nil)
-      @api_key = api_key ||
-                 ENV["CODESTRAL_API_KEY"] ||
-                 ENV.fetch("MISTRAL_API_KEY")
+    def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
+      @api_key = api_key
     end
 
     # Risposta markdown — usata dal flusso commento (label: agent)
@@ -43,7 +42,6 @@ module Calvin
     end
 
     # Genera una patch di fix dato l'output di CI fallito.
-    # Ritorna la stessa forma di generate_code.
     def fix_ci(prompt, ci_output)
       fix_prompt = <<~PROMPT
         The following CI output shows failing tests or errors.
@@ -80,7 +78,7 @@ module Calvin
       req.body             = { model: model, messages: messages }.to_json
 
       resp = http.request(req)
-      raise "Mistral/Codestral error: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
+      raise "Mistral error: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
 
       JSON.parse(resp.body).dig("choices", 0, "message", "content")
     end
