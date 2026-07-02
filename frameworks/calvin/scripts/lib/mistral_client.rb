@@ -18,18 +18,29 @@ module Calvin
     OPEN_TIMEOUT = 15
     READ_TIMEOUT = 180
 
-    # Pattern che identificano errori di ambiente CI, non di codice.
+    # Pattern che identificano errori non risolvibili da Aider toccando il codice.
+    # Tipicamente: ambiente CI mal configurato, schema DB non allineato, dipendenze mancanti.
+    # In questi casi non ha senso fare un secondo tentativo — Aider non può fixare infrastruttura.
     ENV_ERROR_PATTERNS = [
+      # Ambiente / configurazione Rails
       /HMAC key expected to be a String/i,
       /Rails\.application\.credentials/i,
       /SECRET_KEY_BASE/i,
       /can't find executable/i,
       /railties is not currently included/i,
+      /RAILS_MASTER_KEY/i,
+      # Database non raggiungibile o non esistente
       /database.*does not exist/i,
       /connection refused.*postgres/i,
       /PG::ConnectionBad/i,
-      /RAILS_MASTER_KEY/i,
-      /ActiveRecord::NoDatabaseError/i
+      /ActiveRecord::NoDatabaseError/i,
+      # Schema DB non allineato: enum punta a colonna mancante.
+      # Aider non può creare una migration senza contesto completo — blocchiamo il loop.
+      /Undeclared attribute type for enum/i,
+      /Enums must be backed by a database column/i,
+      /column .* does not exist/i,
+      /PG::UndefinedColumn/i,
+      /ActiveRecord::StatementInvalid.*column/i
     ].freeze
 
     def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
@@ -42,11 +53,11 @@ module Calvin
     end
 
     # Genera una patch di fix dato l'output di CI fallito.
-    # Se l'output contiene solo errori di ambiente restituisce il prompt
+    # Se l'output contiene errori di ambiente o schema, restituisce il prompt
     # originale invariato — non ha senso mandare Aider a toccare il codice.
     def fix_ci(original_prompt, ci_output)
       if environment_error?(ci_output)
-        Calvin::LOG.warn "fix_ci: CI failure is an environment error — skipping Aider fix pass"
+        Calvin::LOG.warn "fix_ci: CI failure is an environment/schema error — skipping Aider fix pass"
         Calvin::LOG.warn "fix_ci: pattern matched in output: #{matched_env_patterns(ci_output).join(', ')}"
         return original_prompt
       end
@@ -57,11 +68,14 @@ module Calvin
         Fix only the files needed to make the tests pass.
         Do not change unrelated files.
 
-        ## Rails 8 enum gotchas — MUST follow
+        ## Rails 8 rules — MUST follow
         - Use `default:` NOT `_default:`. Example:
             enum :account_type, { guest: 0, active: 1 }, default: :guest
           The option key is `default:` (without underscore). `_default:` is INVALID and will raise ArgumentError.
         - Never pass unknown keys to `enum`. Valid options are: :prefix, :suffix, :scopes, :default, :instance_methods, :validate.
+        - NEVER add an `enum` to a model without also creating the corresponding migration.
+          If you add `enum :foo` to a model, you MUST create a migration that adds column `foo` to the table.
+        - Do NOT add columns/attributes to existing models unless the issue explicitly requires it.
 
         ## Original task
         #{original_prompt}
