@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require "shellwords"
 # Gestisce il flusso agent-aider:
 # branch → Aider(prompt) → CI loop → squash commit → push → PR → commento issue
 #

@@ -19,8 +19,6 @@ module Calvin
     READ_TIMEOUT = 180
 
     # Pattern che identificano errori di ambiente CI, non di codice.
-    # Se tutti i fallimenti rientrano in queste categorie, Aider non deve
-    # modificare nulla — il problema è nella configurazione del runner.
     ENV_ERROR_PATTERNS = [
       /HMAC key expected to be a String/i,
       /Rails\.application\.credentials/i,
@@ -44,9 +42,8 @@ module Calvin
     end
 
     # Genera una patch di fix dato l'output di CI fallito.
-    # Se l'output contiene solo errori di ambiente (JWT key mancante, DB non
-    # raggiungibile, ecc.) restituisce il prompt originale invariato e logga
-    # un warning — non ha senso mandare Aider a toccare il codice.
+    # Se l'output contiene solo errori di ambiente restituisce il prompt
+    # originale invariato — non ha senso mandare Aider a toccare il codice.
     def fix_ci(original_prompt, ci_output)
       if environment_error?(ci_output)
         Calvin::LOG.warn "fix_ci: CI failure is an environment error — skipping Aider fix pass"
@@ -59,6 +56,12 @@ module Calvin
         These are NOT environment/configuration errors — they are real code bugs.
         Fix only the files needed to make the tests pass.
         Do not change unrelated files.
+
+        ## Rails 8 enum gotchas — MUST follow
+        - Use `default:` NOT `_default:`. Example:
+            enum :account_type, { guest: 0, active: 1 }, default: :guest
+          The option key is `default:` (without underscore). `_default:` is INVALID and will raise ArgumentError.
+        - Never pass unknown keys to `enum`. Valid options are: :prefix, :suffix, :scopes, :default, :instance_methods, :validate.
 
         ## Original task
         #{original_prompt}
