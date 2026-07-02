@@ -1,59 +1,71 @@
 # frozen_string_literal: true
-# Client per Mistral API.
-# .complete(prompt)        → String (analisi/note in markdown)
-# .generate_files(prompt)  → Array<{path:, content:}> (implementazione)
+# Client per Mistral / Codestral API.
+# Modello selezionato tramite variabile d'ambiente CALVIN_MODEL:
+#   mistral-medium-3   → commento sull'issue (default)
+#   codestral-latest   → modalità aider (generazione codice)
+#
+# .complete(prompt)       → String (markdown)
+# .generate_code(prompt)  → String (blocchi ruby grezzi, passati ad Aider)
 
 require "net/http"
 require "json"
-require "base64"
 
 module Calvin
   class MistralClient
-    API_URL    = URI("https://api.mistral.ai/v1/chat/completions")
-    MODEL      = "mistral-medium-3"
-    MODEL_CODE = "mistral-medium-3"
+    API_URL      = URI("https://api.mistral.ai/v1/chat/completions")
+    DEFAULT_MODEL = ENV.fetch("CALVIN_MODEL", "mistral-medium-3")
 
-    # Timeouts in seconds.
-    # open_timeout: max time to establish TCP connection.
-    # read_timeout: max time to wait for a response chunk.
-    # Mistral Medium on large prompts (~50k chars) can take 60-90s to start streaming.
     OPEN_TIMEOUT = 15
     READ_TIMEOUT = 180
 
-    def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
-      @api_key = api_key
+    def initialize(api_key: nil)
+      @api_key = api_key ||
+                 ENV["CODESTRAL_API_KEY"] ||
+                 ENV.fetch("MISTRAL_API_KEY")
     end
 
-    # Analisi in markdown — usato per le note nell'issue/PR.
+    # Risposta markdown — usata dal flusso commento (label: agent)
     def complete(prompt)
-      call(prompt, model: MODEL)
+      call(prompt, model: DEFAULT_MODEL)
     end
 
-    # Genera i file da scrivere nel repo.
-    # Ritorna Array<Hash> con :path e :content.
-    def generate_files(prompt)
+    # Genera codice grezzo da passare ad Aider come messaggio.
+    # Ritorna la stringa raw (blocchi ```ruby ... ```) senza parsing.
+    def generate_code(prompt)
       system_prompt = <<~SYS
-        You are a senior Rails developer implementing a GitHub issue.
-        Reply with ONLY a JSON array. No markdown, no explanation, no code fences.
-        Each element: { "path": "relative/path/to/file.rb", "content": "full file content" }
-        Paths are relative to the repository root.
-        Include every file that needs to be created or modified.
+        You are a senior Rails 8 developer implementing a GitHub issue.
+        Output ONLY fenced ruby code blocks, one per file.
+        First line of each block must be a comment with the file path:
+          # path: relative/path/from/repo/root.rb
+        No prose before or after the code blocks.
       SYS
+      call(prompt, model: DEFAULT_MODEL, system: system_prompt)
+    end
 
-      raw = call(prompt, model: MODEL_CODE, system: system_prompt)
+    # Genera una patch di fix dato l'output di CI fallito.
+    # Ritorna la stessa forma di generate_code.
+    def fix_ci(prompt, ci_output)
+      fix_prompt = <<~PROMPT
+        The following CI output shows failing tests or errors.
+        Fix the code to make CI pass. Output ONLY the corrected files
+        in the same fenced ruby block format (# path: ... as first comment).
+        Do not output files that do not need changes.
 
-      # Strip accidental markdown fences if model disobeys
-      raw = raw.gsub(/```json\s*/i, "").gsub(/```\s*/, "").strip
+        ## Original task
+        #{prompt}
 
-      JSON.parse(raw).map { |f| { path: f["path"], content: f["content"] } }
-    rescue JSON::ParserError => e
-      raise "Mistral returned invalid JSON: #{e.message}\n\nRaw:\n#{raw}"
+        ## CI failure output
+        ```
+        #{ci_output.slice(0, 8_000)}
+        ```
+      PROMPT
+      generate_code(fix_prompt)
     end
 
     private
 
     def call(prompt, model:, system: nil)
-      http = Net::HTTP.new(API_URL.host, API_URL.port)
+      http              = Net::HTTP.new(API_URL.host, API_URL.port)
       http.use_ssl      = true
       http.open_timeout = OPEN_TIMEOUT
       http.read_timeout = READ_TIMEOUT
@@ -62,13 +74,13 @@ module Calvin
       messages << { role: "system", content: system } if system
       messages << { role: "user",   content: prompt }
 
-      req = Net::HTTP::Post.new(API_URL)
+      req                  = Net::HTTP::Post.new(API_URL)
       req["Content-Type"]  = "application/json"
       req["Authorization"] = "Bearer #{@api_key}"
-      req.body = { model: model, messages: messages }.to_json
+      req.body             = { model: model, messages: messages }.to_json
 
       resp = http.request(req)
-      raise "Mistral error: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
+      raise "Mistral/Codestral error: #{resp.code} #{resp.body}" unless resp.is_a?(Net::HTTPSuccess)
 
       JSON.parse(resp.body).dig("choices", 0, "message", "content")
     end

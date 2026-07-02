@@ -9,24 +9,30 @@ on:
       target_repo:
         required: true
         type: string
+      aider_mode:
+        required: false
+        type: boolean
+        default: false
     secrets:
       SYNCA_TOKEN:
         required: true
       MISTRAL_API_KEY:
+        required: false
+      CODESTRAL_API_KEY:
         required: false
 
 jobs:
   calvin:
     runs-on: ubuntu-latest
     steps:
-      # 1. Clona zeroth per avere calvin.rb e lib/ (pubblico, no token)
+      # 1. Clona zeroth per avere calvin.rb e lib/
       - name: Checkout zeroth (scripts)
         uses: actions/checkout@v4
         with:
           repository: Malstrom/zeroth
           path: zeroth
 
-      # 2. Clona il repo target dove Calvin deve lavorare
+      # 2. Clona il repo target
       - name: Checkout target repo
         uses: actions/checkout@v4
         with:
@@ -34,16 +40,46 @@ jobs:
           token: ${{ secrets.SYNCA_TOKEN }}
           path: target
 
+      # 3. Git identity (necessaria per i commit di Aider)
+      - name: Configure git identity
+        run: |
+          git config --global user.email "calvin@synca.app"
+          git config --global user.name "Calvin"
+
+      # 4. Ruby per calvin.rb
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
 
-      # 3. Installa le gem da Gemfile in scripts/
       - name: Install Ruby dependencies
         run: bundle install
         working-directory: zeroth/frameworks/calvin/scripts
 
-      # 4. Esegue calvin.rb con working dir = repo target
+      # 5. Python + Aider (solo in modalità aider)
+      - name: Install Aider
+        if: ${{ inputs.aider_mode }}
+        run: |
+          pip install --quiet aider-chat
+
+      # 6. Setup Ruby + bundle nel repo target (per bin/rails ci)
+      - name: Setup target Ruby + bundle
+        if: ${{ inputs.aider_mode }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: target/backend/api
+
+      # 7. Setup PostgreSQL per i test
+      - name: Start PostgreSQL
+        if: ${{ inputs.aider_mode }}
+        uses: ikalnytskyi/action-setup-postgres@v6
+        with:
+          username: postgres
+          password: postgres
+          database: synca_test
+
+      # 8. Esegue Calvin
       - name: Run Calvin
         run: bundle exec ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
         working-directory: target
@@ -53,4 +89,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ inputs.target_repo }}
           GITHUB_TOKEN: ${{ secrets.SYNCA_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          CALVIN_DIR: ${{ github.workspace }}/target/backend/api/.calvin
+          CODESTRAL_API_KEY: ${{ secrets.CODESTRAL_API_KEY }}
+          CALVIN_MODEL: ${{ inputs.aider_mode && 'codestral-latest' || 'mistral-medium-3' }}
+          DATABASE_URL: postgres://postgres:postgres@localhost/synca_test
+          RAILS_ENV: test
