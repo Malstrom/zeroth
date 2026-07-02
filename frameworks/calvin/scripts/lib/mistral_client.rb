@@ -8,9 +8,9 @@ require "json"
 
 module Calvin
   class MistralClient
-    API_URL   = URI("https://api.mistral.ai/v1/chat/completions")
-    MODEL     = "mistral-small-latest"
-    MODEL_CODE = "codestral-latest"
+    API_URL    = URI("https://api.mistral.ai/v1/chat/completions")
+    MODEL      = "mistral-medium-3"
+    MODEL_CODE = "mistral-medium-3"
 
     def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
       @api_key = api_key
@@ -23,7 +23,7 @@ module Calvin
 
     # Genera i file da scrivere nel repo.
     # Ritorna Array<Hash> con :path e :content.
-    # Usa Codestral e forza risposta JSON.
+    # Forza risposta JSON.
     def generate_files(prompt)
       system_prompt = <<~SYS
         You are a senior Rails developer implementing a GitHub issue.
