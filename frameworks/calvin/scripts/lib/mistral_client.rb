@@ -5,12 +5,20 @@
 
 require "net/http"
 require "json"
+require "base64"
 
 module Calvin
   class MistralClient
     API_URL    = URI("https://api.mistral.ai/v1/chat/completions")
     MODEL      = "mistral-medium-3"
     MODEL_CODE = "mistral-medium-3"
+
+    # Timeouts in seconds.
+    # open_timeout: max time to establish TCP connection.
+    # read_timeout: max time to wait for a response chunk.
+    # Mistral Medium on large prompts (~50k chars) can take 60-90s to start streaming.
+    OPEN_TIMEOUT = 15
+    READ_TIMEOUT = 180
 
     def initialize(api_key: ENV.fetch("MISTRAL_API_KEY"))
       @api_key = api_key
@@ -23,7 +31,6 @@ module Calvin
 
     # Genera i file da scrivere nel repo.
     # Ritorna Array<Hash> con :path e :content.
-    # Forza risposta JSON.
     def generate_files(prompt)
       system_prompt = <<~SYS
         You are a senior Rails developer implementing a GitHub issue.
@@ -47,7 +54,9 @@ module Calvin
 
     def call(prompt, model:, system: nil)
       http = Net::HTTP.new(API_URL.host, API_URL.port)
-      http.use_ssl = true
+      http.use_ssl      = true
+      http.open_timeout = OPEN_TIMEOUT
+      http.read_timeout = READ_TIMEOUT
 
       messages = []
       messages << { role: "system", content: system } if system
