@@ -23,12 +23,13 @@ jobs:
   calvin:
     runs-on: ubuntu-latest
     steps:
-      # 1. Clona zeroth per avere calvin.rb e lib/
-      - name: Checkout zeroth (scripts)
+      # 1. Clona calvin (scripts + lib)
+      - name: Checkout calvin
         uses: actions/checkout@v4
         with:
-          repository: Malstrom/zeroth
-          path: zeroth
+          repository: Malstrom/calvin
+          token: ${{ secrets.SYNCA_TOKEN }}
+          path: calvin
 
       # 2. Clona il repo target
       - name: Checkout target repo
@@ -44,21 +45,21 @@ jobs:
           git config --global user.email "calvin@synca.app"
           git config --global user.name "Calvin"
 
-      # 4. Ruby per calvin.rb (scripts zeroth)
+      # 4. Ruby per calvin.rb
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
 
-      - name: Install Ruby dependencies (zeroth scripts)
+      - name: Install Ruby dependencies (calvin)
         run: bundle install
-        working-directory: zeroth/frameworks/calvin/scripts
+        working-directory: calvin/bin
 
       # 5. Python + Aider (solo modalità aider)
       - name: Install Aider
         if: ${{ inputs.aider_mode }}
         run: pip install --quiet aider-chat
 
-      # 6. Bundle install nel repo target (necessario per rails test)
+      # 6. Bundle install nel repo target (necessario per rails test + rubocop)
       - name: Bundle install (target repo)
         if: ${{ inputs.aider_mode }}
         run: bundle install
@@ -85,15 +86,15 @@ jobs:
 
       # 9. Esegue Calvin
       - name: Run Calvin
-        run: bundle exec ruby $GITHUB_WORKSPACE/zeroth/frameworks/calvin/scripts/calvin.rb
+        run: bundle exec ruby $GITHUB_WORKSPACE/calvin/bin/calvin.rb
         working-directory: target
         env:
-          BUNDLE_GEMFILE: ${{ github.workspace }}/zeroth/frameworks/calvin/scripts/Gemfile
+          BUNDLE_GEMFILE: ${{ github.workspace }}/calvin/bin/Gemfile
           ISSUE_NUMBER: ${{ inputs.issue_number }}
           GITHUB_REPOSITORY: ${{ inputs.target_repo }}
           GITHUB_TOKEN: ${{ secrets.SYNCA_TOKEN }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          CALVIN_MODEL: ${{ inputs.aider_mode && 'codestral-latest' || 'mistral-medium-3' }}
+          CALVIN_MODEL: mistral-medium-3
           DATABASE_URL: postgres://postgres:postgres@localhost/synca_test
           RAILS_ENV: test
           SECRET_KEY_BASE: a_dummy_secret_for_ci_at_least_64_chars_long_so_hmac_is_happy_1234
