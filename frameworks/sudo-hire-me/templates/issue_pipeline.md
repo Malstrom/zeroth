@@ -1,29 +1,63 @@
-# frameworks/sudo-hire-me/templates/issue_pipeline.md
+## 📂 Job Offer
 
-# {{company}} — {{role.title}}
+| Field | Value |
+|---|---|
+| Company | {{company}} |
+| Role | {{role.title}} |
+| Opened | {{status.last_updated}} |
+| Status | {{status.stage}} |
+| Format | {{role.location}} |
+| Contract | {{offer_conditions.contract}} |
+| Language | {{communication_language}} |
+| Pipeline file | [hunt/pipeline/{{company_slug}}.yml](hunt/pipeline/{{company_slug}}.yml) |
 
-**Location:** {{role.location}}
-**Source:** {{role.source}}
+## 👤 Contacts
 
----
+| Name | Role | Channel |
+|---|---|---|
+{{contacts_list}}
 
-## 📌 Status
+## 🛠️ Stack
 
-- **Stage:** {{status.stage}}
-- **Last event:** {{status.last_event}}
-- **Last updated:** {{status.last_updated}}
-- **Main issue:** #{{main_issue}}
+**Required**
+{{stack_required_list}}
 
----
+**Nice to have**
+{{stack_nice_to_have_list}}
 
-## 🗓️ Rounds
+## 💪 Strengths match
 
-| Round | Status | Date | Interviewer | Sub-issue |
-|---|---|---|---|---|
-{{rounds_list}}
+{{strengths_list}}
 
----
+## ⚠️ Red flags
 
-## 🔧 Open gaps
+{{red_flags_list}}
 
-{{open_gaps}}
+## ❓ Questions to ask
+
+**💰 Compensation**
+{{questions_compensation}}
+
+**🏗️ Stack & architettura**
+{{questions_stack}}
+
+**📦 Prodotto & team**
+{{questions_team}}
+
+**🌍 Remote & lavoro**
+{{questions_red_flags}}
+
+## 🗓️ Steps
+
+{{steps_list}}
+
+_Steps added as they happen._
+
+## 📌 Attenzione
+
+| Priority | Nota |
+|---|---|
+{{attenzione_list}}
+
+## 📝 Notes
+
