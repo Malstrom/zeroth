@@ -1,0 +1,39 @@
+# playbooks/auth_vpn_remote_access.yml
+# Root playbook — no client-specific data.
+# Promoted from: clients/medsi/playbooks/auth_vpn_remote_access.yml
+# Created by: create_playbook scenario
+
+name: "VPN remote access with fixed country IP for remote contractor"
+work_type: auth
+created: 2026-07-15
+promoted_from: "clients/medsi/playbooks/auth_vpn_remote_access.yml"
+usage_count: 0
+source_clients:
+  - medsi
+
+context:
+  problem: >
+    Contractor remoto su Mac, mai in sede fisica. VPN aziendale potrebbe fare
+    GeoIP check o whitelist IP. Necessità di IP fisso nel paese del cliente
+    da qualsiasi location.
+  outcome: >
+    Pattern validato con Medsi (luglio 2026) con GlobalProtect (Palo Alto).
+    Probabilmente compatibile con OpenVPN e Cisco AnyConnect.
+
+steps:
+  - "Scegliere VPS nel paese target con IP statico reale. Verificare geolocalizzazione: curl https://ipinfo.io/json. Spec minime: 1vCPU, 1GB RAM, Ubuntu 22.04."
+  - "Installare WireGuard sul VPS. Generare coppie di chiavi server e client. Configurare wg0.conf con IP forwarding e masquerade iptables su eth0."
+  - "Configurare tunnel WireGuard sul Mac/dispositivo con AllowedIPs=0.0.0.0/0 inizialmente. Verificare IP: curl https://ipinfo.io/ip. Configurare SSH shortcut come fallback."
+  - "Installare client VPN aziendale. HIP check se GlobalProtect: assicurarsi FileVault e Firewall attivi. Ricevere portal address dall'IT del cliente."
+  - "Verificare split tunnel dopo primo login: route -n get default. Gateway 10.x.x.x = no split tunnel → dig +short <portal> per IP gateway → AllowedIPs=<IP_gateway>/32."
+  - "Checklist pre-connessione dall'estero: WireGuard attivo, timezone impostato sul paese del cliente, Location Services off per app VDI, WiFi spento se possibile, lingua/locale OS se VDI fa check aggressivi."
+  - "Comunicare IP del VPS all'IT del cliente per whitelist se richiesto. Testare risorse in ordine di priorità."
+  - "Aggiungere peer mobile (iPhone/Android): nuova coppia di chiavi, nuovo [Peer] in wg0.conf, importare config via QR code."
+  - "Dopo primo accesso VPN aziendale: valutare split routing definitivo — mappare route con netstat -rn → AllowedIPs = solo range aziendali."
+  - "Fallback se porta UDP bloccata dall'ISP: udp2raw oppure OpenVPN su TCP/443."
+  - "Monitoring VPS: UptimeRobot (tier gratuito). Impostare promemoria rinnovo server."
+
+notes: >
+  Opzione C fallback: client VDI sul VPS via RDP se fingerprint check multipli
+  (richiede VPS con 2GB RAM). Testato con GlobalProtect — per altri client VPN
+  la logica split tunnel è identica, cambia solo il portal address.

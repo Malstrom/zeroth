@@ -1,0 +1,11 @@
+# clients/medsi/playbooks/_index.yml
+# Auto-maintained by create_playbook scenario.
+# DO NOT edit manually — use create_playbook or close_task to update.
+
+playbooks:
+  - file: auth_vpn_remote_access.yml
+    work_type: auth
+    name: "VPN remote access with fixed Russian IP — Medsi"
+    created: 2026-07-15
+    usage_count: 0
+    promoted_to_root: true
