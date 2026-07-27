@@ -1,0 +1,22 @@
+# frameworks/daneel/templates/time_tracking_index.yml
+# Template for the time-tracking report index file.
+# Path: clients/{slug}/output/reports/_index.yml
+#
+# Maintained by: generate_time_tracking_report (MANDATORY explicit step
+# after every generated report — never implicit)
+#
+# Rules:
+#   - Every generated .xlsx in the directory must have an entry here
+#   - Every entry must reference an existing file
+#   - Entries are append-only in practice (reports are never regenerated
+#     for a past period) but the file itself is read-write, not append-only
+#   - The next report's start_date is computed as the day after the most
+#     recent entry's end_date
+
+reports:
+  - file: "time_tracking_{{start_date}}_{{end_date}}.xlsx"
+    start_date: "{{YYYY-MM-DD}}"
+    end_date: "{{YYYY-MM-DD}}"
+    generated_at: "{{YYYY-MM-DD}}"
+    tasks_included:
+      - "{{tracking_code}}"

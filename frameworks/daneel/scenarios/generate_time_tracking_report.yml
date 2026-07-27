@@ -1,0 +1,110 @@
+# source: frameworks/daneel/scenarios/generate_time_tracking_report.yml
+# Scenario: generate_time_tracking_report
+# Trigger: user explicitly asks for the time-tracking report — on demand only
+# Output: clients/{slug}/output/reports/time_tracking_{start}_{end}.xlsx +
+#         clients/{slug}/output/reports/_index.yml updated
+# Notes: this is a reporting shape, not a diary — see
+#        templates/time_tracking_report.yml#spreading_algorithm
+
+scenario: generate_time_tracking_report
+
+on:
+  - user asks for the time-tracking report
+  - user says they need the tracking report for a client
+  - "mi serve il report tracking"
+  - "ho bisogno del report tracking"
+  - "genera il report tracking"
+  - "report ore per {{cliente}}"
+
+read:
+  - "clients/{slug}/context.yml"
+  - "clients/{slug}/output/reports/_index.yml"          # to find last period end_date
+  - templates/time_tracking_report.yml                    # schema + spreading algorithm
+  - templates/time_tracking_index.yml                     # index entry format
+
+steps:
+
+  - if: slug is not provided
+    then:
+      - ask: "Per quale cliente serve il report tracking?"
+      - assign: slug from user_input
+
+  - read:
+      path: "clients/{{slug}}/output/reports/_index.yml"
+      assign: report_index
+      on_missing: { reports: [] }
+
+  - assign:
+      start_date: >
+        {{report_index.reports | last | end_date | next_working_day
+          | 'ask user for a start date if report_index is empty and no
+             closed issues exist yet'}}
+
+  - search:
+      source: github_issues
+      state: closed
+      labels:
+        - "client:{{slug}}"
+      closed_after: "{{start_date}}"
+      assign: closed_issues
+      sort: closed_at asc
+
+  - if: closed_issues is empty
+    then:
+      - say: "Nessun task chiuso per {{slug}} dal {{start_date}} a oggi. Nessun report generato."
+      - stop
+
+  - assign:
+      end_date: "{{closed_issues | last | closed_at | YYYY-MM-DD}}"
+
+  - for_each: issue in closed_issues
+    do:
+      - extract:
+          field: tracking_code
+          from: issue.comments
+          section: "Tracking code"
+          fallback: "{{slug}}-{{issue.number}}"
+      - extract:
+          field: task_description
+          from: issue.comments
+          section: "How it was resolved"
+          strategy: "first line or short summary"
+      - assign:
+          tasks: "{{tasks | append: {tracking_code, task_description}}}"
+
+  - compute:
+      working_days: "{{weekdays_between(start_date, end_date)}}"
+
+  - compute:
+      rows: >
+        {{tasks | spread_across_working_days(working_days)
+          | per templates/time_tracking_report.yml#spreading_algorithm}}
+      note: >
+        If count(tasks) >= count(working_days): bucket tasks round-robin
+        into working_days, hours = 8 / bucket_size per task that day.
+        If count(tasks) < count(working_days): cycle tasks round-robin,
+        one task per working day at 8h each.
+        Every working day must end with rows summing to exactly 8.
+
+  - write:
+      path: "clients/{{slug}}/output/reports/time_tracking_{{start_date}}_{{end_date}}.xlsx"
+      from: templates/time_tracking_report.yml
+      rows: "{{rows}}"
+      via: xlsx_skill
+
+  - write:
+      path: "clients/{{slug}}/output/reports/_index.yml"
+      from: templates/time_tracking_index.yml
+      entry:
+        file: "time_tracking_{{start_date}}_{{end_date}}.xlsx"
+        start_date: "{{start_date}}"
+        end_date: "{{end_date}}"
+        generated_at: "{{today | YYYY-MM-DD}}"
+        tasks_included: "{{tasks | map: tracking_code}}"
+      action: append
+      via: direct
+
+  - say: |
+      Report generato: clients/{{slug}}/output/reports/time_tracking_{{start_date}}_{{end_date}}.xlsx
+      Periodo: {{start_date}} → {{end_date}} ({{working_days | count}} giorni lavorativi, {{tasks | count}} task chiuse)
+      Ogni giorno: 8 ore.

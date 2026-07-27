@@ -54,6 +54,7 @@ steps:
       from: templates/issue_comment_close.md
       fields:
         resolved: "{{today | YYYY-MM-DD}}"
+        tracking_code: "{{slug}}-{{issue_number}}"
         how_resolved: "{{resolution_description}}"
         output_delivered: "{{output_delivered}}"
         playbook_used: "{{playbook_used_in_session | 'none'}}"

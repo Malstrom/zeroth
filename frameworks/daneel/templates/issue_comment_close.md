@@ -7,6 +7,8 @@
 
 **Resolved:** {{YYYY-MM-DD}}
 
+**Tracking code:** {{slug}}-{{issue_number}}
+
 **How it was resolved:**
 {{2-3 lines. What was done, what was delivered, how the problem was solved.
 No raw log — distilled summary only.}}
