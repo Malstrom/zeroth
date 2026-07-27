@@ -12,7 +12,7 @@ schema:
   sheet_name: "Tracking"
   columns:
     - { name: "Date",          type: date,   format: "YYYY-MM-DD" }
-    - { name: "Tracking code", type: string,  notes: "{{slug}}-{{issue_number}}, extracted from the issue's closing comment" }
+    - { name: "Tracking code", type: string,  notes: "the client's own external tracker code (e.g. TORMED-389), extracted from the issue's closing comment — issues without one are excluded, never a synthetic fallback" }
     - { name: "Task",          type: string,  notes: "short description, from the closing comment's 'How it was resolved'" }
     - { name: "Hours",         type: number,  notes: "synthetic — see spreading algorithm, not a real per-task effort measurement" }
 
@@ -38,12 +38,21 @@ schema:
 # ---------------------------------------------------------------------------
 spreading_algorithm: |
   Given:
-    tasks           = closed issues for the client in [start_date, end_date],
-                       each as {tracking_code, task_description}, ordered by
-                       the issue's closed_at timestamp
+    tasks           = closed issues for the client in [start_date, end_date]
+                       THAT HAVE A NON-EMPTY tracking code (client's own
+                       external tracker — issues with no tracking code are
+                       not real client-tracked work and are dropped before
+                       this step runs), each as {tracking_code,
+                       task_description}, ordered by the issue's closed_at
+                       timestamp
     working_days     = list of Mon-Fri calendar dates in [start_date, end_date]
     N                = count(tasks)
     D                = count(working_days)
+
+  start_date = day after the previous report's end_date (no overlap between
+  consecutive reports). end_date = today, the date the report is generated —
+  not the date of the last closed issue, since the period must cover every
+  working day up to now even if nothing closed recently.
 
   If N == 0:
     do not generate a file — tell the user there is nothing to report for
@@ -65,7 +74,10 @@ spreading_algorithm: |
   least one row. Non-working days (Sat/Sun) get no rows at all.
 
 notes: >
-  The tracking code is not free text — it must come from the issue's
-  closing comment ("Tracking code" field, added by close_task). If an
-  issue was closed before this field existed, fall back to
-  "{{slug}}-{{issue_number}}" derived directly from the issue number.
+  The tracking code is not free text and never synthetic — it must be the
+  client's own external tracker code, captured as required input at
+  ingest_task time (mandatory whenever a client_slug is set) and carried
+  through to the issue's closing comment via close_task. Issues with no
+  tracking code (internal/admin work, or client issues created before this
+  requirement existed) are excluded from the report entirely, not given a
+  fallback code.

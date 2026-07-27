@@ -11,6 +11,7 @@
 - contact: {{contact_slug — ref to contacts/{slug}.yml | null}}
 - received: {{YYYY-MM-DD}}
 - deadline: {{YYYY-MM-DD | null}}
+- tracker_code: {{client's own external tracker issue code, e.g. TORMED-389 — REQUIRED whenever slug (client) is set, null only for internal/non-client tasks}}
 
 ## Work type
 {{work_type — must be a value from work_type enum in overview.yml}}

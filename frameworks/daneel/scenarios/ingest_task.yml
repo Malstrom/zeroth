@@ -44,6 +44,17 @@ steps:
       from: user_input
       fallback: ask
 
+  - if: client_slug is not null
+    then:
+      - ask: "Codice tracker del cliente per questa task? (es. TORMED-389 — obbligatorio per task cliente, preso dal tracker esterno del cliente)"
+      - assign: tracker_code from user_input
+      - if: tracker_code is empty
+        then:
+          - ask: "Il codice tracker è obbligatorio per le task cliente — non possiamo procedere senza. Codice tracker?"
+          - assign: tracker_code from user_input
+    else:
+      - assign: tracker_code = null
+
   - read:
       path: "clients/{slug}/playbooks/_index.yml"
       filter: { work_type: "{{work_type}}" }
@@ -115,7 +126,7 @@ steps:
 
   - create:
       resource: github_issue
-      title: "{{work_type}}: {{short task description}} — {{slug}}"
+      title: "{{work_type}}: {{short task description}} — {{slug}}{{tracker_code ? ' [' + tracker_code + ']' : ''}}"
       body: templates/issue_body.md
       labels:
         - "client:{{slug}}"
@@ -126,6 +137,7 @@ steps:
         contact: "{{contact_slug | null}}"
         received: "{{YYYY-MM-DD}}"
         deadline: "{{YYYY-MM-DD | null}}"
+        tracker_code: "{{tracker_code}}"
         work_type: "{{work_type}}"
         prior_art_playbook: "{{best matching playbook name | none}}"
         prior_art_issues: "{{past_issues_client | top 3 numbers and titles | none}}"
