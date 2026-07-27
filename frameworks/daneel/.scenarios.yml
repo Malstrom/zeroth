@@ -86,6 +86,17 @@ scenarios:
       - user wants to update the index for a client or period
     file: frameworks/daneel/scenarios/reindex.yml
 
+  - id: generate_time_tracking_report
+    priority: 10
+    preconditions:
+      - any
+    triggers:
+      - user explicitly asks for the time-tracking report
+      - user says they need the tracking report for a client
+      - "mi serve il report tracking"
+      - "ho bisogno del report tracking"
+    file: frameworks/daneel/scenarios/generate_time_tracking_report.yml
+
   - id: unknown_scenario
     priority: 0
     preconditions:

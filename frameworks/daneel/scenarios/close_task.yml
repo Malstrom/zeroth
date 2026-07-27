@@ -44,6 +44,15 @@ steps:
       from: issue.labels
       prefix: "client:"
 
+  - extract:
+      field: tracker_code
+      from: issue.body
+      section: "## Source"
+      key: "tracker_code"
+      fallback:
+        strategy: "parse trailing [CODE] from issue.title if body field missing (pre-existing issues)"
+        on_missing: null
+
   - ask: |
       How was this resolved? (2-3 lines — what was done, what was delivered)
 
@@ -54,6 +63,7 @@ steps:
       from: templates/issue_comment_close.md
       fields:
         resolved: "{{today | YYYY-MM-DD}}"
+        tracker_code: "{{tracker_code | null}}"
         how_resolved: "{{resolution_description}}"
         output_delivered: "{{output_delivered}}"
         playbook_used: "{{playbook_used_in_session | 'none'}}"
