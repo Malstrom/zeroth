@@ -5,6 +5,10 @@
 #         clients/{slug}/output/reports/_index.yml updated
 # Notes: this is a reporting shape, not a diary — see
 #        templates/time_tracking_report.yml#spreading_algorithm
+#        The workbook itself is a client-facing document and is written in
+#        the client's own language (clients/{slug}/context.yml#language),
+#        never in Igor's chat language — see
+#        templates/time_tracking_report.yml#language
 
 scenario: generate_time_tracking_report
 
@@ -79,6 +83,21 @@ steps:
       - say: "Nessun task con codice tracker cliente per {{slug}} dal {{start_date}} a oggi. Nessun report generato."
       - stop
 
+  - extract:
+      field: report_language
+      from: "clients/{{slug}}/context.yml"
+      key: "language"
+      on_missing:
+        - ask: "Il cliente {{slug}} non ha una lingua impostata in context.yml — in che lingua genero il report?"
+        - assign: report_language from user_input
+
+  - for_each: task in tasks
+    do:
+      - translate:
+          field: task.task_description
+          into: "{{report_language}}"
+          note: "the report is a client-facing document — never leave task descriptions in Italian if report_language differs"
+
   - compute:
       working_days: "{{weekdays_between(start_date, end_date)}}"
 
@@ -96,6 +115,7 @@ steps:
   - write:
       path: "clients/{{slug}}/output/reports/time_tracking_{{start_date}}_{{end_date}}.xlsx"
       from: templates/time_tracking_report.yml
+      language: "{{report_language}}"            # sheet name + column headers + task text, per templates/time_tracking_report.yml#language
       rows: "{{rows}}"
       via: xlsx_skill
 

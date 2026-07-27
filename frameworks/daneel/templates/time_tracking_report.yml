@@ -8,13 +8,31 @@
 # templates) — an .xlsx can't be templated as text. This file documents the
 # structure the scenario must produce via the xlsx skill.
 
+language:
+  rule: >
+    The report is a client-facing document — it must be written in the
+    client's own language, read from clients/{slug}/context.yml#language
+    (e.g. "ru" for medsi), NOT in Igor's chat language (Italian) and NOT
+    hardcoded. This applies to the sheet name, all column headers, and
+    every task description written into the "Task" column — translate
+    each task_description into that language before writing the row (the
+    closing comment it comes from is in Italian; the report never is).
+    Dates and the tracker code are language-neutral and need no
+    translation.
+  source: "clients/{slug}/context.yml#language"
+  fallback: >
+    If context.yml has no language field, ask Igor which language to use
+    before generating — never default silently to Italian or English.
+
 schema:
-  sheet_name: "Tracking"
+  sheet_name: "Tracking"           # translate into client language, e.g. ru: "Учёт времени"
   columns:
     - { name: "Date",          type: date,   format: "YYYY-MM-DD" }
     - { name: "Tracking code", type: string,  notes: "the client's own external tracker code (e.g. TORMED-389), extracted from the issue's closing comment — issues without one are excluded, never a synthetic fallback" }
-    - { name: "Task",          type: string,  notes: "short description, from the closing comment's 'How it was resolved'" }
+    - { name: "Task",          type: string,  notes: "short description, from the closing comment's 'How it was resolved' — translated into the client's language (see language.rule above), not left in Italian" }
     - { name: "Hours",         type: number,  notes: "synthetic — see spreading algorithm, not a real per-task effort measurement" }
+    # column headers themselves ("Date", "Tracking code", "Task", "Hours")
+    # must also be translated into the client's language before writing
 
   daily_subtotal:
     rule: >
