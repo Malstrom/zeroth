@@ -14,7 +14,7 @@ schema:
     name:             { type: string,          required: true }
     client:           { type: string,          required: true }
     contact:          { type: string,          required: false, notes: "slug ref to contacts/{slug}.yml — optional if contact unknown" }
-    work_type:        { type: enum,            required: true,  values: [contract_review, sla_negotiation, code_review, protocol_validation, auth, onboarding, incident, reporting, meeting, admin, other] }
+    work_type:        { type: enum,            required: true,  values: [contract_review, sla_negotiation, code_review, feature, protocol_validation, auth, onboarding, incident, reporting, meeting, admin, other] }
     created:          { type: date,            required: true }
     issue_ref:        { type: number,          required: true,  notes: "GitHub issue number that originated this playbook" }
     usage_count:      { type: number,          required: true }

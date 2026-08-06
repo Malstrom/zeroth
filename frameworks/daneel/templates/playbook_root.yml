@@ -12,7 +12,7 @@
 schema:
   fields:
     name:             { type: string,          required: true }
-    work_type:        { type: enum,            required: true, values: [contract_review, sla_negotiation, code_review, protocol_validation, auth, onboarding, incident, reporting, meeting, admin, other] }
+    work_type:        { type: enum,            required: true, values: [contract_review, sla_negotiation, code_review, feature, protocol_validation, auth, onboarding, incident, reporting, meeting, admin, other] }
     created:          { type: date,            required: true }
     promoted_from:    { type: string,          required: true, notes: "path to source client playbook" }
     usage_count:      { type: number,          required: true }
