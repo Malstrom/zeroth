@@ -58,6 +58,7 @@ work_type:
     - contract_review      # reviewing or negotiating a contract
     - sla_negotiation      # negotiating service level agreements
     - code_review          # reviewing, deploying, or debugging code
+    - feature              # developing a new feature or capability
     - protocol_validation  # validating technical or operational protocols
     - auth                 # authentication, access, permissions
     - onboarding           # onboarding a new client, user, or system
