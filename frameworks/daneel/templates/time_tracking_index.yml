@@ -14,9 +14,9 @@
 #     recent entry's end_date
 
 reports:
-  - file: "time_tracking_{{start_date}}_{{end_date}}.xlsx"
-    start_date: "{{YYYY-MM-DD}}"
-    end_date: "{{YYYY-MM-DD}}"
+  - file: "ТШ_{{operator.surname_cyrillic}}_{{Месяц}} {{Год}}.xlsx"   # one file per calendar month
+    start_date: "{{YYYY-MM-DD}}"     # clamped to the covered month's bounds
+    end_date: "{{YYYY-MM-DD}}"       # clamped to the covered month's bounds
     generated_at: "{{YYYY-MM-DD}}"
     tasks_included:
       - "{{tracking_code}}"
