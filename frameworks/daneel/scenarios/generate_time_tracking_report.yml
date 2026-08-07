@@ -1,10 +1,18 @@
 # source: frameworks/daneel/scenarios/generate_time_tracking_report.yml
 # Scenario: generate_time_tracking_report
 # Trigger: user explicitly asks for the time-tracking report — on demand only
-# Output: clients/{slug}/output/reports/time_tracking_{start}_{end}.xlsx +
-#         clients/{slug}/output/reports/_index.yml updated
+# Output: one clients/{slug}/output/reports/ТШ_{surname}_{Месяц Год}.xlsx
+#         PER CALENDAR MONTH covered by the period, + _index.yml updated
+#         (one entry per generated file)
 # Notes: this is a reporting shape, not a diary — see
 #        templates/time_tracking_report.yml#spreading_algorithm
+#        The workbook itself is a client-facing document and is written in
+#        the client's own language (clients/{slug}/context.yml#language),
+#        never in Igor's chat language — see
+#        templates/time_tracking_report.yml#language
+#        For ru reports, task text also follows
+#        templates/time_tracking_report.yml#task_wording_rules (tax/legal
+#        compliance — see Igor's "Памятка по ТШ" memo).
 
 scenario: generate_time_tracking_report
 
@@ -19,8 +27,9 @@ on:
 read:
   - "clients/{slug}/context.yml"
   - "clients/{slug}/output/reports/_index.yml"          # to find last period end_date
-  - templates/time_tracking_report.yml                    # schema + spreading algorithm
+  - templates/time_tracking_report.yml                    # schema + spreading algorithm + wording rules
   - templates/time_tracking_index.yml                     # index entry format
+  - "Malstrom/daneel:.daneel.yml"                          # operator.surname_cyrillic for the filename
 
 steps:
 
@@ -46,72 +55,128 @@ steps:
         is to fill working days where nothing closed, so the period must
         run all the way to now.
 
-  - search:
-      source: github_issues
-      state: closed
-      labels:
-        - "client:{{slug}}"
-      closed_after: "{{start_date}}"
-      closed_before: "{{end_date}}"
-      assign: closed_issues
-      sort: closed_at asc
+  - extract:
+      field: report_language
+      from: "clients/{{slug}}/context.yml"
+      key: "language"
+      on_missing:
+        - ask: "Il cliente {{slug}} non ha una lingua impostata in context.yml — in che lingua genero il report?"
+        - assign: report_language from user_input
 
-  - for_each: issue in closed_issues
+  - compute:
+      month_periods: "{{split_into_calendar_months(start_date, end_date)}}"
+      note: >
+        One entry per calendar month touched by [start_date, end_date],
+        each clamped to that month's actual bounds. E.g. start=2026-07-15,
+        end=2026-08-01 → [{sub_start: 2026-07-15, sub_end: 2026-07-31,
+        month: 7, year: 2026}, {sub_start: 2026-08-01, sub_end: 2026-08-01,
+        month: 8, year: 2026}]. One workbook is generated per entry below —
+        this is a hard requirement (one ТШ per calendar month), not an
+        optimization.
+
+  - assign:
+      russian_month_names:
+        1: Январь
+        2: Февраль
+        3: Март
+        4: Апрель
+        5: Май
+        6: Июнь
+        7: Июль
+        8: Август
+        9: Сентябрь
+        10: Октябрь
+        11: Ноябрь
+        12: Декабрь
+
+  - for_each: period in month_periods
     do:
-      - extract:
-          field: tracking_code
-          from: issue.comments
-          section: "Tracking code"
-          on_missing: null
-      - if: tracking_code is null or tracking_code == "none"
-        then:
-          - continue                                   # not client-tracker work — excluded from the report
-      - extract:
-          field: task_description
-          from: issue.comments
-          section: "How it was resolved"
-          strategy: "first line or short summary"
-      - assign:
-          tasks: "{{tasks | append: {tracking_code, task_description}}}"
+      - search:
+          source: github_issues
+          state: closed
+          labels:
+            - "client:{{slug}}"
+          closed_after: "{{period.sub_start}}"
+          closed_before: "{{period.sub_end}}"
+          assign: closed_issues
 
-  - if: tasks is empty
+      - for_each: issue in closed_issues
+        do:
+          - extract:
+              field: tracking_code
+              from: issue.comments
+              section: "Tracking code"
+              on_missing: null
+          - if: tracking_code is null or tracking_code == "none"
+            then:
+              - continue                                 # not client-tracker work — excluded from the report
+          - extract:
+              field: task_description
+              from: issue.comments
+              section: "How it was resolved"
+              strategy: "first line or short summary"
+          - assign:
+              tasks: "{{tasks | append: {tracking_code, task_description}}}"
+
+      - if: tasks is empty
+        then:
+          - say: "Nessun task con codice tracker cliente per {{slug}} nel mese {{russian_month_names[period.month]}} {{period.year}}. Nessun report generato per questo mese."
+          - continue                                     # next month_periods entry, if any
+
+      - for_each: task in tasks
+        do:
+          - translate:
+              field: task.task_description
+              into: "{{report_language}}"
+              note: "the report is a client-facing document — never leave task descriptions in Italian if report_language differs"
+          - if: report_language == "ru"
+            then:
+              - rewrite:
+                  field: task.task_description
+                  per: templates/time_tracking_report.yml#task_wording_rules
+                  note: "no verbs, no meeting/call/standup words, name the specific component/module — mandatory for ru (tax/legal compliance), see the memo-derived cheat_sheet"
+
+      - compute:
+          working_days: "{{weekdays_between(period.sub_start, period.sub_end)}}"
+
+      - compute:
+          rows: >
+            {{tasks | spread_across_working_days(working_days)
+              | per templates/time_tracking_report.yml#spreading_algorithm}}
+          note: >
+            If count(tasks) >= count(working_days): bucket tasks round-robin
+            into working_days, hours = 8 / bucket_size per task that day.
+            If count(tasks) < count(working_days): cycle tasks round-robin,
+            one task per working day at 8h each.
+            Every working day must end with rows summing to exactly 8.
+
+      - assign:
+          report_filename: "ТШ_{{operator.surname_cyrillic}}_{{russian_month_names[period.month]}} {{period.year}}.xlsx"
+
+      - write:
+          path: "clients/{{slug}}/output/reports/{{report_filename}}"
+          from: templates/time_tracking_report.yml
+          language: "{{report_language}}"            # sheet name + column headers + task text, per templates/time_tracking_report.yml#language
+          rows: "{{rows}}"
+          via: xlsx_skill
+
+      - write:
+          path: "clients/{{slug}}/output/reports/_index.yml"
+          from: templates/time_tracking_index.yml
+          entry:
+            file: "{{report_filename}}"
+            start_date: "{{period.sub_start}}"
+            end_date: "{{period.sub_end}}"
+            generated_at: "{{today | YYYY-MM-DD}}"
+            tasks_included: "{{tasks | map: tracking_code}}"
+          action: append
+          via: direct
+
+      - say: |
+          Report generato: clients/{{slug}}/output/reports/{{report_filename}}
+          Periodo: {{period.sub_start}} → {{period.sub_end}} ({{working_days | count}} giorni lavorativi, {{tasks | count}} task chiuse)
+          Ogni giorno: 8 ore.
+
+  - if: no report was generated for any month_periods entry
     then:
       - say: "Nessun task con codice tracker cliente per {{slug}} dal {{start_date}} a oggi. Nessun report generato."
-      - stop
-
-  - compute:
-      working_days: "{{weekdays_between(start_date, end_date)}}"
-
-  - compute:
-      rows: >
-        {{tasks | spread_across_working_days(working_days)
-          | per templates/time_tracking_report.yml#spreading_algorithm}}
-      note: >
-        If count(tasks) >= count(working_days): bucket tasks round-robin
-        into working_days, hours = 8 / bucket_size per task that day.
-        If count(tasks) < count(working_days): cycle tasks round-robin,
-        one task per working day at 8h each.
-        Every working day must end with rows summing to exactly 8.
-
-  - write:
-      path: "clients/{{slug}}/output/reports/time_tracking_{{start_date}}_{{end_date}}.xlsx"
-      from: templates/time_tracking_report.yml
-      rows: "{{rows}}"
-      via: xlsx_skill
-
-  - write:
-      path: "clients/{{slug}}/output/reports/_index.yml"
-      from: templates/time_tracking_index.yml
-      entry:
-        file: "time_tracking_{{start_date}}_{{end_date}}.xlsx"
-        start_date: "{{start_date}}"
-        end_date: "{{end_date}}"
-        generated_at: "{{today | YYYY-MM-DD}}"
-        tasks_included: "{{tasks | map: tracking_code}}"
-      action: append
-      via: direct
-
-  - say: |
-      Report generato: clients/{{slug}}/output/reports/time_tracking_{{start_date}}_{{end_date}}.xlsx
-      Periodo: {{start_date}} → {{end_date}} ({{working_days | count}} giorni lavorativi, {{tasks | count}} task chiuse)
-      Ogni giorno: 8 ore.
