@@ -82,27 +82,22 @@ task_wording_rules:
       formal: "Проведение технического рецензирования кода (Code Review)"
 
 schema:
+  # Source: Igor's company-provided ТШ template example (screenshots in the
+  # "Памятка по ТШ" memo). ONE ROW PER WORKING DAY — never multiple rows for
+  # the same date, and no per-day subtotal rows (unlike the earlier design).
   sheet_name: "Tracking"           # translate into client language, e.g. ru: "Учёт времени"
   columns:
-    - { name: "Date",          type: date,   format: "YYYY-MM-DD" }
-    - { name: "Tracking code", type: string,  notes: "the client's own external tracker code (e.g. TORMED-389), extracted from the issue's closing comment — issues without one are excluded, never a synthetic fallback" }
-    - { name: "Task",          type: string,  notes: "short description, from the closing comment's 'How it was resolved' — translated into the client's language (see language.rule above); for ru, also rewritten per task_wording_rules before being written" }
-    - { name: "Hours",         type: number,  notes: "synthetic — see spreading algorithm, not a real per-task effort measurement" }
-    # column headers themselves ("Date", "Tracking code", "Task", "Hours")
-    # must also be translated into the client's language before writing
+    - { name: "Date",              type: date,   format: "YYYY-MM-DD", notes: "ru header: Дата" }
+    - { name: "Task // Project",   type: string,  notes: "ru header: Задача // Проект — the client's own external tracker code(s) for that day (e.g. TORMED-389); issues without one are excluded, never a synthetic fallback. If a day covers more than one tracker code (N >= working_days case), join them with a comma in this same cell — never split one day across multiple rows" }
+    - { name: "Work performed",    type: string,  notes: "ru header: Наименование работ/услуг — one or more activities for that day, comma-joined if several (e.g. 'Планирование, Настройка Docker, Онбординг'), translated into the client's language (see language.rule) and, for ru, rewritten per task_wording_rules before being written" }
+    - { name: "Hours",             type: number,  notes: "ru header: Часы — always 8 for every working day, flat (no per-task split even when a day covers multiple tracker codes)" }
 
-  daily_subtotal:
+  grand_total:
     rule: >
-      One subtotal row per date (SUM of Hours for that date), or an
-      equivalent per-date aggregation visible without scrolling — e.g. a
-      bold subtotal row inserted after the last row of each date group.
-
-  conditional_formatting:
-    rule: >
-      Highlight (e.g. red fill) any date whose subtotal is not exactly 8.
-      This should never trigger if the spreading algorithm is correct —
-      it exists as a visual guard against bugs, not a feature Igor
-      interacts with.
+      One total row at the bottom of the sheet (SUM of the Hours column) —
+      no intermediate per-day subtotals, since each day is already exactly
+      one row. Matches the company template example (bottom-right cell
+      showing the period total, e.g. 48 for a 6-working-day period).
 
 # ---------------------------------------------------------------------------
 # SPREADING ALGORITHM
@@ -133,11 +128,16 @@ spreading_algorithm: |
     do not generate a file for that month — tell the user there is nothing
     to report for it.
 
+  ONE ROW PER WORKING DAY — always, regardless of N vs D:
+
   If N >= D:
     - Split `tasks` into D buckets in order, as evenly as possible
       (bucket sizes differ by at most 1 task).
     - Assign bucket i to working_days[i].
-    - Within a day's bucket of k tasks, hours = 8/k per task (evenly split).
+    - Write ONE row for that day: "Task // Project" = all tracker codes in
+      the bucket, comma-joined; "Work performed" = all task_descriptions
+      in the bucket, comma-joined (still per task_wording_rules); Hours = 8
+      flat for the day (not split per task within the cell).
 
   If N < D:
     - Repeat `tasks` round-robin to produce exactly D entries, one per
@@ -145,8 +145,8 @@ spreading_algorithm: |
     - Each working day gets exactly one row at 8h, using the task assigned
       to it by the round-robin cycle.
 
-  Every working day must end up with hours summing to exactly 8 and at
-  least one row. Non-working days (Sat/Sun) get no rows at all.
+  Every working day must end up with exactly one row, Hours = 8. Non-working
+  days (Sat/Sun) get no rows at all.
 
 notes: >
   The tracking code is not free text and never synthetic — it must be the

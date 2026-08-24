@@ -106,7 +106,20 @@ steps:
               field: tracking_code
               from: issue.comments
               section: "Tracking code"
-              on_missing: null
+              on_missing:
+                # in practice most issues are closed without going through
+                # close_task's formal "Tracking code:" field — fall back to
+                # parsing a trailing [CODE] (or bare CODE, if brackets are
+                # missing) from the issue title, and if still not found,
+                # from any commit/branch reference like "TORMED-NNN" in the
+                # closing comment text (e.g. "branch `TORMED-579`")
+                - parse: "trailing [CODE] or bare CODE from issue.title"
+                - if: still not found
+                  then:
+                    - parse: "TORMED-\\d+ pattern anywhere in issue.comments"
+                - if: still not found
+                  then:
+                    - assign: tracking_code = null
           - if: tracking_code is null or tracking_code == "none"
             then:
               - continue                                 # not client-tracker work — excluded from the report
@@ -115,6 +128,8 @@ steps:
               from: issue.comments
               section: "How it was resolved"
               strategy: "first line or short summary"
+              on_missing:
+                - continue                                 # closed without a real closing summary — nothing to report, excluded (do not fabricate a description)
           - assign:
               tasks: "{{tasks | append: {tracking_code, task_description}}}"
 
@@ -144,11 +159,15 @@ steps:
             {{tasks | spread_across_working_days(working_days)
               | per templates/time_tracking_report.yml#spreading_algorithm}}
           note: >
-            If count(tasks) >= count(working_days): bucket tasks round-robin
-            into working_days, hours = 8 / bucket_size per task that day.
-            If count(tasks) < count(working_days): cycle tasks round-robin,
-            one task per working day at 8h each.
-            Every working day must end with rows summing to exactly 8.
+            ONE ROW PER WORKING DAY, always — never multiple rows for the
+            same date. If count(tasks) >= count(working_days): bucket tasks
+            round-robin into working_days, and for a day whose bucket has
+            more than one task, join tracker codes with ", " in "Task //
+            Project" and task descriptions with ", " in "Work performed" —
+            Hours stays a flat 8 for the day, not split per task. If
+            count(tasks) < count(working_days): cycle tasks round-robin,
+            one task per working day at 8h each. Every working day ends
+            with exactly one row, Hours = 8.
 
       - assign:
           report_filename: "ТШ_{{operator.surname_cyrillic}}_{{russian_month_names[period.month]}} {{period.year}}.xlsx"
