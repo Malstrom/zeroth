@@ -161,13 +161,19 @@ steps:
           note: >
             ONE ROW PER WORKING DAY, always — never multiple rows for the
             same date. If count(tasks) >= count(working_days): bucket tasks
-            round-robin into working_days, and for a day whose bucket has
-            more than one task, join tracker codes with ", " in "Task //
+            in order into working_days, and for a day whose bucket has more
+            than one task, join tracker codes with ", " in "Task //
             Project" and task descriptions with ", " in "Work performed" —
             Hours stays a flat 8 for the day, not split per task. If
-            count(tasks) < count(working_days): cycle tasks round-robin,
-            one task per working day at 8h each. Every working day ends
-            with exactly one row, Hours = 8.
+            count(tasks) < count(working_days): NEVER round-robin/cycle the
+            list (a task reappearing later reads as a mistake) — instead
+            give each task a BLOCK of CONSECUTIVE working days (base = D
+            // N, remainder = D mod N; the first `remainder` tasks in
+            closed_at order get base+1 days each, the rest get base days
+            each), so each task reads as continuous multi-day work. See
+            templates/time_tracking_report.yml#spreading_algorithm for the
+            worked example. Every working day ends with exactly one row,
+            Hours = 8.
 
       - assign:
           report_filename: "ТШ_{{operator.surname_cyrillic}}_{{russian_month_names[period.month]}} {{period.year}}.xlsx"

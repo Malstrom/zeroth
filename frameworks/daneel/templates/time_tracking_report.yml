@@ -140,10 +140,22 @@ spreading_algorithm: |
       flat for the day (not split per task within the cell).
 
   If N < D:
-    - Repeat `tasks` round-robin to produce exactly D entries, one per
-      working day (task list cycles: task1, task2, ..., taskN, task1, ...).
-    - Each working day gets exactly one row at 8h, using the task assigned
-      to it by the round-robin cycle.
+    - Do NOT round-robin/cycle the task list — a task reappearing later,
+      out of nowhere, after other tasks already ran reads as a mistake
+      ("why did TORMED-574 come back on day 16?"), not as continuous work.
+    - Instead, give each task a BLOCK of CONSECUTIVE working days, in
+      order, so each task reads as multi-day continuous work:
+        base       = D // N   (integer division)
+        remainder  = D mod N
+        The first `remainder` tasks (in closed_at order) each get
+        `base + 1` consecutive working days; the remaining tasks each get
+        `base` consecutive working days.
+        Example: N=15, D=21 → base=1, remainder=6 → the first 6 tasks
+        (closed_at order) each get a 2-day block, the other 9 get a
+        1-day block. Assign blocks to working_days in order: task 1's
+        block is working_days[0:2], task 2's is working_days[2:4], etc.
+    - Every row within a task's block has that task's tracking_code and
+      task_description unchanged, Hours = 8.
 
   Every working day must end up with exactly one row, Hours = 8. Non-working
   days (Sat/Sun) get no rows at all.
