@@ -1,0 +1,61 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/lend_borrow.yml
+
+id: lend_borrow
+on:
+  - user borrowed a tool from someone or lent a tool to someone
+  - user rented a tool or equipment
+  - user returned a borrowed or rented tool, or got back a lent one
+preconditions:
+  - house_exists
+creates_issue: false
+read:
+  - "houses/{house}/tools/*.yml"
+  - "contacts/*.yml"
+  - frameworks/andrew/templates/tool.yml
+  - frameworks/andrew/templates/contact.yml
+steps:
+  - compute: house
+  - compute: movement                   # borrowed | lent_out | rented | returned
+  - ask: "Which tool, who is the other person or shop, and until when?"
+  - compute: counterpart
+  - if:
+      condition: counterpart is not a known contact
+      then:
+        - write:
+            path: "contacts/"
+            filename: "{slug}.yml"
+            from: frameworks/andrew/templates/contact.yml
+            access: read-write
+            via: commit
+            approval: none
+  - write:
+      path: "houses/{{house}}/tools/"
+      filename: "{tool}.yml"
+      fields: [ownership, counterpart, since, due, condition]
+      from: frameworks/andrew/templates/tool.yml
+      access: read-write
+      via: commit
+      approval: none
+  - write:
+      path: "houses/{{house}}/log/"
+      filename: "YYYY-MM-DD.yml"
+      access: append-only
+      via: commit
+      approval: none
+  - commit_before_reply
+  - if:
+      condition: movement == rented
+      then:
+        - propose: "Record the rental cost in the ledger?"
+          on_confirm:
+            - call:
+                scenario: record_expense
+                file: frameworks/andrew/scenarios/record_expense.yml
+                load: on_demand
+                with: { house: "{{house}}", category: tools, payee: "{{counterpart}}" }
+          on_reject:
+            - say: "OK. I'll remind you of the due date at session start."
+      else:
+        - say: "Done. {{due | prefix: 'Due back: '}} — I'll flag it at session start."
+output:
+  state_changes: [tool-movement-recorded]

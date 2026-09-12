@@ -1,0 +1,141 @@
+# frameworks/andrew/structure.yml
+# Canonical layout of any andrew instance repo.
+# All names: snake_case, lowercase, English. AI files: .yml | human files: .md
+
+root: "{instance}"
+
+files:
+  - path: CLAUDE.md
+    role: agent entry point — instance identity + import of frameworks/andrew/CLAUDE.md
+    from_template: frameworks/andrew/templates/instance_claude.md
+    access: read-only
+    required: true
+
+  - path: .claude/settings.json
+    role: Claude Code permissions (replaces tool_approval) + SessionStart hooks
+    from_template: frameworks/andrew/templates/instance_settings.json
+    access: read-only
+    required: true
+
+  - path: .andrew.yml
+    role: owner identity — language, skills, preferences
+    from_template: frameworks/andrew/templates/.andrew.yml
+    access: read-write
+    required: true
+
+  - path: .registry.yml
+    role: cross-repo connection map
+    from_template: templates/.registry.yml
+    access: read-only
+    required: true
+
+  - path: README.md
+    role: human navigation hub
+    from_template: frameworks/andrew/templates/instance_readme.md
+    access: read-write
+    required: true
+
+folders:
+
+  contacts:
+    path: contacts/
+    description: people and companies — lenders, craftsmen, suppliers, technicians
+    files:
+      - pattern: "{slug}.yml"
+        from_template: frameworks/andrew/templates/contact.yml
+        access: read-write
+
+  playbooks:
+    path: playbooks/
+    description: procedures learned on closed projects — valid for every house
+    files:
+      - pattern: "{work_type}_{descriptor}.yml"
+        from_template: frameworks/andrew/templates/playbook.yml
+        access: read-write
+
+  houses:
+    path: houses/{slug}/
+    description: everything physical about one house
+    created_by: add_house
+    subfolders:
+
+      - path: houses/{slug}/house.yml
+        role: static house data, systems, constraints, plan reference
+        from_template: frameworks/andrew/templates/house.yml
+        access: read-write
+
+      - path: houses/{slug}/plans/
+        role: dated plan exports (MagicPlan) — describe the TARGET house
+        pattern: "YYYY-MM-DD_{slug}.{ext}"
+        access: write-once
+
+      - path: houses/{slug}/rooms/
+        role: one file per room — target + current_diff
+        pattern: "{room}.yml"
+        from_template: frameworks/andrew/templates/room.yml
+        access: read-write
+
+      - path: houses/{slug}/tools/
+        role: tools stored in this house
+        pattern: "{tool}.yml"
+        from_template: frameworks/andrew/templates/tool.yml
+        access: read-write
+
+      - path: houses/{slug}/stock.yml
+        role: consumables and leftover materials stored in this house
+        from_template: frameworks/andrew/templates/stock.yml
+        access: read-write
+
+      - path: houses/{slug}/projects/
+        role: structured project plans — options, decisions, tasks, estimates
+        pattern: "{project}.yml"
+        from_template: frameworks/andrew/templates/project.yml
+        access: read-write
+
+      - path: houses/{slug}/purchases/
+        role: purchase decisions and shopping lists
+        pattern: "YYYY-MM-DD_{slug}.yml"
+        from_template: frameworks/andrew/templates/purchase.yml
+        access: write-once
+
+      - path: houses/{slug}/ledger/
+        role: every euro spent on the house — one file per month
+        pattern: "YYYY-MM.yml"
+        from_template: frameworks/andrew/templates/ledger.yml
+        access: append-only
+
+      - path: houses/{slug}/docs/
+        role: invoices, receipts, warranties, permits, certificates
+        pattern: "YYYY-MM-DD_{slug}.{ext}"
+        access: write-once
+
+      - path: houses/{slug}/log/
+        role: work diary — one file per day worked
+        pattern: "YYYY-MM-DD.yml"
+        from_template: frameworks/andrew/templates/log.yml
+        access: append-only
+
+cross_refs:
+  - label: "project file without a matching house"
+    source: houses/{slug}/projects/{project}.yml#house
+    target: houses/{value}/house.yml
+    target_type: file_exists
+    level: error
+
+  - label: "current_diff points to a missing project"
+    source: houses/{slug}/rooms/*.yml#current_diff[].project
+    target: houses/{slug}/projects/{value}.yml
+    target_type: file_exists
+    level: error
+
+  - label: "ledger entry points to a missing project"
+    source: houses/{slug}/ledger/*.yml#entries[].project
+    target: houses/{slug}/projects/{value}.yml
+    target_type: file_exists
+    level: error
+
+  - label: "tool counterpart is not a known contact"
+    source: houses/{slug}/tools/*.yml#counterpart
+    target: contacts/{value}.yml
+    target_type: file_exists
+    level: warning

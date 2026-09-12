@@ -1,0 +1,13 @@
+# contacts/{slug}.yml
+# A person or company. One file even if involved with several houses.
+
+slug: "{{CONTACT_SLUG}}"            # e.g. mario_rossi, edil_bianchi
+name: "{{CONTACT_NAME}}"
+kind: person                        # person | company
+roles: []                           # lender | craftsman | supplier | technician | rental | neighbor | family
+trades: []                          # work_type values, for craftsmen and technicians
+licensed_for: []                    # e.g. [electrical, gas] — licensed installer (IT: DM 37/2008)
+phone: null
+email: null
+houses: []                          # house slugs
+notes: null

@@ -80,7 +80,7 @@ templates:
 immutability:
   rule: critical event logs are immutable once written — append only, never overwrite
   critical_events: [shinsa, decision, hire, milestone]
-  declaration: immutable files must be declared in workspace with access: append-only
+  declaration: "immutable files must be declared in workspace with access: append-only"
 
 logs:
   naming_format: YYYY-MM-DD_{type}_{topic}.yml
@@ -169,6 +169,54 @@ filename_patterns:
       - job_offer_received.md
       - round_completed_debrief.md
       - session_start.md
+
+  # --- andrew ---
+  andrew_slug_file:
+    description: room, tool, project or contact file — named by its slug
+    pattern: "{slug}.yml"
+    regex: '^[a-z0-9][a-z0-9_]*\.yml$'
+    examples:
+      - kitchen.yml
+      - rotary_hammer.yml
+      - mario_rossi.yml
+
+  andrew_playbook:
+    description: procedure learned on a closed project
+    pattern: "{work_type}_{descriptor}.yml"
+    regex: '^[a-z]+(_[a-z0-9]+)+\.yml$'
+    examples:
+      - demolition_brick_partition.yml
+      - carpentry_bed_frame.yml
+
+  andrew_purchase:
+    description: write-once purchase decision or shopping list
+    pattern: "YYYY-MM-DD_{slug}.yml"
+    regex: '^\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9_]*\.yml$'
+    examples:
+      - 2026-09-12_rotary_hammer.yml
+      - 2026-09-20_bathroom_tiling_materials.yml
+
+  andrew_ledger:
+    description: append-only monthly ledger of a house
+    pattern: "YYYY-MM.yml"
+    regex: '^\d{4}-\d{2}\.yml$'
+    examples:
+      - 2026-09.yml
+
+  andrew_log:
+    description: append-only daily work diary of a house
+    pattern: "YYYY-MM-DD.yml"
+    regex: '^\d{4}-\d{2}-\d{2}\.yml$'
+    examples:
+      - 2026-09-12.yml
+
+  andrew_document:
+    description: write-once plan export or document (invoice, warranty, permit)
+    pattern: "YYYY-MM-DD_{slug}.{ext}"
+    regex: '^\d{4}-\d{2}-\d{2}_[a-z0-9][a-z0-9_]*\.(pdf|png|jpg|jpeg|dxf|csv|xlsx|zip)$'
+    examples:
+      - 2026-09-12_magicplan_target.pdf
+      - 2026-09-15_invoice_leroy_merlin.pdf
 
   # --- universal ---
   branch_name:

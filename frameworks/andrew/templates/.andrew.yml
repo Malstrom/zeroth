@@ -1,0 +1,33 @@
+# .andrew.yml
+# Owner identity for an andrew instance. Read at every session start.
+# Contains NO house, tool, project or money data — those live under houses/.
+
+owner:
+  name: "{{OWNER_NAME}}"
+  handle: "{{GITHUB_HANDLE}}"
+
+language:
+  chat: "{{LANGUAGE}}"        # language used with the owner, e.g. italian
+  files: english              # file content, commits, issues — always English
+
+money:
+  currency: EUR
+  vat_included: true          # all amounts are recorded VAT included
+
+skills:                       # self-assessed: none | basic | intermediate | advanced
+  demolition: "{{LEVEL}}"
+  masonry: "{{LEVEL}}"
+  plastering: "{{LEVEL}}"
+  tiling: "{{LEVEL}}"
+  carpentry: "{{LEVEL}}"
+  furniture_assembly: "{{LEVEL}}"
+  painting: "{{LEVEL}}"
+  electrical: "{{LEVEL}}"
+  plumbing: "{{LEVEL}}"
+  garden: "{{LEVEL}}"
+
+preferences:
+  execution_default: mixed    # diy | mixed | pro — starting point when proposing options
+  battery_platforms: []       # e.g. [parkside_x20v] — prefer tools on platforms already owned
+  stores: []                  # e.g. [amazon_it, leroy_merlin, brico_center, obi]
+  notes: null

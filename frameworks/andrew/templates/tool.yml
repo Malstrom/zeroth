@@ -1,0 +1,20 @@
+# houses/{slug}/tools/{tool}.yml
+# One tool stored in this house. Moving it to another house = move the file + log entry.
+
+slug: "{{TOOL_SLUG}}"
+name: "{{TOOL_NAME}}"
+category: power_tool                # power_tool | hand_tool | measuring | safety | garden | ladder_scaffold | other
+brand: null
+model: null
+power: null                         # corded | battery | manual | petrol
+battery_platform: null              # e.g. parkside_x20v
+
+condition: ok                       # ok | worn | broken | lost
+ownership: owned                    # owned | borrowed | rented | lent_out
+counterpart: null                   # contact slug — lender, rental shop, or borrower
+since: null                         # YYYY-MM-DD — when it arrived or left
+due: null                           # YYYY-MM-DD — return or rental end
+
+purchase: null                      # purchases/YYYY-MM-DD_{slug}.yml
+warranty_until: null
+notes: null

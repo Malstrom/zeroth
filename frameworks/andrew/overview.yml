@@ -1,0 +1,110 @@
+# frameworks/andrew/overview.yml
+# andrew framework — purpose, vocabulary, enums, key principles.
+
+framework: andrew
+version: 0.1.0
+question: "What house do I want, and how do I get there?"
+purpose: >
+  Home renovation and DIY framework. The repository holds the target house
+  (as designed), what is currently different, the tools stored in each house,
+  the projects that close the gap and every euro spent.
+  The AI is the foreman: it plans, estimates, guides purchases, keeps the books
+  and never lets a structural or regulated job start without the right checks.
+name_origin: >
+  Andrew Martin, the NDR household robot of Asimov's "The Bicentennial Man" (1976):
+  he discovers woodworking and builds the furniture of the house he lives in.
+
+cycle:
+  - onboarding          # owner identity (.andrew.yml)
+  - add_house           # house data, target plan (MagicPlan export), rooms, current differences
+  - plan_project        # from an idea or a room difference to options with cost estimates
+  - decide_option       # choose how the project is done — decision recorded, never rewritten
+  - buy_guide           # tools, consumables, materials: compare, compute quantities, record the decision
+  - work_session        # do the work, log it, update tasks and stock
+  - record_expense      # every euro into the append-only ledger
+  - close_project       # actual vs estimate, differences resolved, playbook derived
+
+vocabulary:
+  house: one property — everything physical lives under houses/{slug}/
+  target: the house as designed (MagicPlan project) — the desired end state
+  current_diff: one thing that is different today from the target — lives in the room file, closed by a project
+  gap: the set of open current_diff across a house — the work still to do
+  project: a coherent job that closes one or more current_diff (kitchen, garage, garden, wall removal…)
+  option: one way to do a project (full DIY, flat-pack + self install, custom-made…), each with an estimate
+  task: atomic unit of work inside a project, with its own execution mode
+  execution: who does a task — diy, mixed, pro, or buy (finished product)
+  stock: consumables and leftover materials stored in a house (screws, bits, adhesive, paint…)
+  purchase: an immutable purchase decision or shopping list
+  ledger: the append-only record of every euro spent on a house
+  playbook: a procedure learned on a closed project, reusable on any house
+  counterpart: the contact a tool was borrowed from, rented from, or lent to
+
+enums:
+  work_type:
+    - demolition
+    - masonry
+    - plastering
+    - flooring
+    - tiling
+    - carpentry
+    - furniture_assembly
+    - painting
+    - electrical
+    - plumbing
+    - heating
+    - gas
+    - windows_doors
+    - insulation
+    - roofing
+    - garden
+    - cleaning_disposal
+    - other
+  execution: [diy, mixed, pro, buy]
+  install: [diy, pro]                          # only when execution == buy
+  skill_level: [none, basic, intermediate, advanced]
+  house_relation: [owned, rented, family, other]
+  tool_ownership: [owned, borrowed, rented, lent_out]
+  tool_condition: [ok, worn, broken, lost]
+  project_status: [idea, planned, in_progress, on_hold, done, dropped]
+  task_status: [todo, doing, done, skipped]
+  diff_status: [open, resolved]
+  purchase_kind: [tool, consumable, material, furniture, appliance, service]
+  purchase_type: [decision, shopping_list]
+  estimate_category:
+    - materials
+    - labor
+    - tools                                    # buy or rent
+    - furniture_appliances
+    - disposal
+    - permits_technicians
+  ledger_group:
+    acquisition: [purchase_price, notary, agency, purchase_taxes, mortgage_costs]
+    running: [utilities, property_tax, waste_tax, insurance, condominium, mortgage_interest, other_running]
+    works: [materials, labor, tools, furniture_appliances, disposal, permits_technicians]
+    maintenance: [maintenance]
+  payment_method: [bank_transfer, tax_bank_transfer, card, cash, financing, other]
+  requires: [structural_check, licensed_installer, permit, technician]
+
+state_conditions:
+  identity_exists: .andrew.yml exists and owner.name is not empty
+  identity_missing: .andrew.yml missing or owner.name empty
+  house_exists: at least one houses/{slug}/house.yml exists
+  open_project_exists: at least one project with status in [idea, planned, in_progress, on_hold]
+
+labels:
+  house: "house:{slug}"                        # exactly one per issue
+  work: "work:{work_type}"                     # one or more per issue
+  note: labels are created on first use if they do not exist
+
+key_principles:
+  - one repository per owner — multiple houses inside houses/{slug}/
+  - the instance repo is private — it holds addresses and floor plans
+  - CLAUDE.md is the entry point — no .agent.yml (zeroth#361)
+  - the plan describes the target house — current_diff describes today — projects close the gap
+  - tools belong to the house where they are stored
+  - projects live as GitHub issues (lifecycle) + houses/{slug}/projects/{slug}.yml (plan and numbers)
+  - actual costs are never typed into a project — they are computed from the ledger
+  - ledger and log are append-only — corrections are new entries, never edits
+  - purchase decisions are write-once
+  - playbooks are derived after a project closes, never written speculatively
+  - measurements come from plans/, rooms/ or the owner — never invented

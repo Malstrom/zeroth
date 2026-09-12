@@ -1,0 +1,69 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/close_project.yml
+
+id: close_project
+on:
+  - user says a project is finished
+  - user wants to drop or abandon a project
+preconditions:
+  - open_project_exists
+creates_issue: false
+issue_updates:
+  target: project_issue
+read:
+  - "houses/{house}/projects/{project}.yml"
+  - "houses/{house}/ledger/*.yml"
+  - "houses/{house}/log/*.yml"
+  - "houses/{house}/rooms/*.yml"
+  - "playbooks/*.yml"
+  - "comments: {instance} issue {{project_issue}}"
+  - frameworks/andrew/templates/issue_comment_close.md
+  - frameworks/andrew/templates/playbook.yml
+steps:
+  - compute: project
+  - compute: project_issue
+  - ask: "Finished or dropped? Anything you would do differently next time?"
+  - compute: outcome                    # done | dropped
+  - compute: actual_by_category         # from the ledger only
+  - compute: hours                      # from the log
+  - write:
+      path: "houses/{{house}}/projects/{{project}}.yml"
+      fields: [status]
+      from: frameworks/andrew/templates/project.yml
+      access: read-write
+      via: commit
+      approval: none
+  - if:
+      condition: outcome == done
+      then:
+        - write:
+            path: "houses/{{house}}/rooms/"
+            filename: "{room}.yml"
+            fields: [current_diff]        # status: resolved, resolved_on: today
+            from: frameworks/andrew/templates/room.yml
+            access: read-write
+            via: commit
+            approval: none
+  - update_issue:
+      target: project_issue
+      action: add_comment
+      from: frameworks/andrew/templates/issue_comment_close.md
+  - propose: "Create or update a playbook from this project?"
+    on_confirm:
+      - write:
+          path: "playbooks/"
+          filename: "{work_type}_{descriptor}.yml"
+          from: frameworks/andrew/templates/playbook.yml
+          access: read-write
+          via: commit
+          approval: none
+    on_reject:
+      - say: "OK, no playbook."
+  - update_issue:
+      target: project_issue
+      action: close
+  - commit_before_reply
+  - say: |
+      {{project}} closed ({{outcome}}). Estimate {{estimate_total}} → actual {{actual_total}}, {{hours}} h.
+      Differences left in {{house}}: {{open_diffs | count}}.
+output:
+  state_changes: [project-closed]

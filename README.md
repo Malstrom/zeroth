@@ -74,7 +74,7 @@ flowchart TD
 
 ## 🧩 Frameworks
 
-Each framework is one dimension of a person's professional life.
+Each framework is one dimension of a person's life — professional or personal.
 
 🥋 **[dojo](frameworks/dojo/README.md)** &nbsp;—&nbsp; *"What do I know how to do?"*
 AI-assisted learning. The AI acts as a sensei — tracks your knowledge state, works only on the gap, and never lets you skip the fundamentals.
@@ -84,6 +84,9 @@ Professional memory. The AI reads the daily work log and surfaces connections ac
 
 💼 **[sudo-hire-me](frameworks/sudo-hire-me/README.md)** &nbsp;—&nbsp; *"How do I present who I am professionally?"*
 Job search management. Immutable pipeline log, full context across sessions, no re-briefing.
+
+🏠 **[andrew](frameworks/andrew/README.md)** &nbsp;—&nbsp; *"What house do I want, and how do I get there?"*
+Home renovation and DIY. The target house, what is different today, tools per house, projects with cost options, and every euro spent — across multiple houses.
 
 🔭 **tensho** &nbsp;—&nbsp; *"Is this idea actually feasible for me?"* &nbsp;*(planned)*
 
@@ -128,7 +131,8 @@ zeroth/
 ├── frameworks/             # FRAMEWORK-SPECIFIC rules
 │   ├── dojo/               # AI-assisted learning — see README
 │   ├── daneel/             # Professional memory — see README
-│   └── sudo-hire-me/       # Job search management — see README
+│   ├── sudo-hire-me/       # Job search management — see README
+│   └── andrew/             # Home renovation and DIY — see README
 ├── templates/              # base templates ready to use
 │   ├── framework_readme.md # canonical template for framework READMEs
 │   ├── .agent.yml

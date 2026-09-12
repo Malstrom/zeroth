@@ -1,0 +1,22 @@
+# houses/{slug}/ledger/YYYY-MM.yml
+# Append-only. Every euro spent on the house in this month — acquisition, running costs, works, maintenance.
+# Never edit or delete an entry: to correct one, append a new entry with `corrects` and the opposite amount.
+
+house: "{{HOUSE_SLUG}}"
+month: "{{YYYY-MM}}"
+
+entries:
+  - id: "{{YYYY-MM-DD}}-01"
+    date: "{{YYYY-MM-DD}}"
+    amount: 0.00                    # EUR, VAT included — negative only for refunds/corrections
+    group: works                    # acquisition | running | works | maintenance
+    category: materials             # see overview.yml enums.ledger_group
+    project: null                   # project slug
+    task: null                      # task id inside the project
+    payee: null                     # contact slug or free text (store name)
+    payment_method: card            # bank_transfer | tax_bank_transfer | card | cash | financing | other
+    tax_deduction_candidate: unknown  # true | false | unknown — verify rules at the time, never assume
+    doc: null                       # docs/YYYY-MM-DD_{slug}.{ext}
+    purchase: null                  # purchases/YYYY-MM-DD_{slug}.yml
+    corrects: null                  # id of the entry this one corrects
+    description: "{{WHAT_WAS_PAID}}"

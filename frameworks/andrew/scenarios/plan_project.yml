@@ -1,0 +1,83 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/plan_project.yml
+
+id: plan_project
+on:
+  - user has an idea for a job on a house (kitchen, bed, garage, garden, removing a wall…)
+  - user wants to plan how to close a difference between the house today and the target
+  - user wants options and cost estimates for a job
+preconditions:
+  - house_exists
+creates_issue: true
+issue:
+  title: "{project_title}"
+  labels: ["house:{house}", "work:{work_type}…"]
+  from: frameworks/andrew/templates/issue_project.md
+  update: check
+  approval: none
+  on_complete: keep_open                # the project issue lives until close_project
+  on_fail: comment
+read:
+  - .andrew.yml
+  - "houses/{house}/house.yml"
+  - "houses/{house}/rooms/*.yml"
+  - "houses/{house}/tools/*.yml"
+  - "houses/{house}/stock.yml"
+  - "houses/{house}/projects/*.yml"
+  - "houses/*/ledger/*.yml"             # reference costs from past projects
+  - "playbooks/*.yml"
+  - "contacts/*.yml"
+  - frameworks/andrew/templates/project.yml
+  - frameworks/andrew/overview.yml
+steps:
+  - compute: house
+  - compute: unassigned_diffs           # open current_diff with project == null
+  - ask: "Which job? Describe the idea, or pick from the open differences: {{unassigned_diffs}}"
+  - compute: project_slug
+  - compute: closes                     # room + diff ids
+  - compute: work_types
+  - compute: missing_measurements       # hard rule: never invent dimensions
+  - if:
+      condition: missing_measurements is not empty
+      then:
+        - ask: "I need these measurements before estimating: {{missing_measurements}}"
+  - compute: requirements               # structural_check | licensed_installer | permit | technician
+  - compute: options                    # 2–3 ways to do it, from full DIY to pro / buy, matched to owner skills
+  - compute: estimates                  # per option and category — basis: playbooks, past ledger, current prices with store + date
+  - compute: tool_gap                   # tools needed per option vs tools in THIS house: ok / in other house / lent out / missing
+  - say: |
+      {{project_title}} — closes {{closes}}
+      {{options | table: id, title, total estimate, duration, requires, tool gap}}
+      {{requirements | prefix: "Before starting: "}}
+      Estimate basis: {{estimate_basis}}
+  - write:
+      path: "houses/{{house}}/projects/"
+      filename: "{project}.yml"
+      from: frameworks/andrew/templates/project.yml
+      access: read-write
+      via: commit
+      approval: none
+  - write:
+      path: "houses/{{house}}/rooms/"
+      filename: "{room}.yml"
+      fields: [current_diff]              # set project on the closed diffs
+      from: frameworks/andrew/templates/room.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: "Issue opened — {{issue.url}}"
+  - if:
+      condition: work_types include a skill at none or basic level and an option is diy
+      then:
+        - say: "Cross-framework: this could become a dojo goal (source: project 🛠️) — {{skill}}."
+  - propose: "Choose the option now?"
+    on_confirm:
+      - call:
+          scenario: decide_option
+          file: frameworks/andrew/scenarios/decide_option.yml
+          load: on_demand
+          with: { house: "{{house}}", project: "{{project_slug}}" }
+    on_reject:
+      - say: "OK. The project stays in 'idea' until you decide."
+output:
+  state_changes: [project-planned]

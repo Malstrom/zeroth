@@ -1,0 +1,128 @@
+# frameworks/andrew/.scenarios.yml
+# Scenario index for the andrew framework.
+# Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
+# Imported by frameworks/andrew/CLAUDE.md — the agent reads ONLY the matched scenario file.
+#
+# TRIGGER MATCHING: semantic and language-independent.
+# Match user intent regardless of language (Italian, Russian, English…). Never match literal strings.
+
+scenarios:
+
+  - id: onboarding
+    priority: 20
+    preconditions:
+      - identity_missing
+    triggers:
+      - the owner profile does not exist yet and the user starts using andrew
+      - user wants to set up or redo their owner profile
+    file: frameworks/andrew/scenarios/onboarding.yml
+
+  - id: session_start
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - this is the first message of the conversation and no other scenario matches
+      - user greets andrew or opens a new session
+      - user asks for an overview of their houses, open work or alerts
+    file: frameworks/andrew/scenarios/session_start.yml
+
+  - id: add_house
+    priority: 10
+    preconditions:
+      - identity_exists
+    triggers:
+      - user wants to add a new house
+      - user provides a floor plan or house data for a house not yet registered
+      - user wants to record rooms, measurements or what is different today in a house
+    file: frameworks/andrew/scenarios/add_house.yml
+
+  - id: inventory_update
+    priority: 10
+    preconditions:
+      - house_exists
+    triggers:
+      - user wants to add, update, move or remove a tool
+      - user says a tool broke, was lost or was moved to another house
+      - user wants to update consumables or leftover materials in stock
+      - user wants to see what tools or stock a house has
+    file: frameworks/andrew/scenarios/inventory_update.yml
+
+  - id: lend_borrow
+    priority: 12
+    preconditions:
+      - house_exists
+    triggers:
+      - user borrowed a tool from someone or lent a tool to someone
+      - user rented a tool or equipment
+      - user returned a borrowed or rented tool, or got back a lent one
+    file: frameworks/andrew/scenarios/lend_borrow.yml
+
+  - id: plan_project
+    priority: 10
+    preconditions:
+      - house_exists
+    triggers:
+      - user has an idea for a job on a house (kitchen, bed, garage, garden, removing a wall…)
+      - user wants to plan how to close a difference between the house today and the target
+      - user wants options and cost estimates for a job
+    file: frameworks/andrew/scenarios/plan_project.yml
+
+  - id: decide_option
+    priority: 15
+    preconditions:
+      - open_project_exists
+    triggers:
+      - user wants to choose how a planned project will be done
+      - user picks one of the proposed options for a project
+      - user wants to change the chosen option or set a budget for a project
+    file: frameworks/andrew/scenarios/decide_option.yml
+
+  - id: buy_guide
+    priority: 10
+    preconditions:
+      - house_exists
+    triggers:
+      - user needs to buy a tool and wants guidance or a comparison
+      - user needs consumables or materials and wants quantities or a shopping list
+      - user asks which product, model or store to choose
+      - user asks whether to buy, rent or borrow something
+    file: frameworks/andrew/scenarios/buy_guide.yml
+
+  - id: record_expense
+    priority: 10
+    preconditions:
+      - house_exists
+    triggers:
+      - user paid for something related to a house
+      - user shares a receipt, invoice or bill
+      - user wants to record a cost, refund or correction
+      - user asks how much was spent on a house or project
+    file: frameworks/andrew/scenarios/record_expense.yml
+
+  - id: work_session
+    priority: 10
+    preconditions:
+      - open_project_exists
+    triggers:
+      - user starts working on a project or task
+      - user wants guidance on how to do a task
+      - user reports work done on a project today
+    file: frameworks/andrew/scenarios/work_session.yml
+
+  - id: close_project
+    priority: 10
+    preconditions:
+      - open_project_exists
+    triggers:
+      - user says a project is finished
+      - user wants to drop or abandon a project
+    file: frameworks/andrew/scenarios/close_project.yml
+
+  - id: unknown_scenario
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - any message that does not match any other scenario
+    file: frameworks/andrew/scenarios/unknown_scenario.yml

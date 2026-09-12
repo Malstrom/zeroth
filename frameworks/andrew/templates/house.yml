@@ -1,0 +1,37 @@
+# houses/{slug}/house.yml
+# Static data of one house. Created by add_house.
+
+slug: "{{HOUSE_SLUG}}"
+name: "{{HOUSE_NAME}}"              # human label, e.g. "Casa al mare"
+relation: owned                     # owned | rented | family | other
+acquired: null                      # YYYY-MM-DD
+
+location:
+  country: "{{COUNTRY}}"            # ISO code, e.g. IT — drives regulations and stores
+  city: "{{CITY}}"
+  address: null                     # optional — the instance repo is private
+
+building:
+  type: null                        # apartment | detached | semi_detached | terraced | other
+  year_built: null
+  floors: null
+  surface_m2: null
+  outdoor:
+    garden_m2: null
+    garage: false
+    other: []
+
+systems:                            # current state of the systems
+  electrical: { year: null, conformity_certificate: unknown, notes: null }
+  plumbing:   { year: null, notes: null }
+  heating:    { type: null, notes: null }
+  gas:        { present: unknown, conformity_certificate: unknown, notes: null }
+  hot_water:  { type: null, notes: null }
+
+plan:
+  source: magicplan
+  represents: target                # the plan is the house as DESIGNED, not as it is today
+  current_export: null              # plans/YYYY-MM-DD_{slug}.{ext}
+
+constraints: []                     # e.g. condominium rules, historic building, seismic zone
+notes: null

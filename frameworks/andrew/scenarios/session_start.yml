@@ -1,0 +1,52 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/session_start.yml
+
+id: session_start
+on:
+  - this is the first message of the conversation and no other scenario matches
+  - user greets andrew or opens a new session
+  - user asks for an overview of their houses, open work or alerts
+preconditions:
+  - any
+creates_issue: false
+read:
+  - .andrew.yml
+  - "houses/*/house.yml"
+  - "houses/*/rooms/*.yml"
+  - "houses/*/tools/*.yml"
+  - "houses/*/projects/*.yml"
+  - "houses/*/ledger/*.yml"
+  - "issues: {instance} open ordered_by updated desc"
+steps:
+  - if:
+      condition: identity_missing
+      then:
+        - call:
+            scenario: onboarding
+            file: frameworks/andrew/scenarios/onboarding.yml
+            load: on_demand
+        - stop
+  - if:
+      condition: not house_exists
+      then:
+        - propose: "No house registered yet. Add the first one?"
+          on_confirm:
+            - call:
+                scenario: add_house
+                file: frameworks/andrew/scenarios/add_house.yml
+                load: on_demand
+          on_reject:
+            - say: "OK. Tell me what you want to do."
+        - stop
+  - compute: gap_by_house               # open current_diff per house, with and without a project
+  - compute: open_projects              # status, next doable task, estimate vs actual from ledger
+  - compute: tool_alerts                # borrowed/rented due within 7 days or overdue; tools lent out
+  - compute: spent_by_house             # ledger totals: all time + current month, by group
+  - say: |
+      {{owner.name}}, situation per house:
+      {{gap_by_house | per_house: open diffs, diffs without a project}}
+      Open projects: {{open_projects | title, status, next task, spent/estimate}}
+      Alerts: {{tool_alerts | none}}
+      Spent: {{spent_by_house | total and current month}}
+  - ask: "What do we work on?"
+output:
+  state_changes: []

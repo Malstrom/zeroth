@@ -1,0 +1,68 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/inventory_update.yml
+
+id: inventory_update
+on:
+  - user wants to add, update, move or remove a tool
+  - user says a tool broke, was lost or was moved to another house
+  - user wants to update consumables or leftover materials in stock
+  - user wants to see what tools or stock a house has
+preconditions:
+  - house_exists
+creates_issue: false
+read:
+  - "houses/*/house.yml"
+  - "houses/{house}/tools/*.yml"
+  - "houses/{house}/stock.yml"
+  - frameworks/andrew/templates/tool.yml
+  - frameworks/andrew/templates/stock.yml
+input_sources: [attached_file, pasted_text]
+steps:
+  - compute: house                      # default when only one house exists, otherwise ask
+  - if:
+      condition: user only wants to see the inventory
+      then:
+        - say: "{{tools | by category, with condition and ownership}} · {{stock | items and quantities}}"
+        - stop
+  - ask: "What changed? (new tools — a list or a photo is fine —, broken, lost, moved, stock used or added)"
+  - compute: tool_changes
+  - compute: stock_changes
+  - if:
+      condition: tool_changes contains a move to another house
+      then:
+        - say: "Moving {{tool}} from {{from_house}} to {{to_house}} — the file moves with git mv, history stays."
+  - write:
+      path: "houses/{{house}}/tools/"
+      filename: "{tool}.yml"
+      from: frameworks/andrew/templates/tool.yml
+      access: read-write
+      via: commit
+      approval: none
+  - write:
+      path: "houses/{{house}}/stock.yml"
+      from: frameworks/andrew/templates/stock.yml
+      access: read-write
+      via: commit
+      approval: none
+  - write:
+      path: "houses/{{house}}/log/"
+      filename: "YYYY-MM-DD.yml"
+      access: append-only
+      via: commit
+      approval: none
+  - commit_before_reply
+  - if:
+      condition: tool_changes contains broken or lost tools needed by open projects
+      then:
+        - propose: "{{tool}} is needed by {{projects}}. Repair, borrow, or open a buy guide?"
+          on_confirm:
+            - call:
+                scenario: buy_guide
+                file: frameworks/andrew/scenarios/buy_guide.yml
+                load: on_demand
+                with: { house: "{{house}}", need: "{{tool}}" }
+          on_reject:
+            - say: "OK, noted in the inventory."
+      else:
+        - say: "Inventory of {{house}} updated."
+output:
+  state_changes: [inventory-updated]

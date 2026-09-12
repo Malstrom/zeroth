@@ -1,0 +1,40 @@
+# houses/{slug}/purchases/YYYY-MM-DD_{slug}.yml
+# Write-once. A purchase decision (tools, furniture, services) or a shopping list
+# (consumables, materials). Prices are a snapshot: always record where and when they were checked.
+
+date: "{{YYYY-MM-DD}}"
+house: "{{HOUSE_SLUG}}"
+project: null                       # project slug, if any
+kind: tool                          # tool | consumable | material | furniture | appliance | service
+type: decision                      # decision | shopping_list
+need: "{{WHAT_IT_IS_FOR}}"
+
+# --- type: decision -------------------------------------------------------
+requirements: []                    # what the item must do, derived from the projects
+alternatives_to_buying: []          # - { option: borrow | rent | already_owned, detail, verdict }
+candidates:
+  - name: null
+    brand: null
+    model: null
+    store: null
+    price: null                     # EUR, VAT included
+    url: null
+    checked_on: null                # YYYY-MM-DD
+    pros: []
+    cons: []
+chosen: null                        # candidate name, or null if decision postponed
+reason: null
+
+# --- type: shopping_list --------------------------------------------------
+items: []
+  # - name: "Tile adhesive C2TE"
+  #   computed_from: "rooms/bathroom.yml target.walls — 18.4 m2"
+  #   quantity_needed: 92
+  #   waste_margin_pct: 10
+  #   in_stock: 25
+  #   to_buy: 76
+  #   unit: kg
+  #   pack: "25 kg bag"
+  #   packs: 4
+  #   est_price: 0
+estimated_total: null
