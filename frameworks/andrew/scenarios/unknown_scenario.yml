@@ -1,0 +1,26 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/unknown_scenario.yml
+
+id: unknown_scenario
+on:
+  - any message that does not match any other scenario
+preconditions:
+  - any
+creates_issue: false
+read: []
+steps:
+  - compute: closest_scenarios          # top 3 by semantic distance
+  - if:
+      condition: closest_scenarios is not empty
+      then:
+        - propose: "Did you mean: {{closest_scenarios}}?"
+          on_confirm:
+            - call:
+                scenario: "{{chosen_scenario}}"
+                file: "frameworks/andrew/scenarios/{{chosen_scenario}}.yml"
+                load: on_demand
+          on_reject:
+            - say: "No andrew scenario covers this yet. Want me to propose a new one in zeroth (improve)?"
+      else:
+        - say: "No andrew scenario covers this yet. Want me to propose a new one in zeroth (improve)?"
+output:
+  state_changes: []

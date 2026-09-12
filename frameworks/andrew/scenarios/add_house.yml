@@ -1,0 +1,88 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/add_house.yml
+
+id: add_house
+on:
+  - user wants to add a new house
+  - user provides a floor plan or house data for a house not yet registered
+  - user wants to record rooms, measurements or what is different today in a house
+preconditions:
+  - identity_exists
+creates_issue: false
+read:
+  - .andrew.yml
+  - "houses/*/house.yml"
+  - frameworks/andrew/templates/house.yml
+  - frameworks/andrew/templates/room.yml
+  - frameworks/andrew/templates/stock.yml
+input_sources: [attached_file, pasted_text]
+steps:
+  # --- house -----------------------------------------------------------------
+  - compute: existing_house             # if the house already exists, continue on its rooms instead
+  - if:
+      condition: existing_house is null
+      then:
+        - ask: "Name of the house, your relation to it (owned / rented / family), country and city?"
+        - ask: "Building type, year, floors, surface, garden / garage? Skip what you don't know."
+        - ask: "Systems today: electrical (year, certificate?), heating, gas, hot water?"
+        - compute: house_slug
+        - write:
+            path: "houses/{{house_slug}}/house.yml"
+            from: frameworks/andrew/templates/house.yml
+            access: read-write
+            via: commit
+            approval: none
+        - write:
+            path: "houses/{{house_slug}}/stock.yml"
+            from: frameworks/andrew/templates/stock.yml
+            access: read-write
+            via: commit
+            approval: none
+  # --- target plan -----------------------------------------------------------
+  - ask: "Attach the MagicPlan export (PDF, image, DXF, CSV…). It describes the house as you WANT it."
+  - write:
+      path: "houses/{{house_slug}}/plans/"
+      filename: "YYYY-MM-DD_{slug}.{ext}"
+      access: write-once
+      via: commit
+      approval: none
+  - compute: rooms_from_plan            # names, areas, heights, walls, openings — only what the export shows
+  - say: "Rooms found: {{rooms_from_plan | names and areas}}. Missing data: {{missing_measurements | none}}"
+  - if:
+      condition: missing_measurements is not empty
+      then:
+        - ask: "Give me the missing measurements, or tell me to leave them empty for now."
+  - write:
+      path: "houses/{{house_slug}}/rooms/"
+      filename: "{room}.yml"
+      from: frameworks/andrew/templates/room.yml
+      access: read-write
+      via: commit
+      approval: none
+  # --- current differences ---------------------------------------------------
+  - ask: |
+      Room by room: what is different TODAY from the plan?
+      (walls still to remove, missing kitchen, garage to sort out, garden to do…)
+  - compute: current_diff_by_room
+  - write:
+      path: "houses/{{house_slug}}/rooms/"
+      filename: "{room}.yml"
+      fields: [current_diff]
+      from: frameworks/andrew/templates/room.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: |
+      House {{house_name}} registered: {{rooms | count}} rooms, {{open_diffs | count}} differences to close.
+      {{structural_diffs | prefix: "Structural checks needed: "}}
+  - propose: "Record the tools stored in this house now?"
+    on_confirm:
+      - call:
+          scenario: inventory_update
+          file: frameworks/andrew/scenarios/inventory_update.yml
+          load: on_demand
+          with: { house: "{{house_slug}}" }
+    on_reject:
+      - say: "OK. We can plan the first project whenever you want."
+output:
+  state_changes: [house-added]

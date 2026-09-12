@@ -1,0 +1,38 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/onboarding.yml
+
+id: onboarding
+on:
+  - the owner profile does not exist yet and the user starts using andrew
+  - user wants to set up or redo their owner profile
+preconditions:
+  - identity_missing
+creates_issue: false
+read:
+  - frameworks/andrew/templates/.andrew.yml
+  - frameworks/andrew/overview.yml
+steps:
+  - ask: "Your name and GitHub handle?"
+  - ask: "Language for our conversations?"
+  - ask: |
+      Self-assessed level (none / basic / intermediate / advanced) for:
+      demolition, masonry, plastering, tiling, carpentry, furniture assembly,
+      painting, electrical, plumbing, garden.
+  - ask: "Default approach: mostly DIY, mixed, or mostly professionals?"
+  - ask: "Battery tool platforms you already own (e.g. Parkside X20V)? Preferred stores?"
+  - write:
+      path: .andrew.yml
+      from: frameworks/andrew/templates/.andrew.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - propose: "Profile saved. Add your first house?"
+    on_confirm:
+      - call:
+          scenario: add_house
+          file: frameworks/andrew/scenarios/add_house.yml
+          load: on_demand
+    on_reject:
+      - say: "OK. Tell me what you want to do."
+output:
+  state_changes: [owner-onboarded]

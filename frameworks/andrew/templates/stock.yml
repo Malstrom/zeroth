@@ -1,0 +1,13 @@
+# houses/{slug}/stock.yml
+# Consumables and leftover materials stored in this house.
+# Updated by buy_guide (after purchase), work_session (consumption) and inventory_update.
+
+items:
+  - slug: "{{ITEM_SLUG}}"
+    name: "{{ITEM_NAME}}"           # e.g. "Tile adhesive C2TE 25 kg"
+    category: other                 # fastener | abrasive | drill_bit | blade | adhesive | binder | paint | sealant | wood | electrical | plumbing | other
+    quantity: 0
+    unit: pcs                       # pcs | kg | l | m | m2 | pack
+    reserved_for: null              # project slug, if set aside
+    location: null                  # e.g. garage shelf
+    notes: null

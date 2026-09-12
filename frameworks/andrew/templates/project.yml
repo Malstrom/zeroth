@@ -1,0 +1,57 @@
+# houses/{slug}/projects/{project}.yml
+# Structured plan of one project. Lifecycle and discussion live in the GitHub issue.
+# Actual costs are NOT stored here — they are computed from houses/{slug}/ledger/.
+
+slug: "{{PROJECT_SLUG}}"
+house: "{{HOUSE_SLUG}}"
+title: "{{PROJECT_TITLE}}"
+issue: null                         # GitHub issue number
+status: idea                        # idea | planned | in_progress | on_hold | done | dropped
+created: "{{YYYY-MM-DD}}"
+
+closes:                             # current_diff this project resolves
+  - room: "{{ROOM_SLUG}}"
+    diff: "{{DIFF_ID}}"
+work: []                            # work_type values — mirrored as work:{type} labels
+depends_on: []                      # other project slugs that must be done first
+budget: null                        # optional, EUR — per project only
+
+options:
+  - id: a
+    title: "{{OPTION_TITLE}}"       # e.g. "Flat-pack kitchen, self install, pro plumber"
+    summary: null
+    estimate:                       # EUR, VAT included
+      materials: 0
+      labor: 0
+      tools: 0
+      furniture_appliances: 0
+      disposal: 0
+      permits_technicians: 0
+      total: 0
+    estimate_basis: null            # sources, dates and assumptions behind the numbers
+    duration_days: null
+    requires: []                    # structural_check | licensed_installer | permit | technician
+    pros: []
+    cons: []
+
+decisions: []                       # append-only — last entry is the current choice
+  # - date: YYYY-MM-DD
+  #   option: a
+  #   reason: "..."
+
+tasks:
+  - id: "{{TASK_ID}}"
+    title: "{{TASK_TITLE}}"
+    work: other
+    execution: diy                  # diy | mixed | pro | buy
+    install: null                   # diy | pro — only when execution == buy
+    contact: null                   # contact slug, when a pro or helper is involved
+    depends_on: []
+    requires: []
+    tools: []                       # tool slugs needed
+    materials: []                   # - { name, quantity, unit }
+    safety: []                      # PPE and preconditions (power off, water off…)
+    estimate: 0                     # EUR
+    status: todo                    # todo | doing | done | skipped
+
+notes: null

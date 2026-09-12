@@ -1,0 +1,28 @@
+# playbooks/{work_type}_{descriptor}.yml
+# A procedure learned on a real, closed project. Valid for every house.
+# Created by close_project — never written speculatively before the work happens.
+
+name: "{{PLAYBOOK_NAME}}"           # e.g. "Remove a non-load-bearing brick partition"
+work_type: other
+created: "{{YYYY-MM-DD}}"
+from_projects:
+  - house: "{{HOUSE_SLUG}}"
+    project: "{{PROJECT_SLUG}}"
+    issue: null
+usage_count: 0
+
+context:
+  problem: >
+    {{Generalized description — specific enough to be useful, broad enough to match future jobs.}}
+  outcome: "{{How it went, in one or two lines.}}"
+
+prerequisites: []                   # checks, permits, technicians
+safety: []
+tools: []
+materials_rules_of_thumb: []        # e.g. "adhesive: ~5 kg/m2 with 10 mm notched trowel"
+steps:
+  - "{{Step 1 — atomic and verifiable}}"
+pitfalls: []
+reference:
+  time_hours: null
+  cost_eur: null                    # from the ledger of the originating project

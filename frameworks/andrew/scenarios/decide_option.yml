@@ -1,0 +1,59 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/decide_option.yml
+
+id: decide_option
+on:
+  - user wants to choose how a planned project will be done
+  - user picks one of the proposed options for a project
+  - user wants to change the chosen option or set a budget for a project
+preconditions:
+  - open_project_exists
+creates_issue: false
+issue_updates:
+  target: project_issue
+read:
+  - .andrew.yml
+  - "houses/{house}/projects/{project}.yml"
+  - "houses/{house}/tools/*.yml"
+  - "houses/{house}/stock.yml"
+  - "comments: {instance} issue {{project_issue}}"
+steps:
+  - compute: project                    # ask if more than one open project matches
+  - compute: project_issue
+  - say: "{{project.options | table: id, title, total, duration, requires, pros, cons}}"
+  - ask: "Which option, and why?"
+  - ask: "Do you want a budget for this project? (optional)"
+  - compute: decision                   # appended to decisions — earlier entries are never rewritten
+  - compute: tasks                      # tasks of the chosen option with execution, requires, tools, materials
+  - if:
+      condition: tasks require structural_check or licensed_installer
+      then:
+        - say: "Blocked until done: {{blocking_requirements}} — I add a task for the technician / licensed installer."
+  - write:
+      path: "houses/{{house}}/projects/{{project}}.yml"
+      fields: [decisions, tasks, budget, status]
+      from: frameworks/andrew/templates/project.yml
+      access: read-write
+      via: commit
+      approval: none
+  - update_issue:
+      target: project_issue
+      action: add_comment
+      from: frameworks/andrew/templates/issue_project.md
+  - commit_before_reply
+  - compute: to_buy                     # missing tools + materials not in stock
+  - if:
+      condition: to_buy is not empty
+      then:
+        - propose: "Missing: {{to_buy}}. Open the buy guide?"
+          on_confirm:
+            - call:
+                scenario: buy_guide
+                file: frameworks/andrew/scenarios/buy_guide.yml
+                load: on_demand
+                with: { house: "{{house}}", project: "{{project}}" }
+          on_reject:
+            - say: "OK. Option recorded, project planned."
+      else:
+        - say: "Option recorded. Everything needed is in the house — ready to start."
+output:
+  state_changes: [option-decided]

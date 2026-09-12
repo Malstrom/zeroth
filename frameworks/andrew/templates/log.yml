@@ -1,0 +1,17 @@
+# houses/{slug}/log/YYYY-MM-DD.yml
+# Append-only work diary for one day in one house. Commit before replying.
+
+house: "{{HOUSE_SLUG}}"
+date: "{{YYYY-MM-DD}}"
+
+entries:
+  - project: null                   # project slug
+    tasks: []                       # task ids advanced
+    done: "{{WHAT_WAS_DONE}}"
+    hours: null
+    people: []                      # contact slugs who helped or worked
+    tools_used: []                  # tool slugs
+    materials_used: []              # - { stock_item, quantity, unit }
+    problems: []
+    decisions: []
+    next: null

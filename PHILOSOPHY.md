@@ -10,7 +10,7 @@ The names in this ecosystem are not random. They come from Isaac Asimov's robot 
 
 **giskard** is the enforcer. A separate active repo ([Malstrom/giskard](https://github.com/Malstrom/giskard)), triggered when zeroth changes — rule updated, framework added. It verifies that all framework instances remain compliant with the new rules. Giskard is not a framework. It has no scenarios. It produces no content. It cannot be seen; nothing is valid without its approval.
 
-**frameworks** are the robots: dojo, daneel, sudo-hire-me, tensho. They act, produce, and remember — within the laws defined by zeroth. Each framework is one dimension of a person's professional life.
+**frameworks** are the robots: dojo, daneel, sudo-hire-me, tensho, andrew. They act, produce, and remember — within the laws defined by zeroth. Each framework is one dimension of a person's life — professional or personal.
 
 **instances** are individual repos spawned from a framework. They are not a person — they are a slice of a person's life: one domain, one purpose, one continuous trace. A person may have multiple instances across multiple frameworks.
 
@@ -43,6 +43,14 @@ Help anyone build their professional narrative from real skills and work history
 > *"Is this idea actually feasible for me?"*
 
 Validate an idea against the owner's real capabilities and operational patterns. No repo exists yet — framework definition has not started.
+
+### andrew
+
+> *"What house do I want, and how do I get there?"*
+
+Andrew is not a shopping list or a renovation planner. It keeps the house as designed and what is different today; every project exists to close part of that gap. The AI is the foreman: it plans, estimates, guides purchases, keeps the books, and never lets a structural or regulated job start without the right checks.
+
+Named after Andrew Martin, Asimov's *Bicentennial Man* — the household robot who discovered woodworking and built the furniture of the house he lived in.
 
 ---
 

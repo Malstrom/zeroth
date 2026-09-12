@@ -1,0 +1,79 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/work_session.yml
+
+id: work_session
+on:
+  - user starts working on a project or task
+  - user wants guidance on how to do a task
+  - user reports work done on a project today
+preconditions:
+  - open_project_exists
+creates_issue: false
+issue_updates:
+  target: project_issue
+read:
+  - .andrew.yml
+  - "houses/{house}/projects/{project}.yml"
+  - "houses/{house}/rooms/*.yml"
+  - "houses/{house}/tools/*.yml"
+  - "houses/{house}/stock.yml"
+  - "houses/{house}/log/*.yml"
+  - "playbooks/*.yml"
+  - frameworks/andrew/templates/issue_comment_progress.md
+steps:
+  - compute: project
+  - compute: project_issue
+  - compute: next_tasks                 # dependencies done, requirements satisfied, tools and materials available
+  - ask: "Which task? Suggested: {{next_tasks}}"
+  - compute: task
+  - if:
+      condition: task has unmet requires (structural_check, licensed_installer, permit)
+      then:
+        - say: "Blocked: {{unmet_requires}}. This task cannot start until it is cleared."
+        - stop
+  - say: |
+      {{task.title}} — {{task.execution}}
+      Safety first: {{task.safety}}
+      Tools: {{task.tools | with location and ownership}} · Materials: {{task.materials | vs stock}}
+      Steps: {{playbook steps | or step-by-step guidance adapted to owner skill}}
+  - ask: "Tell me when you're done: what you did, hours, materials used, problems."
+  - write:
+      path: "houses/{{house}}/log/"
+      filename: "YYYY-MM-DD.yml"
+      access: append-only
+      via: commit
+      approval: none
+  - write:
+      path: "houses/{{house}}/projects/{{project}}.yml"
+      fields: [tasks, status]
+      from: frameworks/andrew/templates/project.yml
+      access: read-write
+      via: commit
+      approval: none
+  - write:
+      path: "houses/{{house}}/stock.yml"
+      fields: [items]
+      from: frameworks/andrew/templates/stock.yml
+      access: read-write
+      via: commit
+      approval: none
+  - update_issue:
+      target: project_issue
+      action: add_comment
+      from: frameworks/andrew/templates/issue_comment_progress.md
+  - commit_before_reply
+  - if:
+      condition: all tasks are done or skipped
+      then:
+        - propose: "All tasks done. Close the project?"
+          on_confirm:
+            - call:
+                scenario: close_project
+                file: frameworks/andrew/scenarios/close_project.yml
+                load: on_demand
+                with: { house: "{{house}}", project: "{{project}}" }
+          on_reject:
+            - say: "OK, the project stays open."
+      else:
+        - say: "Logged. Next: {{next_tasks | first}}."
+output:
+  state_changes: [work-logged]

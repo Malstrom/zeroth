@@ -1,0 +1,80 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/buy_guide.yml
+
+id: buy_guide
+on:
+  - user needs to buy a tool and wants guidance or a comparison
+  - user needs consumables or materials and wants quantities or a shopping list
+  - user asks which product, model or store to choose
+  - user asks whether to buy, rent or borrow something
+preconditions:
+  - house_exists
+creates_issue: false
+read:
+  - .andrew.yml                         # battery platforms, stores, skills
+  - "houses/*/tools/*.yml"              # a tool may already exist in another house
+  - "houses/{house}/stock.yml"
+  - "houses/{house}/rooms/*.yml"
+  - "houses/{house}/projects/*.yml"
+  - "houses/{house}/purchases/*.yml"
+  - "playbooks/*.yml"                   # materials rules of thumb
+  - "contacts/*.yml"                    # lenders and rental shops
+  - frameworks/andrew/templates/purchase.yml
+input_sources: [pasted_text, ai_knowledge]
+steps:
+  - compute: house
+  - ask: "What do you need, and for which project (if any)? Budget range?"
+  - compute: kind                       # tool | consumable | material | furniture | appliance | service
+  - if:
+      condition: kind in [tool, furniture, appliance, service]
+      then:
+        # --- decision: compare and choose -----------------------------------
+        - compute: requirements         # from ALL open projects of the house, not only the current one
+        - compute: alternatives_to_buying   # already owned elsewhere / borrow from a contact / rent for rare use
+        - compute: candidates           # 3–4 max, from preferred stores in the house country; price + store + checked_on
+        - say: |
+            Requirements: {{requirements}}
+            Before buying: {{alternatives_to_buying | verdicts}}
+            {{candidates | table: model, price, store, pros, cons, battery platform}}
+            Recommendation: {{recommended}} — {{reason}}
+        - ask: "Which one? (or postpone)"
+        - write:
+            path: "houses/{{house}}/purchases/"
+            filename: "YYYY-MM-DD_{slug}.yml"
+            from: frameworks/andrew/templates/purchase.yml
+            vars: { type: decision }
+            access: write-once
+            via: commit
+            approval: none
+      else:
+        # --- shopping list: quantities --------------------------------------
+        - compute: quantities           # from task materials + room target measurements + waste margin
+        - compute: in_stock
+        - compute: to_buy               # rounded up to pack sizes
+        - compute: candidates           # store and price per item, with checked_on
+        - say: "{{to_buy | table: item, computed from, needed, in stock, to buy, packs, est. price}}"
+        - write:
+            path: "houses/{{house}}/purchases/"
+            filename: "YYYY-MM-DD_{slug}.yml"
+            from: frameworks/andrew/templates/purchase.yml
+            vars: { type: shopping_list }
+            access: write-once
+            via: commit
+            approval: none
+  - commit_before_reply
+  - say: "I never order or pay: buy it when you're ready, then tell me the actual price."
+  - propose: "Bought already? Record the expense and update the inventory."
+    on_confirm:
+      - call:
+          scenario: record_expense
+          file: frameworks/andrew/scenarios/record_expense.yml
+          load: on_demand
+          with: { house: "{{house}}", purchase: "{{purchase_path}}" }
+      - call:
+          scenario: inventory_update
+          file: frameworks/andrew/scenarios/inventory_update.yml
+          load: on_demand
+          with: { house: "{{house}}" }
+    on_reject:
+      - say: "OK. The decision is saved in {{purchase_path}}."
+output:
+  state_changes: [purchase-decided]

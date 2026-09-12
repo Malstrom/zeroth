@@ -1,0 +1,33 @@
+# houses/{slug}/rooms/{room}.yml
+# One room. `target` = as designed (from plans/). `current_diff` = what is different today.
+# A diff is never deleted: it is resolved by a project and keeps its history.
+
+slug: "{{ROOM_SLUG}}"
+name: "{{ROOM_NAME}}"
+floor: 0
+
+target:
+  source: null                      # plans/YYYY-MM-DD_{slug}.{ext}
+  area_m2: null
+  height_m: null
+  walls:
+    - id: "{{WALL_ID}}"             # e.g. north, kitchen_living
+      length_m: null
+      height_m: null
+      load_bearing: unknown         # unknown | yes | no — only a technician sets "no" for a wall to demolish
+      openings: []                  # - { type: door | window, width_m, height_m, sill_m }
+  floor_finish: null
+  wall_finish: null
+  electrical: []                    # sockets, switches, light points
+  plumbing: []                      # water / drain points
+  furniture: []                     # built-in or planned furniture
+
+current_diff:
+  - id: "{{DIFF_ID}}"
+    description: "{{WHAT_IS_DIFFERENT_TODAY}}"
+    work: []                        # work_type values
+    project: null                   # project slug that closes this diff
+    status: open                    # open | resolved
+    resolved_on: null               # YYYY-MM-DD
+
+notes: null

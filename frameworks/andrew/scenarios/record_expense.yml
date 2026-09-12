@@ -1,0 +1,55 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/andrew/scenarios/record_expense.yml
+
+id: record_expense
+on:
+  - user paid for something related to a house
+  - user shares a receipt, invoice or bill
+  - user wants to record a cost, refund or correction
+  - user asks how much was spent on a house or project
+preconditions:
+  - house_exists
+creates_issue: false
+read:
+  - "houses/{house}/ledger/*.yml"
+  - "houses/{house}/projects/*.yml"
+  - "houses/{house}/purchases/*.yml"
+  - "contacts/*.yml"
+  - frameworks/andrew/templates/ledger.yml
+  - frameworks/andrew/overview.yml
+input_sources: [attached_file, pasted_text]
+steps:
+  - compute: house
+  - if:
+      condition: user only asks how much was spent
+      then:
+        - say: "{{ledger | totals by group and category, per project: actual vs estimate vs budget}}"
+        - stop
+  - ask: "Amount, date, what it was, who you paid and how? (a receipt or invoice is enough)"
+  - compute: entries                    # one or more — a receipt can hold several lines
+  - compute: group_and_category         # closed enum from overview.yml
+  - compute: project_link               # propose the matching project / task / purchase, owner confirms
+  - if:
+      condition: a document was attached
+      then:
+        - write:
+            path: "houses/{{house}}/docs/"
+            filename: "YYYY-MM-DD_{slug}.{ext}"
+            access: write-once
+            via: commit
+            approval: none
+  - write:
+      path: "houses/{{house}}/ledger/"
+      filename: "YYYY-MM.yml"
+      access: append-only
+      via: commit
+      approval: none
+  - commit_before_reply
+  - compute: project_status             # actual (ledger) vs estimate vs budget
+  - if:
+      condition: project actual exceeds estimate or budget
+      then:
+        - say: "Warning: {{project}} is at {{actual}} vs estimate {{estimate}}{{budget | prefix: ' / budget '}}."
+      else:
+        - say: "Recorded: {{entries | amount, category}}. {{project_status | none}}"
+output:
+  state_changes: [expense-recorded]
