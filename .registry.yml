@@ -69,3 +69,13 @@ connections:
     note: |
       Instance spawned via zeroth#352.
       Onboarding pending — no clients yet.
+
+  - repo: Malstrom/andrew
+    role: andrew instance — spawned 2026-09-12 (private)
+    framework: andrew
+    sync_trigger:
+      - rule-updated
+    access: read-write
+    note: |
+      Framework added via zeroth#362. Spawned manually — spawn scenario update pending in zeroth#361.
+      First instance on the CLAUDE.md entry point. Onboarding pending — no .andrew.yml yet.
