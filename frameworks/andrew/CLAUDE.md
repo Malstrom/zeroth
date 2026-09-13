@@ -8,7 +8,7 @@ instance `CLAUDE.md` and loaded automatically at session start — there is no `
 
 Universal zeroth rules:
 
-@../../CLAUDE.md
+@../../rules/universal.md
 
 ## Role
 
@@ -83,7 +83,14 @@ Instance repo (current working directory):
 | `houses/{slug}/docs/` | invoices, warranties, permits | write-once |
 | `houses/{slug}/log/YYYY-MM-DD.yml` | work diary | append-only |
 
-Zeroth repo — local clone at `~/Projects/zeroth`, read-only from an instance:
+Zeroth repo — read-only from an instance. Reachable in two ways, in this order:
+
+1. **Local clone** at `~/Projects/zeroth` — used when the instance `CLAUDE.md` import resolved.
+2. **GitHub fallback** — when there is no local clone (Claude Code on the web, phone, a fresh
+   machine), read the same paths from `Malstrom/zeroth@main`, via the GitHub MCP server or
+   `https://raw.githubusercontent.com/Malstrom/zeroth/main/{path}`.
+
+Never guess a rule because the clone is missing: fetch it.
 
 | path | role |
 |---|---|
@@ -97,10 +104,14 @@ Zeroth repo — local clone at `~/Projects/zeroth`, read-only from an instance:
 
 - Instance repo: commit and push directly to `main` — no branches, no pull requests.
   Commit messages in English, one line.
+  Exception: when the session runs in a harness that forbids pushing to `main` (Claude Code on the
+  web pins the session to its own branch), push to that branch, open the pull request the harness
+  requires, and say so in chat. Never silently skip the write.
 - Every new file starts from its template in `frameworks/andrew/templates/`.
 - Enums (work types, execution, ownership, ledger categories…) are closed: use only values
   from `frameworks/andrew/overview.yml`.
-- Projects are GitHub issues in the instance repo, managed with `gh`:
+- Projects are GitHub issues in the instance repo, managed with `gh` — or, where `gh` is not
+  installed (Claude Code on the web), with the GitHub MCP server, which is equivalent:
   exactly one `house:{slug}` label, one or more `work:{work_type}` labels; create labels on first use.
 - Cross-framework signals are conversational only: when a project needs a skill the owner lacks,
   propose a dojo goal (source `project`); never write to another repo.
