@@ -1,0 +1,24 @@
+# people/{slug}/vault/{document_type}_YYYY-MM-DD.yml
+# One document, one issue/renewal date. Write-once — a renewal is a NEW file, never an edit.
+# Created by vault_update.
+
+person: "{{PERSON_SLUG}}"
+document_type: "{{DOCUMENT_TYPE}}"  # closed list — frameworks/multivac/overview.yml#enums.document_type
+
+issuing:
+  authority: null                   # e.g. "Comune di ...", "Ministero degli Esteri", "DVLA"
+  country: null                     # ISO 3166-1 alpha-2
+
+issue_date: "{{ISSUE_DATE}}"        # YYYY-MM-DD
+expiry:
+  date: null                        # YYYY-MM-DD, null if the document doesn't expire
+  checked_on: "{{CHECKED_ON}}"      # YYYY-MM-DD — when this expiry was last confirmed against the document/source
+  source: null                      # "document" | a cited official source
+
+document_number: null               # only if the owner explicitly wants it on file — never assumed
+
+supersedes: null                    # filename of the previous vault entry this replaces, if any
+
+scan: null                          # path under people/{slug}/docs/, if attached
+
+notes: null

@@ -1,0 +1,49 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/add_person.yml
+
+id: add_person
+on:
+  - user wants to add a new person to track (self or a close family member)
+  - user mentions a parent, child, partner or sibling not yet registered
+preconditions:
+  - identity_exists
+creates_issue: false
+read:
+  - .multivac.yml
+  - "people/*/person.yml"
+  - frameworks/multivac/templates/person.yml
+  - frameworks/multivac/overview.yml
+steps:
+  - ask: "Name of the person, and their relation to you (self / parent / child / partner / sibling)?"
+  - if:
+      condition: relation not in [self, parent, child, partner, sibling]
+      then:
+        - say: "This framework only tracks self and close family (parent, child, partner, sibling). Not adding this person."
+        - stop
+  - if:
+      condition: relation is not self
+      then:
+        - say: |
+            Adding {{name}} means their identity documents will live in this private repo, under
+            your access. Make sure they know and are fine with that — this is not verified or
+            enforced by multivac, it's on you.
+  - ask: "Birth country, birth date? Skip what you don't know."
+  - compute: person_slug
+  - write:
+      path: "people/{{person_slug}}/person.yml"
+      from: frameworks/multivac/templates/person.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: "{{name}} registered ({{relation}})."
+  - propose: "File their first document now?"
+    on_confirm:
+      - call:
+          scenario: vault_update
+          file: frameworks/multivac/scenarios/vault_update.yml
+          load: on_demand
+          with: { person: "{{person_slug}}" }
+    on_reject:
+      - say: "OK. We can add documents or start a process whenever you want."
+output:
+  state_changes: [person-added]

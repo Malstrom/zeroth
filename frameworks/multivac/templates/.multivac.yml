@@ -1,0 +1,16 @@
+# .multivac.yml
+# Owner identity for a multivac instance. Read at every session start.
+# Contains NO person, document or process data — those live under people/.
+
+owner:
+  name: "{{OWNER_NAME}}"
+  handle: "{{GITHUB_HANDLE}}"
+
+language:
+  chat: "{{LANGUAGE}}"        # language used with the owner, e.g. italian
+  files: english              # file content, commits, issues — always English
+
+preferences:
+  reminder_window_days: 90    # flag a document as expiring_soon this many days before expiry
+  stale_requirement_months: 6 # re-verify a recorded requirement older than this before acting on it
+  notes: null

@@ -1,0 +1,83 @@
+# frameworks/multivac/.scenarios.yml
+# Scenario index for the multivac framework.
+# Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
+# Imported by frameworks/multivac/CLAUDE.md — the agent reads ONLY the matched scenario file.
+#
+# TRIGGER MATCHING: semantic and language-independent.
+# Match user intent regardless of language (Italian, Russian, English…). Never match literal strings.
+
+scenarios:
+
+  - id: onboarding
+    priority: 20
+    preconditions:
+      - identity_missing
+    triggers:
+      - the owner profile does not exist yet and the user starts using multivac
+      - user wants to set up or redo their owner profile
+    file: frameworks/multivac/scenarios/onboarding.yml
+
+  - id: session_start
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - this is the first message of the conversation and no other scenario matches
+      - user greets multivac or opens a new session
+      - user asks for an overview of documents, processes or upcoming deadlines
+    file: frameworks/multivac/scenarios/session_start.yml
+
+  - id: add_person
+    priority: 10
+    preconditions:
+      - identity_exists
+    triggers:
+      - user wants to add a new person to track (self or a close family member)
+      - user mentions a parent, child, partner or sibling not yet registered
+    file: frameworks/multivac/scenarios/add_person.yml
+
+  - id: vault_update
+    priority: 10
+    preconditions:
+      - person_exists
+    triggers:
+      - user wants to file a new document for a tracked person
+      - user has a document that is being renewed, replaced or has changed
+      - user wants to check whether a document is valid, expiring or expired
+    file: frameworks/multivac/scenarios/vault_update.yml
+
+  - id: plan_process
+    priority: 10
+    preconditions:
+      - person_exists
+    triggers:
+      - user wants to start or plan an administrative process (citizenship, licence, permit, visa…)
+      - user asks what is needed to apply for something with an administration
+    file: frameworks/multivac/scenarios/plan_process.yml
+
+  - id: update_process
+    priority: 10
+    preconditions:
+      - open_process_exists
+    triggers:
+      - user reports progress on an open process
+      - user wants to know the status of a process or what is still missing
+      - user wants guidance on the next step of a process
+    file: frameworks/multivac/scenarios/update_process.yml
+
+  - id: close_process
+    priority: 10
+    preconditions:
+      - open_process_exists
+    triggers:
+      - user says a process reached its outcome (approved, rejected)
+      - user wants to drop or abandon a process
+    file: frameworks/multivac/scenarios/close_process.yml
+
+  - id: unknown_scenario
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - any message that does not match any other scenario
+    file: frameworks/multivac/scenarios/unknown_scenario.yml

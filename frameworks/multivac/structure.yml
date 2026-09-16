@@ -1,0 +1,90 @@
+# frameworks/multivac/structure.yml
+# Canonical layout of any multivac instance repo.
+# All names: snake_case, lowercase, English. AI files: .yml | human files: .md
+
+root: "{instance}"
+
+files:
+  - path: CLAUDE.md
+    role: agent entry point — instance identity + import of frameworks/multivac/CLAUDE.md
+    from_template: frameworks/multivac/templates/instance_claude.md
+    access: read-only
+    required: true
+
+  - path: .claude/settings.json
+    role: Claude Code permissions + SessionStart hooks
+    from_template: frameworks/multivac/templates/instance_settings.json
+    access: read-only
+    required: true
+
+  - path: .multivac.yml
+    role: owner identity — language, tracked administrations, preferences
+    from_template: frameworks/multivac/templates/.multivac.yml
+    access: read-write
+    required: true
+
+  - path: .registry.yml
+    role: cross-repo connection map
+    from_template: templates/.registry.yml
+    access: read-only
+    required: true
+
+  - path: README.md
+    role: human navigation hub
+    from_template: frameworks/multivac/templates/instance_readme.md
+    access: read-write
+    required: true
+
+folders:
+
+  people:
+    path: people/{slug}/
+    description: one tracked person — owner (relation self) or a close family member
+    created_by: add_person
+    subfolders:
+
+      - path: people/{slug}/person.yml
+        role: static identity data — name, relation, birth data, notes
+        from_template: frameworks/multivac/templates/person.yml
+        access: read-write
+
+      - path: people/{slug}/vault/
+        role: documents held for this person — one file per document issue/renewal, never overwritten
+        pattern: "{document_type}_YYYY-MM-DD.yml"
+        from_template: frameworks/multivac/templates/document.yml
+        access: write-once
+
+      - path: people/{slug}/docs/
+        role: scans and attachments backing a vault entry
+        pattern: "YYYY-MM-DD_{slug}.{ext}"
+        access: write-once
+
+      - path: people/{slug}/processes/
+        role: administrative processes — current state + append-only history of transitions
+        pattern: "{process}.yml"
+        from_template: frameworks/multivac/templates/process.yml
+        access: read-write
+
+      - path: people/{slug}/log/
+        role: diary of paperwork actions taken for this person
+        pattern: "YYYY-MM-DD.yml"
+        access: append-only
+
+cross_refs:
+  - label: "process file without a matching person"
+    source: people/{slug}/processes/{process}.yml#person
+    target: people/{value}/person.yml
+    target_type: file_exists
+    level: error
+
+  - label: "process requirement points to a missing vault document"
+    source: people/{slug}/processes/*.yml#requirements[].document
+    target: people/{slug}/vault/{value}
+    target_type: file_exists
+    level: warning
+
+  - label: "vault document without checked_on on its expiry"
+    source: people/{slug}/vault/*.yml#expiry.checked_on
+    target: not_null
+    target_type: field_present
+    level: warning

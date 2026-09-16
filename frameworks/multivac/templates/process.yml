@@ -1,0 +1,24 @@
+# people/{slug}/processes/{process}.yml
+# One administrative process. Created by plan_process, updated by update_process, closed by close_process.
+# `status` and `requirements` are read-write; `history` is append-only — new entries only, never edited.
+
+person: "{{PERSON_SLUG}}"
+process_type: "{{PROCESS_TYPE}}"    # closed list — frameworks/multivac/overview.yml#enums.process_type
+administration: "{{ADMINISTRATION}}" # ISO 3166-1 alpha-2 country code, or named authority
+
+status: not_started                 # frameworks/multivac/overview.yml#enums.process_status
+
+requirements:
+  - name: null
+    status: missing                 # missing | in_progress | satisfied | not_applicable
+    document: null                  # filename under people/{slug}/vault/, if the requirement is a vault document
+    checked_on: null                # YYYY-MM-DD — when this requirement itself was last confirmed against an official source
+    source: null                    # what confirms this requirement (site, embassy, consulate, professional)
+
+opened: "{{TODAY}}"                 # YYYY-MM-DD
+
+history: []                         # append-only — [{date, event}], oldest first
+
+outcome: null                       # null while open; approved | rejected | dropped when closed
+
+notes: null

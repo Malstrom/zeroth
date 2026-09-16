@@ -1,0 +1,14 @@
+# people/{slug}/person.yml
+# Static identity data for one tracked person. Created by add_person.
+
+slug: "{{PERSON_SLUG}}"
+name: "{{PERSON_NAME}}"
+relation: "{{RELATION}}"            # self | parent | child | partner | sibling
+
+birth:
+  date: null                        # YYYY-MM-DD
+  country: null                     # ISO 3166-1 alpha-2
+
+citizenships: []                    # list of ISO 3166-1 alpha-2 country codes, as known today
+
+notes: null

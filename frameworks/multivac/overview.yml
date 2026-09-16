@@ -1,0 +1,103 @@
+# frameworks/multivac/overview.yml
+# multivac framework — purpose, vocabulary, enums, key principles.
+
+framework: multivac
+version: 0.1.0
+question: "What paperwork exists, and what state is each administrative process in?"
+purpose: >
+  Personal and family document and bureaucracy framework. The repository holds every
+  identity and administrative document for the owner and a bounded circle of close family
+  (parent, child, partner, sibling), and tracks administrative processes — citizenship,
+  licences, permits, renewals — across any country or authority, from opening to outcome.
+  The AI keeps the vault, flags expiring documents, never lets a process move forward on a
+  guessed requirement or deadline, and never submits, books or pays anything itself.
+name_origin: >
+  Multivac, the society-scale administrative computer recurring across Asimov's fiction
+  (Franchise; The Life and Times of Multivac; The Last Question) — it answers questions and
+  runs the paperwork of civilization. Chosen deliberately against the "personal companion
+  robot" pattern of andrew/daneel; flagged during discussion (zeroth#365) and kept by owner's
+  choice.
+
+cycle:
+  - onboarding          # owner identity (.multivac.yml)
+  - add_person          # register a person (self or close family) tracked in this instance
+  - vault_update         # file a new document, or a renewal that supersedes an old one
+  - plan_process         # open an administrative process toward one administration
+  - update_process       # log progress, requirements met, blockers, next step
+  - close_process         # outcome recorded — approved, rejected or dropped
+
+vocabulary:
+  person: one individual tracked in this instance — owner or a close family member — lives under people/{slug}/
+  relation: how a tracked person relates to the owner — self, or one of the bounded family relations
+  document: a static identity or administrative record that exists today (passport, ID, licence,
+    birth certificate…) — immutable once filed; a renewal is a new dated file, never an edit
+  vault: the set of documents held for one person
+  process: an administrative request opened toward one administration, with its own state and history
+  administration: the country or authority a process is filed with — ISO 3166-1 alpha-2 country code,
+    not a framework-defined enum (the set of administrations is not closed the way work types are)
+  requirement: one document or condition a process needs before it can move to its next state
+  deadline: a date by which something must happen — document expiry, renewal window, appointment,
+    filing deadline — always computed from a document, an official source, or the owner, never invented
+
+enums:
+  document_type:
+    - passport
+    - id_card
+    - driving_licence
+    - birth_certificate
+    - marriage_certificate
+    - residence_permit
+    - tax_code
+    - health_card
+    - vaccination_record
+    - academic_certificate
+    - other
+  document_status: [valid, expiring_soon, expired, superseded]
+  process_type:
+    - citizenship
+    - driving_licence
+    - residence_permit
+    - visa
+    - passport_renewal
+    - id_renewal
+    - civil_status
+    - other
+  process_status:
+    - not_started
+    - documents_collecting
+    - filed
+    - pending
+    - appointment_scheduled
+    - approved
+    - rejected
+    - dropped
+  relation: [self, parent, child, partner, sibling]
+  requirement_status: [missing, in_progress, satisfied, not_applicable]
+
+state_conditions:
+  identity_exists: .multivac.yml exists and owner.name is not empty
+  identity_missing: .multivac.yml missing or owner.name empty
+  person_exists: at least one people/{slug}/person.yml exists
+  open_process_exists: at least one process with status not in [approved, rejected, dropped]
+
+labels:
+  person: "person:{slug}"                        # exactly one per issue
+  process: "process:{process_type}"              # one or more per issue
+  note: labels are created on first use if they do not exist
+
+key_principles:
+  - one repository per owner, private — it holds identity documents, never make it public
+  - multiple people inside people/{slug}/, bounded to relation in [self, parent, child, partner, sibling]
+  - adding a family member is the owner's explicit decision — consent between the owner and that
+    person is the owner's responsibility; the framework does not model or verify it
+  - a document is write-once — a renewal or update is a new dated file; the old one stays as history,
+    never edited or deleted
+  - document expiry and deadlines are always read from a document or an official source with
+    checked_on, never invented or assumed current
+  - administrative requirements change by country and by year — every requirement recorded needs a
+    checked_on date and, where possible, a source; never act on a stale requirement without re-checking
+  - process history is append-only inside the process file — state changes are added, never rewritten
+  - multivac never submits, books, pays or signs anything — it prepares, checklists and guides; the
+    owner acts
+  - house-related documents (invoices, warranties, permits) stay in andrew — never duplicated here
+  - processes live as GitHub issues (lifecycle) + people/{slug}/processes/{slug}.yml (state and history)
