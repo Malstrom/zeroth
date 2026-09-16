@@ -1,0 +1,45 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/vault_update.yml
+
+id: vault_update
+on:
+  - user wants to file a new document for a tracked person
+  - user has a document that is being renewed, replaced or has changed
+  - user wants to check whether a document is valid, expiring or expired
+preconditions:
+  - person_exists
+creates_issue: false
+read:
+  - "people/*/person.yml"
+  - "people/{{person}}/vault/*.yml"
+  - frameworks/multivac/templates/document.yml
+  - frameworks/multivac/overview.yml
+input_sources: [attached_file, pasted_text]
+steps:
+  - ask: "Which person, and which document type (from the closed list)?"
+  - compute: existing_document           # most recent vault entry of this type for this person, if any
+  - if:
+      condition: existing_document is not null
+      then:
+        - say: "Current on file: {{existing_document.issue_date}}, expiry {{existing_document.expiry.date | unknown}}."
+  - ask: "Issue date, expiry date (if any), issuing authority/country? Attach a scan if you want one on file."
+  - ask: "Where did the expiry date come from — the document itself, or a source you're citing?"
+  - compute: document_slug               # {document_type}_YYYY-MM-DD (issue date)
+  - write:
+      path: "people/{{person}}/vault/{{document_slug}}.yml"
+      from: frameworks/multivac/templates/document.yml
+      access: write-once
+      via: commit
+      approval: none
+  - if:
+      condition: attached_file is present
+      then:
+        - write:
+            path: "people/{{person}}/docs/"
+            filename: "YYYY-MM-DD_{slug}.{ext}"
+            access: write-once
+            via: commit
+            approval: none
+  - commit_before_reply
+  - say: "{{document_type}} filed for {{person}}, issued {{issue_date}}{{existing_document | ', supersedes the entry from ' + existing_document.issue_date if existing_document else ''}}."
+output:
+  state_changes: [document-filed]

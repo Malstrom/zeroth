@@ -1,0 +1,40 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/plan_process.yml
+
+id: plan_process
+on:
+  - user wants to start or plan an administrative process (citizenship, licence, permit, visa…)
+  - user asks what is needed to apply for something with an administration
+preconditions:
+  - person_exists
+creates_issue: true
+issue:
+  title: "{person}: {process_type} — {administration}"
+  from: frameworks/multivac/templates/issue_process.md
+  update: comment
+  approval: none
+  on_complete: close
+  on_fail: comment
+read:
+  - "people/*/person.yml"
+  - "people/{{person}}/vault/*.yml"
+  - "people/{{person}}/processes/*.yml"
+  - frameworks/multivac/templates/process.yml
+  - frameworks/multivac/overview.yml
+steps:
+  - ask: "For whom, which process type (from the closed list), and toward which administration (country/authority)?"
+  - ask: |
+      What are the requirements for this process, as of today? Cite where you got them
+      (official site, embassy, consulate, a professional) — never assume, I don't invent these.
+  - compute: requirements_with_vault_match   # match each requirement against existing vault documents
+  - say: "Requirements: {{requirements_with_vault_match | satisfied / missing, against the vault}}"
+  - compute: process_slug
+  - write:
+      path: "people/{{person}}/processes/{{process_slug}}.yml"
+      from: frameworks/multivac/templates/process.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: "Process opened — {{issue.url}}. Missing before filing: {{requirements_with_vault_match | missing, or 'nothing, ready to file'}}"
+output:
+  state_changes: [process-opened]

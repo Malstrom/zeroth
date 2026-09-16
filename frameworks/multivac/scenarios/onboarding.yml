@@ -1,0 +1,37 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/onboarding.yml
+
+id: onboarding
+on:
+  - the owner profile does not exist yet and the user starts using multivac
+  - user wants to set up or redo their owner profile
+preconditions:
+  - identity_missing
+creates_issue: false
+read:
+  - frameworks/multivac/templates/.multivac.yml
+  - frameworks/multivac/overview.yml
+steps:
+  - ask: "Your name and GitHub handle?"
+  - ask: "Language for our conversations?"
+  - say: |
+      This repo will hold identity documents for you and, if you want, close family
+      (parent, child, partner, sibling — nothing wider). It must stay private. Confirm the
+      instance repo is private before we continue.
+  - write:
+      path: .multivac.yml
+      from: frameworks/multivac/templates/.multivac.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - propose: "Profile saved. Register yourself as the first tracked person?"
+    on_confirm:
+      - call:
+          scenario: add_person
+          file: frameworks/multivac/scenarios/add_person.yml
+          load: on_demand
+          with: { relation: self }
+    on_reject:
+      - say: "OK. Tell me what you want to do."
+output:
+  state_changes: [owner-onboarded]

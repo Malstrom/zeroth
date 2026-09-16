@@ -1,0 +1,49 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/session_start.yml
+
+id: session_start
+on:
+  - this is the first message of the conversation and no other scenario matches
+  - user greets multivac or opens a new session
+  - user asks for an overview of documents, processes or upcoming deadlines
+preconditions:
+  - any
+creates_issue: false
+read:
+  - .multivac.yml
+  - "people/*/person.yml"
+  - "people/*/vault/*.yml"
+  - "people/*/processes/*.yml"
+  - "issues: {instance} open ordered_by updated desc"
+steps:
+  - if:
+      condition: identity_missing
+      then:
+        - call:
+            scenario: onboarding
+            file: frameworks/multivac/scenarios/onboarding.yml
+            load: on_demand
+        - stop
+  - if:
+      condition: not person_exists
+      then:
+        - propose: "No one registered yet. Register yourself first?"
+          on_confirm:
+            - call:
+                scenario: add_person
+                file: frameworks/multivac/scenarios/add_person.yml
+                load: on_demand
+                with: { relation: self }
+          on_reject:
+            - say: "OK. Tell me what you want to do."
+        - stop
+  - compute: expiring_documents          # document_status in [expiring_soon, expired], per person
+  - compute: open_processes              # status, next requirement missing, administration
+  - compute: stale_requirements          # requirement.checked_on older than 6 months on an open process
+  - say: |
+      {{owner.name}}, situation:
+      Documents needing attention: {{expiring_documents | per_person: document, expiry}}
+      Open processes: {{open_processes | per_person: process, status, next requirement}}
+      Requirements to re-verify (stale checked_on): {{stale_requirements | none}}
+  - ask: "What do we work on?"
+output:
+  state_changes: []

@@ -1,0 +1,40 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/update_process.yml
+
+id: update_process
+on:
+  - user reports progress on an open process
+  - user wants to know the status of a process or what is still missing
+  - user wants guidance on the next step of a process
+preconditions:
+  - open_process_exists
+creates_issue: false
+read:
+  - "people/{{person}}/processes/{{process}}.yml"
+  - "people/{{person}}/vault/*.yml"
+steps:
+  - compute: current_process             # match by person + process_type/administration if ambiguous, ask if unclear
+  - say: "{{current_process.person}} / {{current_process.process_type}} → {{current_process.administration}}: status {{current_process.status}}."
+  - ask: "What happened — a requirement satisfied, a filing, an appointment, a blocker?"
+  - append:
+      path: "people/{{person}}/processes/{{process}}.yml"
+      field: history
+      entry:
+        date: "{{today}}"
+        event: "{{reported_event}}"
+      access: append-only-within-file
+      via: commit
+      approval: none
+  - if:
+      condition: status changed
+      then:
+        - write:
+            path: "people/{{person}}/processes/{{process}}.yml"
+            fields: [status]
+            access: read-write
+            via: commit
+            approval: none
+  - commit_before_reply
+  - compute: still_missing                # requirements not yet satisfied
+  - say: "Recorded. Still missing before the next step: {{still_missing | none}}"
+output:
+  state_changes: [process-updated]

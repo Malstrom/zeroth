@@ -19,7 +19,7 @@ metaphor:
     It cannot be seen; nothing is valid without its approval.
 
   frameworks: >
-    Frameworks are the robots: dojo, daneel, sudo_hire_me, tensho, andrew.
+    Frameworks are the robots: dojo, daneel, sudo_hire_me, tensho, andrew, multivac.
     They act, produce, and remember — within the laws defined by zeroth.
     Each framework is one dimension of a person's life — professional or personal.
 
@@ -87,6 +87,24 @@ frameworks:
       Named after Andrew Martin, Asimov's Bicentennial Man — the household robot
       who discovered woodworking and built the furniture of the house he lived in.
     entry_point: CLAUDE.md — first framework without .agent.yml (zeroth#361)
+
+  multivac:
+    status: draft
+    question: "What paperwork exists, and what state is each administrative process in?"
+    tracks: identity documents (vault, write-once) and administrative processes (state, deadlines,
+      requirements) for the owner and a bounded circle of close family — parent, child, partner,
+      sibling
+    philosophy: >
+      Multivac is not a shopping list of documents. It keeps a write-once vault of what exists and
+      a stateful trace of every administrative process, across any country or authority. The AI
+      never invents a requirement or a deadline — both come from a document, the owner, or a cited
+      official source with checked_on — and never submits, books or pays on the owner's behalf.
+      Named after Asimov's recurring society-scale administrative computer — a deliberate break
+      from the personal-companion-robot pattern of andrew/daneel, discussed and kept in zeroth#365.
+    entry_point: CLAUDE.md — no .agent.yml, follows the andrew format (zeroth#361)
+    note: >
+      Spec only (zeroth#365) — framework definition (overview.yml, structure.yml, scenarios,
+      templates) exists under frameworks/multivac/, no instance has been spawned yet.
 
 # ---------------------------------------------------------------------------
 # CROSS-FRAMEWORK PRINCIPLE

@@ -1,0 +1,45 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/multivac/scenarios/close_process.yml
+
+id: close_process
+on:
+  - user says a process reached its outcome (approved, rejected)
+  - user wants to drop or abandon a process
+preconditions:
+  - open_process_exists
+creates_issue: false
+read:
+  - "people/{{person}}/processes/{{process}}.yml"
+steps:
+  - compute: current_process
+  - ask: "Outcome — approved, rejected, or dropping it?"
+  - append:
+      path: "people/{{person}}/processes/{{process}}.yml"
+      field: history
+      entry:
+        date: "{{today}}"
+        event: "closed: {{outcome}}"
+      access: append-only-within-file
+      via: commit
+      approval: none
+  - write:
+      path: "people/{{person}}/processes/{{process}}.yml"
+      fields: [status]
+      access: read-write
+      via: commit
+      approval: none
+  - if:
+      condition: outcome == approved and result is a new document (e.g. citizenship certificate, new licence)
+      then:
+        - propose: "File the resulting document in the vault now?"
+          on_confirm:
+            - call:
+                scenario: vault_update
+                file: frameworks/multivac/scenarios/vault_update.yml
+                load: on_demand
+                with: { person: "{{person}}" }
+  - commit_before_reply
+  - say: "{{current_process.process_type}} for {{current_process.person}} closed: {{outcome}}."
+  - issue:
+      action: close
+output:
+  state_changes: [process-closed]
