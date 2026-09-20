@@ -89,3 +89,15 @@ connections:
     note: |
       Framework added via zeroth#365. Spawned manually, like andrew — spawn scenario update
       pending in zeroth#361. Holds identity documents: private, never made public.
+
+  - repo: Malstrom/bard
+    role: bard instance — spawned 2026-09-20 (private)
+    framework: bard
+    sync_trigger:
+      - rule-updated
+    access: read-write
+    note: |
+      Framework added via zeroth#367. Spawned manually, like andrew and multivac — spawn scenario
+      update pending in zeroth#361. Holds the owner's diary and other people's words as reported:
+      private, never made public. Ritual on tue/thu/sun held by a scheduled cloud routine, which
+      captures into a pull request titled "diary: {date}" — a cloud session cannot push to main.
