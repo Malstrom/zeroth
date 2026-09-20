@@ -89,7 +89,7 @@ frameworks:
     entry_point: CLAUDE.md — first framework without .agent.yml (zeroth#361)
 
   multivac:
-    status: draft
+    status: active
     question: "What paperwork exists, and what state is each administrative process in?"
     tracks: identity documents (vault, write-once) and administrative processes (state, deadlines,
       requirements) for the owner and a bounded circle of close family — parent, child, partner,
@@ -103,8 +103,8 @@ frameworks:
       from the personal-companion-robot pattern of andrew/daneel, discussed and kept in zeroth#365.
     entry_point: CLAUDE.md — no .agent.yml, follows the andrew format (zeroth#361)
     note: >
-      Spec only (zeroth#365) — framework definition (overview.yml, structure.yml, scenarios,
-      templates) exists under frameworks/multivac/, no instance has been spawned yet.
+      Framework defined in zeroth#365. Instance Malstrom/multivac spawned 2026-09-16 (private)
+      and onboarded — .multivac.yml and people/ exist.
 
 # ---------------------------------------------------------------------------
 # CROSS-FRAMEWORK PRINCIPLE
