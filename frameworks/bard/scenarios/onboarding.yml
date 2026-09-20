@@ -1,0 +1,42 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/onboarding.yml
+
+id: onboarding
+on:
+  - the owner profile does not exist yet and the user starts using bard
+  - user wants to set up or redo their owner profile
+preconditions:
+  - identity_missing
+creates_issue: false
+read:
+  - frameworks/bard/templates/.bard.yml
+  - frameworks/bard/overview.yml
+steps:
+  - ask: "Your name and GitHub handle?"
+  - ask: "Language for our conversations?"
+  - ask: "Default truth mode for new projects — memoir, autofiction or fiction?"
+  - say: |
+      This repo will hold your diary: your life, and other people's words as you report them.
+      It stays private, and nothing in it is published by me — ever. Confirm the instance repo
+      is private before we continue.
+  - write:
+      path: .bard.yml
+      from: frameworks/bard/templates/.bard.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - call:
+      scenario: ritual_setup
+      file: frameworks/bard/scenarios/ritual_setup.yml
+      load: on_demand
+      note: the rhythm is set at onboarding — a diary with no rhythm is a diary with one entry
+  - propose: "Profile saved. Want to start by telling me something, or by opening a project?"
+    on_confirm:
+      - call:
+          scenario: capture
+          file: frameworks/bard/scenarios/capture.yml
+          load: on_demand
+    on_reject:
+      - say: "OK. Tell me what you want to do."
+output:
+  state_changes: [owner-onboarded]

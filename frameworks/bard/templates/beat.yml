@@ -1,0 +1,26 @@
+# projects/{slug}/beats/{nn}_{slug}.yml
+# One structural unit — a chapter, a scene, a video segment. The bridge between diary and draft.
+
+order: "{{NN}}"                     # position in the outline
+slug: "{{SLUG}}"
+title: "{{TITLE}}"
+status: planned                     # planned | drafted | revised | final
+
+purpose: |
+  {{What this beat has to do for the story. Not what happens in it — what it does:
+  establishes the distance, turns the reader against the narrator, pays off the opening.}}
+
+summary: |
+  {{What happens, in a few lines.}}
+
+sources: []                         # "{YYYY-MM-DD}#e{n}" — the diary entries this rests on.
+                                    # Empty means there is no material yet: say so, do not invent it.
+characters: []                      # slugs under characters/
+
+liberties: null                     # what this beat is allowed to invent or alter relative to the
+                                    # sources — compressed timeline, merged people, invented dialogue.
+                                    # MUST be null when the project truth_mode is memoir.
+
+open_questions: []                  # what the owner still has to answer before this can be written
+drafts: []                          # draft filenames, oldest first
+notes: null

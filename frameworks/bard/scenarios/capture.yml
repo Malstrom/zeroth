@@ -1,0 +1,89 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/capture.yml
+# The core loop of bard. Everything else exists to consume what this writes.
+
+id: capture
+on:
+  - user tells something that happened, was said, was noticed, dreamt or remembered
+  - user wants to write in the diary or dump material from the day
+  - user shares an idea, an image or a fragment worth keeping
+preconditions:
+  - identity_exists
+creates_issue: false
+read:
+  - .bard.yml
+  - frameworks/bard/prompts.yml
+  - "diary/{{year}}/{{today}}.yml"
+  - frameworks/bard/templates/diary_day.yml
+  - frameworks/bard/overview.yml
+input_sources: [pasted_text, attached_file, voice_transcript]
+steps:
+  - if:
+      condition: the owner has nothing specific to tell, or asks what to write about
+      then:
+        - call:
+            scenario: ask_me
+            file: frameworks/bard/scenarios/ask_me.yml
+            load: on_demand
+        - stop
+  - say: "Go ahead — tell me. I'll take it down as you say it."
+  - listen: >
+      Let the owner talk. Do not interrupt to structure, correct or interpret. Never suggest what
+      might have happened — you were not there.
+  - compute: entries
+    note: >
+      split what was told into one entry per distinct piece of material — an event, a conversation,
+      a reflection, an observation, a memory, a dream, a piece of research. Each gets an entry_type
+      from the closed list and the owner's own words in `raw`. Never merge two events into one entry
+      and never split a single scene into fragments.
+  - ask_if_missing:
+      - when: "an entry has no date of its own and is clearly not from today"
+        ask: "When did this happen — roughly is fine?"
+      - when: "a quote is reported but it is unclear who said it"
+        ask: "Who said that?"
+    note: ask only for what is missing; never fill a gap yourself, leave the field null
+  - compute: people_named          # real names appearing in the entries, recorded as given
+  - follow_up:
+      max_per_topic: 1
+      from: [sensory, dialogue, stakes]
+      note: >
+        one follow-up on what was just told, to get what a draft will need and the owner did not
+        think to say — the light, the exact words, what was at stake. Then stop: see
+        frameworks/bard/prompts.yml#rules. Never a follow-up that suggests its own answer.
+  - write:
+      path: "diary/{{year}}/{{today}}.yml"
+      from: frameworks/bard/templates/diary_day.yml
+      access: append-only
+      via: commit
+      approval: none
+      note: >
+        if the day file exists, append the new entries with fresh ids (e1, e2, …, never reused);
+        never edit an existing entry. A correction to an earlier entry is a new entry with
+        `corrects: {date}#{id}`.
+  - if:
+      condition: attached_file is present
+      then:
+        - write:
+            path: "diary/media/"
+            filename: "YYYY-MM-DD_{slug}.{ext}"
+            access: write-once
+            via: commit
+            approval: none
+  - commit_before_reply
+  - compute: threads               # recurring themes this material connects to across the diary
+  - compute: project_matches       # open projects whose beats or premise this material could feed
+  - say: |
+      Recorded: {{entries | id, entry_type, one-line summary}}.
+      {{threads | "This keeps coming back: " + threads | omit if none}}
+      {{project_matches | "Could feed: " + project_matches | omit if none}}
+  - propose_if: 
+      condition: project_matches is not empty
+      propose: "Want me to bind any of this to a beat?"
+      on_confirm:
+        - call:
+            scenario: shape_story
+            file: frameworks/bard/scenarios/shape_story.yml
+            load: on_demand
+      on_reject:
+        - say: "Kept in the diary. It'll be there when it's needed."
+output:
+  state_changes: [entries-captured]

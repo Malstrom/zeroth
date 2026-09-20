@@ -1,0 +1,53 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/define_voice.yml
+
+id: define_voice
+on:
+  - user wants to set or change the style, tone or voice of a project
+  - user names something as a reference or inspiration for how it should sound
+preconditions:
+  - project_exists
+creates_issue: false
+read:
+  - "projects/{{project}}/project.yml"
+  - "projects/{{project}}/voice.yml"
+  - "influences/*.yml"
+  - frameworks/bard/templates/voice.yml
+  - frameworks/bard/templates/influence.yml
+  - frameworks/bard/overview.yml
+steps:
+  - ask: "What should this sound like? Name things — books, films, directors, channels, albums, people who talk the way you want to sound."
+  - compute: influences
+    note: >
+      for each named reference, check influences/{slug}.yml. If it exists, reuse it. If not, create
+      it. Never record a reference you cannot describe concretely — ask the owner what they actually
+      take from it: the rhythm, the structure, the humour, the coldness, the way it opens.
+  - ask_per_influence: "What exactly do you take from it — and what do you specifically not want from it?"
+  - ask: "Point of view and tense? First person past, present, third — how does it sit?"
+  - ask: "Register: intimate, conversational, literary, documentary, comic, lyrical, deadpan, raw?"
+  - ask: "What language is this written in?"
+  - ask: "What must this never do? Name the things that would make it not yours."
+  - write_each:
+      path: "influences/{{slug}}.yml"
+      from: frameworks/bard/templates/influence.yml
+      access: read-write
+      via: commit
+      approval: none
+  - write:
+      path: "projects/{{project}}/voice.yml"
+      from: frameworks/bard/templates/voice.yml
+      access: read-write
+      via: commit
+      approval: none
+      note: >
+        if voice.yml exists, this is a change: append the previous version summary to
+        project.yml#history with the date and what changed. Drafts already written stay as they are.
+  - commit_before_reply
+  - say: |
+      Voice set: {{pov}}, {{tense}}, {{register}}, in {{language}}.
+      Built from: {{influences | slug, what is taken}}
+      Never: {{never_rules}}
+  - say: >
+      Test it on me whenever you want: I can write three lines in this voice before we commit to a
+      whole beat.
+output:
+  state_changes: [voice-defined]

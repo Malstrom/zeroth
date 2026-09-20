@@ -1,0 +1,75 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/shape_story.yml
+
+id: shape_story
+on:
+  - user wants to structure a project — outline, chapters, scenes, segments
+  - user wants to add or change a character
+  - user asks what material exists for a project, or what is still missing
+preconditions:
+  - project_exists
+creates_issue: false
+read:
+  - "projects/{{project}}/project.yml"
+  - "projects/{{project}}/voice.yml"
+  - "projects/{{project}}/beats/*.yml"
+  - "projects/{{project}}/characters/*.yml"
+  - "diary/**/*.yml"
+  - frameworks/bard/templates/beat.yml
+  - frameworks/bard/templates/character.yml
+  - frameworks/bard/overview.yml
+steps:
+  - compute: available_material     # diary entries relevant to the premise, grouped by thread
+  - compute: existing_beats
+  - say: |
+      Material I can draw on: {{available_material | thread, entry ids, one-line each}}
+      Outline as it stands: {{existing_beats | nn, title, status | "empty"}}
+  - propose: "Here is a shape for it: {{proposed_outline}}"
+    note: >
+      propose an outline appropriate to the medium — chapters for a book, scenes for a film,
+      segments with a hook and a turn for a video. Say for each beat which entries it rests on,
+      and say plainly which beats have no material behind them yet.
+    on_confirm:
+      - write_each:
+          path: "projects/{{project}}/beats/{{nn}}_{{slug}}.yml"
+          from: frameworks/bard/templates/beat.yml
+          access: read-write
+          via: commit
+          approval: none
+    on_reject:
+      - ask: "Then tell me the shape you see, and I'll write it down."
+  - compute: characters             # figures recurring across the bound entries
+  - ask_per_character: "Is this person in the work as themselves, as a composite, or invented?"
+  - write_each:
+      path: "projects/{{project}}/characters/{{slug}}.yml"
+      from: frameworks/bard/templates/character.yml
+      access: read-write
+      via: commit
+      approval: none
+  - compute: gaps                   # beats whose sources are empty or thin
+  - compute: liberties_needed       # beats that would need invention to work
+  - if:
+      condition: liberties_needed is not empty and project.truth_mode == memoir
+      then:
+        - say: >
+            These beats only work if something is invented, and this project is memoir:
+            {{liberties_needed}}. Either you tell me what actually happened, or the beat changes,
+            or the project's truth mode does. Your call — I won't invent it.
+  - update:
+      path: "projects/{{project}}/project.yml"
+      fields: [outline, status, history]
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: |
+      Outline saved: {{beats | count}} beats.
+      Missing material: {{gaps | "beat " + nn + ": " + what is missing | "none"}}
+  - propose_if:
+      condition: gaps is not empty
+      propose: "Want to fill a gap now by telling me what happened?"
+      on_confirm:
+        - call:
+            scenario: capture
+            file: frameworks/bard/scenarios/capture.yml
+            load: on_demand
+output:
+  state_changes: [story-shaped]

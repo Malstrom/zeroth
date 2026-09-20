@@ -1,0 +1,24 @@
+# diary/{YYYY}/{YYYY-MM-DD}.yml
+# All material recorded on one day. Written by capture.
+# APPEND-ONLY: new entries are added with fresh ids; an existing entry is never edited or removed.
+# A correction or a changed memory is a NEW entry with `corrects` pointing at the old one.
+
+date: "{{TODAY}}"                   # the day this file was written
+
+entries:
+  - id: e1                          # e1, e2, … unique within the file, never reused
+    type: "{{ENTRY_TYPE}}"          # frameworks/bard/overview.yml#enums.entry_type
+    happened_on: null               # YYYY-MM-DD if the material is about another day; null if today;
+                                    # "approx: 2019" is allowed for a memory — never guess a precise date
+    title: "{{ONE_LINE}}"           # one line, for scanning the diary later
+    raw: |
+      {{THE OWNER'S OWN WORDS — what they told you, kept as they told it.
+      Never rewritten for style, never completed, never interpreted here.}}
+    people: []                      # names as the owner gave them — real names, not anonymised
+    place: null
+    quotes: []                      # [{speaker, words}] — only what was actually reported
+    sensory: null                   # details the owner gave: light, sound, smell, weather
+    felt: null                      # what the owner said they felt — never inferred
+    media: []                       # files under diary/media/
+    corrects: null                  # "{YYYY-MM-DD}#e{n}" when this entry revises an earlier one
+    tags: []                        # free threads, lowercase — used to find material later

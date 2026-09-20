@@ -1,0 +1,66 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/write_draft.yml
+
+id: write_draft
+on:
+  - user wants a beat, chapter, scene or script written
+  - user asks bard to write the project or part of it
+preconditions:
+  - project_has_beats
+creates_issue: false
+read:
+  - "projects/{{project}}/project.yml"
+  - "projects/{{project}}/voice.yml"
+  - "projects/{{project}}/beats/{{beat}}.yml"
+  - "projects/{{project}}/characters/*.yml"
+  - "projects/{{project}}/drafts/*.md"
+  - "influences/*.yml"
+  - "diary entries listed in beat.sources"
+  - frameworks/bard/templates/draft.md
+steps:
+  - if:
+      condition: voice.yml missing
+      then:
+        - say: "No voice on this project — I don't draft without one."
+        - call:
+            scenario: define_voice
+            file: frameworks/bard/scenarios/define_voice.yml
+            load: on_demand
+        - stop
+  - ask_if_ambiguous: "Which beat — or the whole thing?"
+  - compute: source_entries         # the actual diary entries behind this beat, read in full
+  - compute: missing_material       # what the beat needs that no entry provides
+  - if:
+      condition: missing_material is not empty
+      then:
+        - say: "Before I write: {{missing_material}} is not in the diary."
+        - ask: >
+            Do you want to tell me the real thing, or does this beat get a declared liberty?
+            (Not available if truth_mode is memoir.)
+  - compute: draft_version          # next v{n} for this beat
+  - write:
+      path: "projects/{{project}}/drafts/{{beat_slug}}_v{{n}}_{{today}}.md"
+      from: frameworks/bard/templates/draft.md
+      access: write-once
+      via: commit
+      approval: none
+      note: >
+        write in the project's language and voice: pov, tense, register, rhythm, and the never-do
+        rules. Use the diary entries as the factual floor — their details, their words, their order,
+        unless the beat declares otherwise. Invent only what beat.liberties declares. Never
+        reproduce text from an influence; write the owner's voice informed by it. The front matter
+        records which entries the draft rests on and what was invented.
+  - update:
+      path: "projects/{{project}}/beats/{{beat}}.yml"
+      fields: [status, drafts]
+      via: commit
+      approval: none
+  - compute: real_people_exposed    # real names or identifying details that reached the draft
+  - commit_before_reply
+  - say: |
+      Draft written: {{draft_path}} — {{word_count}} words, v{{n}}.
+      Rests on: {{source_entries | ids}}
+      Invented: {{liberties_used | "nothing"}}
+      {{real_people_exposed | "Real people identifiable in this draft: " + real_people_exposed + ". Yours to decide before it goes anywhere." | omit if none}}
+  - ask: "Read it and tell me what's wrong with it — tone, pace, what I got wrong."
+output:
+  state_changes: [draft-written]
