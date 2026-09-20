@@ -19,6 +19,8 @@ name_origin: >
 
 cycle:
   - onboarding          # owner identity and defaults (.bard.yml)
+  - ritual_setup        # writing rhythm — which days, how long, how the reminder arrives
+  - ask_me              # bard opens the session with three questions built from this instance
   - capture             # the core loop — record raw material into the diary
   - start_project       # open a work: medium, premise, voice, influences
   - shape_story         # characters, beats, outline — bind beats to diary entries
@@ -32,6 +34,13 @@ vocabulary:
     an observation. Dated, write-once, the lived record. Entries are never rewritten to fit a story.
   diary: the full set of entries — shared by every project in the instance, owned by no project
   thread: a recurring theme or through-line the AI recognises across entries and names in chat
+  ritual: >
+    the owner's writing rhythm — which days, how long a session lasts, and how the reminder
+    arrives. A floor, never a gate: material told off-rhythm is always recorded
+  prompt: >
+    a question bard asks to get material. Built from this instance — an open beat with no
+    sources, a thread never told straight, something cut short last time — never a generic
+    journalling question when real context exists. Kinds and rules in prompts.yml
   project: one work being made — one medium, one voice, one outline, its own beats and drafts
   medium: the form the project takes — book, film, youtube_video, podcast… (closed list)
   voice: >
@@ -82,6 +91,7 @@ state_conditions:
   project_exists: at least one projects/{slug}/project.yml exists
   open_project_exists: at least one project with status not in [published, shelved, dropped]
   project_has_beats: the active project has at least one file under beats/
+  ritual_set: .bard.yml → ritual.days is not empty
 
 labels:
   project: "project:{slug}"          # exactly one per issue
@@ -105,5 +115,10 @@ key_principles:
     published, the owner decides — bard flags it, never decides for them
   - drafts are versioned files — a revision is a new dated version, previous versions stay as history
   - projects live as GitHub issues (lifecycle) + projects/{slug}/project.yml (state and outline)
+  - the session is bard's job to open, not the owner's — it asks at most three questions, one at a
+    time, built from this instance's own gaps and threads — and it never asks a question that
+    suggests its own answer
+  - the rhythm is a floor, never a gate — a missed day is not a failure, is never counted, and
+    material told on any other day is recorded exactly the same
   - work facts belong to daneel and study facts to dojo — bard may draw on that life, but never
     duplicates their records; it names the connection in chat and lets the owner decide

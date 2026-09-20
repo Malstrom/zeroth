@@ -1,0 +1,96 @@
+# frameworks/bard/prompts.yml
+# The question bank. Read by ask_me and by capture when the owner has nothing ready to tell.
+#
+# A prompt is never a form to fill in. These are kinds of question and worked examples;
+# the actual question asked is built from THIS instance's context — open beats with no sources,
+# threads recurring in the diary, what the owner said last time and left hanging.
+# A generic question is the fallback, never the first choice.
+
+rules:
+  - at most three questions in one turn, asked one at a time — an interrogation kills the material
+  - never a yes/no question; ask what happened, who said what, what it looked like
+  - never suggest what might have happened, never offer options to pick from — the owner was there,
+    the AI was not. "Did you feel relieved or angry?" is a contaminated question
+  - prefer a question only this owner could be asked — built from a real entry, a real name, a real
+    open beat — over anything that would work for a stranger
+  - when an answer arrives, do not evaluate it, do not interpret it, do not say it is interesting.
+    Record it and ask the next thing, or stop
+  - one follow-up is allowed on the same material; a second is pushing. Drop it and move on
+  - never ask a therapeutic question the owner did not open themselves. bard is a storyteller,
+    not a counsellor. If something heavy surfaces, record it as told and let the owner lead
+  - a question the owner refuses is closed for that session and recorded nowhere
+
+selection:
+  order:
+    - gap            # an open beat whose sources are empty — the most useful question there is
+    - thread         # something the diary keeps circling that has never been told straight
+    - unfinished     # material the owner started and cut short in an earlier session
+    - fresh          # what happened since the last entry
+    - cold           # nothing above applies, or the diary has been silent for a while
+  note: >
+    build from the first kind that has real context behind it. Say which project a gap question
+    serves — the owner writes differently when they know what the answer feeds.
+
+kinds:
+
+  gap:
+    purpose: get the material a planned beat needs and does not have
+    examples:
+      - "Beat 04 of {{project}} rests on the argument in the kitchen and I have three lines about it. What was actually said, as close as you can get it?"
+      - "{{character}} carries the middle of {{project}} and the diary only has them at a distance. When did you last see them, and what did they do?"
+      - "The ending needs the day you decided. Where were you when you decided?"
+
+  thread:
+    purpose: name something recurring and ask for it head-on, once
+    examples:
+      - "Four entries this month end with you leaving before it's over. What happened the last time you did that?"
+      - "You mention your father only in one-line entries. Tell me one whole afternoon with him."
+
+  unfinished:
+    purpose: reopen something the owner cut short — quoting their own words back, never paraphrased
+    examples:
+      - "Last time you said {{quote}} and then changed subject. What came after that?"
+      - "You left the phone call at the point where they answered."
+
+  fresh:
+    purpose: material since the last entry, made concrete
+    examples:
+      - "What happened in the last few days that you'd still be telling someone about in a year?"
+      - "Who did you talk to that stayed with you, and what did they actually say?"
+      - "What did you do this week that you wouldn't have done a year ago?"
+      - "Where were you when something changed, however small?"
+
+  cold:
+    purpose: open a silent diary without asking for a confession
+    examples:
+      - "Start anywhere. What's the last thing you looked at for longer than you meant to?"
+      - "One scene from this week. Any scene — the most boring one is fine."
+      - "What did you avoid telling me?"
+
+  sensory:
+    purpose: turn a recorded event into something writable — asked as a follow-up, never as an opener
+    examples:
+      - "What was the light like?"
+      - "What could you hear while that was happening?"
+      - "What were you holding?"
+      - "Who else was in the room, and where were they standing?"
+
+  dialogue:
+    purpose: recover real speech, which is what drafts are starved of
+    examples:
+      - "Their exact words, as far as you remember — mark what you're unsure of and I'll keep it marked."
+      - "What did you say back? And what did you not say?"
+
+  stakes:
+    purpose: find why a scene matters, without interpreting it for the owner
+    examples:
+      - "What could have gone wrong there?"
+      - "What did you think would happen next?"
+      - "Who were you being careful around?"
+
+  closing:
+    purpose: end a session cleanly and leave a handle for the next one
+    examples:
+      - "If this week were a chapter, what would it be called?"
+      - "Anything you started telling me and want left out? Say it now and it never gets written."
+      - "What do you want me to ask you next time?"

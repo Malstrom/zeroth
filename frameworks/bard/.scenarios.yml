@@ -17,6 +17,16 @@ scenarios:
       - user wants to set up or redo their owner profile
     file: frameworks/bard/scenarios/onboarding.yml
 
+  - id: ask_me
+    priority: 16
+    preconditions:
+      - identity_exists
+    triggers:
+      - user does not know what to write about and wants questions
+      - user wants to start a writing session, or answers a ritual reminder
+      - user asks bard for prompts, angles or something to dig into
+    file: frameworks/bard/scenarios/ask_me.yml
+
   - id: capture
     priority: 15
     preconditions:
@@ -26,6 +36,15 @@ scenarios:
       - user wants to write in the diary or dump material from the day
       - user shares an idea, an image or a fragment worth keeping
     file: frameworks/bard/scenarios/capture.yml
+
+  - id: ritual_setup
+    priority: 10
+    preconditions:
+      - identity_exists
+    triggers:
+      - user wants to set, change or stop the writing rhythm
+      - user wants to be reminded to write
+    file: frameworks/bard/scenarios/ritual_setup.yml
 
   - id: session_start
     priority: 0

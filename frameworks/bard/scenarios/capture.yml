@@ -11,11 +11,20 @@ preconditions:
 creates_issue: false
 read:
   - .bard.yml
+  - frameworks/bard/prompts.yml
   - "diary/{{year}}/{{today}}.yml"
   - frameworks/bard/templates/diary_day.yml
   - frameworks/bard/overview.yml
 input_sources: [pasted_text, attached_file, voice_transcript]
 steps:
+  - if:
+      condition: the owner has nothing specific to tell, or asks what to write about
+      then:
+        - call:
+            scenario: ask_me
+            file: frameworks/bard/scenarios/ask_me.yml
+            load: on_demand
+        - stop
   - say: "Go ahead — tell me. I'll take it down as you say it."
   - listen: >
       Let the owner talk. Do not interrupt to structure, correct or interpret. Never suggest what
@@ -33,6 +42,13 @@ steps:
         ask: "Who said that?"
     note: ask only for what is missing; never fill a gap yourself, leave the field null
   - compute: people_named          # real names appearing in the entries, recorded as given
+  - follow_up:
+      max_per_topic: 1
+      from: [sensory, dialogue, stakes]
+      note: >
+        one follow-up on what was just told, to get what a draft will need and the owner did not
+        think to say — the light, the exact words, what was at stake. Then stop: see
+        frameworks/bard/prompts.yml#rules. Never a follow-up that suggests its own answer.
   - write:
       path: "diary/{{year}}/{{today}}.yml"
       from: frameworks/bard/templates/diary_day.yml

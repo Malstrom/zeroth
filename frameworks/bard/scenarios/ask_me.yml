@@ -1,0 +1,57 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/ask_me.yml
+# The session opener. bard asks, the owner talks, capture writes it down.
+
+id: ask_me
+on:
+  - user does not know what to write about and wants questions
+  - user wants to start a writing session, or answers a ritual reminder
+  - user asks bard for prompts, angles or something to dig into
+preconditions:
+  - identity_exists
+creates_issue: false
+read:
+  - .bard.yml
+  - frameworks/bard/prompts.yml
+  - "diary/{{year}}/*.yml"
+  - "projects/*/project.yml"
+  - "projects/*/beats/*.yml"
+  - "issues: {instance} open label ritual"
+steps:
+  - compute: last_entry_date
+  - compute: gaps                  # open beats with empty or thin sources, per project
+  - compute: threads               # recurring subjects across entries never told straight
+  - compute: unfinished            # material the owner cut short in an earlier session
+  - compute: next_time_request     # what the owner asked to be asked, from the last closing question
+  - compute: prompts
+    note: >
+      build three questions, following prompts.yml#selection.order and obeying prompts.yml#rules.
+      Prefer questions only this owner could be asked. If a gap question is used, name the project
+      and beat it serves. Never more than three.
+  - say: |
+      {{minutes | "We have about " + minutes + "." | omit if none}} Three things I'd ask you today:
+      1. {{prompts[0]}} — {{prompts[0].serves | omit if none}}
+      2. {{prompts[1]}}
+      3. {{prompts[2]}}
+      Pick one, or ignore all three and tell me something else.
+  - listen: >
+      whatever the owner answers, in whatever order, is material. Hand it to capture as it comes —
+      do not wait for all three, do not hold it in the session to structure it later.
+  - call:
+      scenario: capture
+      file: frameworks/bard/scenarios/capture.yml
+      load: on_demand
+  - follow_up:
+      max_per_topic: 1
+      from: [sensory, dialogue, stakes]
+      note: one follow-up on the material just given, then stop — see prompts.yml#rules
+  - say_at_end: "{{closing_question}}"
+    note: >
+      close with one question from prompts.yml#kinds.closing and record the answer to
+      "what should I ask you next time" in the day file, so the next session opens on it.
+  - if:
+      condition: an open issue with label ritual exists for today
+      then:
+        - close_issue:
+            comment: "{{entries | count}} entries captured."
+output:
+  state_changes: [session-held]

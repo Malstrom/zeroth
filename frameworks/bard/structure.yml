@@ -29,6 +29,12 @@ files:
     access: read-only
     required: true
 
+  - path: .github/workflows/ritual.yml
+    role: writing-ritual reminder — opens an issue labelled `ritual` on the owner's days
+    from_template: frameworks/bard/templates/workflow_ritual.yml
+    access: read-write
+    required: false
+
   - path: README.md
     role: human navigation hub — projects and their status
     from_template: frameworks/bard/templates/instance_readme.md

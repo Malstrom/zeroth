@@ -1,0 +1,55 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/ritual_setup.yml
+# Sets the writing cadence and the reminder mechanism. Run once at onboarding, changed on request.
+
+id: ritual_setup
+on:
+  - user wants to set, change or stop the writing rhythm
+  - user wants to be reminded to write
+preconditions:
+  - identity_exists
+creates_issue: false
+read:
+  - .bard.yml
+  - frameworks/bard/templates/.bard.yml
+  - frameworks/bard/templates/workflow_ritual.yml
+steps:
+  - ask: "How often do you want to sit down — how many times a week, and which days?"
+  - ask: "How long is a session, realistically? Twenty minutes and three questions beats an hour you skip."
+  - say: |
+      Two ways to get the nudge, and they can run together:
+      1. **Scheduled agent** — a routine opens a bard session on your days, reads where the projects
+         stand, and sends you the three questions. You answer when you get to it.
+      2. **Repo reminder** — a GitHub Action opens an issue labelled `ritual` on your days. It only
+         wakes you up; the questions come from me when you open the session. This one reaches you
+         even when no session is running.
+  - ask: "Which one — or both?"
+  - update:
+      path: .bard.yml
+      fields: [ritual]
+      via: commit
+      approval: none
+  - if:
+      condition: mechanism includes repo_reminder
+      then:
+        - write:
+            path: .github/workflows/ritual.yml
+            from: frameworks/bard/templates/workflow_ritual.yml
+            access: read-write
+            via: commit
+            approval: none
+  - if:
+      condition: mechanism includes scheduled_agent
+      then:
+        - say: >
+            The scheduled agent lives in your Claude Code setup, not in this repo — set it up with
+            the `schedule` skill, pointing it at this repo with the prompt "open a bard writing
+            session". I cannot create it from inside a scenario.
+  - commit_before_reply
+  - say: |
+      Ritual set: {{ritual.days}}, ~{{ritual.session_minutes}} min, reminder via {{ritual.mechanism}}.
+      Missing a day is not a failure — the diary is append-only, never a streak.
+  - say: >
+      One rule I will keep: if you come to me on a day that is not yours and start telling me
+      something, I write it down. The rhythm is a floor, not a gate.
+output:
+  state_changes: [ritual-set]

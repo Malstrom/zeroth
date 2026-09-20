@@ -1,0 +1,37 @@
+# .github/workflows/ritual.yml
+# Writing-ritual reminder for a bard instance. Written by ritual_setup.
+# It only wakes the owner up: it opens an issue labelled `ritual` on the chosen days.
+# The questions are NOT here — bard builds them from the diary and the open beats when the
+# session opens. A cron job has no context and must not fake one.
+
+name: ritual
+
+on:
+  schedule:
+    # {{RITUAL_DAYS}} — cron is UTC, adjust for the owner's timezone
+    - cron: "{{CRON}}"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open the session issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          today=$(date -u +%Y-%m-%d)
+          existing=$(gh issue list --repo "$REPO" --label ritual --state open --json number --jq 'length')
+          if [ "$existing" -gt 0 ]; then
+            echo "A ritual session is still open — not stacking another one."
+            exit 0
+          fi
+          gh label create ritual --repo "$REPO" --color 5319e7 --description "bard writing session" 2>/dev/null || true
+          gh issue create --repo "$REPO" \
+            --title "capture session — $today" \
+            --label ritual \
+            --body "Open a bard session in this repo and say you're ready to write. bard builds today's questions from the diary and the open beats — they are not in this issue on purpose. Closed automatically when entries land."

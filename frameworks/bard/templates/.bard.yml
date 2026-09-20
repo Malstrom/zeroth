@@ -17,6 +17,19 @@ defaults:
 capture:
   ask_for_date_when_unclear: true    # never date an entry by assumption
   split_long_sessions: true          # one entry per distinct piece of material, never one blob
+  questions_per_session: 3           # hard ceiling — see frameworks/bard/prompts.yml#rules
+  follow_ups_per_topic: 1
+
+ritual:                              # writing rhythm — set by ritual_setup, changed on request
+  days: []                           # e.g. [tue, thu, sun] — lowercase three-letter English
+  session_minutes: null              # how long a session realistically lasts
+  mechanism: []                      # scheduled_agent | repo_reminder — one, both, or empty for none
+  timezone: "{{TIMEZONE}}"           # used to translate the ritual days into the workflow cron
+  ask_next_time: null                # what the owner asked to be asked next — set by the closing
+                                     # question, consumed by ask_me, then replaced
+  note: >
+    a missed day is not a failure and is never counted as one. No streaks, no "you haven't written
+    in N days" as reproach — the diary is append-only, not a habit tracker.
 
 preferences:
   stale_project_days: 45             # flag an open project untouched for this long

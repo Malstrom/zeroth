@@ -25,6 +25,11 @@ steps:
       via: commit
       approval: none
   - commit_before_reply
+  - call:
+      scenario: ritual_setup
+      file: frameworks/bard/scenarios/ritual_setup.yml
+      load: on_demand
+      note: the rhythm is set at onboarding — a diary with no rhythm is a diary with one entry
   - propose: "Profile saved. Want to start by telling me something, or by opening a project?"
     on_confirm:
       - call:
