@@ -99,5 +99,5 @@ connections:
     note: |
       Framework added via zeroth#367. Spawned manually, like andrew and multivac — spawn scenario
       update pending in zeroth#361. Holds the owner's diary and other people's words as reported:
-      private, never made public. Ritual on tue/thu/sun via .github/workflows/ritual.yml plus a
-      local scheduled agent.
+      private, never made public. Ritual on tue/thu/sun held by a scheduled cloud routine, which
+      captures into a pull request titled "diary: {date}" — a cloud session cannot push to main.
