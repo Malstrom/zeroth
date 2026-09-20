@@ -1,0 +1,101 @@
+# frameworks/bard/.scenarios.yml
+# Scenario index for the bard framework.
+# Format: index — see Malstrom/zeroth:rules/scenarios.yml#file_format.index
+# Imported by frameworks/bard/CLAUDE.md — the agent reads ONLY the matched scenario file.
+#
+# TRIGGER MATCHING: semantic and language-independent.
+# Match user intent regardless of language (Italian, Russian, English…). Never match literal strings.
+
+scenarios:
+
+  - id: onboarding
+    priority: 20
+    preconditions:
+      - identity_missing
+    triggers:
+      - the owner profile does not exist yet and the user starts using bard
+      - user wants to set up or redo their owner profile
+    file: frameworks/bard/scenarios/onboarding.yml
+
+  - id: capture
+    priority: 15
+    preconditions:
+      - identity_exists
+    triggers:
+      - user tells something that happened, was said, was noticed, dreamt or remembered
+      - user wants to write in the diary or dump material from the day
+      - user shares an idea, an image or a fragment worth keeping
+    file: frameworks/bard/scenarios/capture.yml
+
+  - id: session_start
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - this is the first message of the conversation and no other scenario matches
+      - user greets bard or opens a new session
+      - user asks where their projects stand
+    file: frameworks/bard/scenarios/session_start.yml
+
+  - id: start_project
+    priority: 10
+    preconditions:
+      - identity_exists
+    triggers:
+      - user wants to start a new work — book, film, video, podcast, article
+      - user wants to turn material or a thread into a project
+    file: frameworks/bard/scenarios/start_project.yml
+
+  - id: define_voice
+    priority: 10
+    preconditions:
+      - project_exists
+    triggers:
+      - user wants to set or change the style, tone or voice of a project
+      - user names something as a reference or inspiration for how it should sound
+    file: frameworks/bard/scenarios/define_voice.yml
+
+  - id: shape_story
+    priority: 10
+    preconditions:
+      - project_exists
+    triggers:
+      - user wants to structure a project — outline, chapters, scenes, segments
+      - user wants to add or change a character
+      - user asks what material exists for a project, or what is still missing
+    file: frameworks/bard/scenarios/shape_story.yml
+
+  - id: write_draft
+    priority: 10
+    preconditions:
+      - project_has_beats
+    triggers:
+      - user wants a beat, chapter, scene or script written
+      - user asks bard to write the project or part of it
+    file: frameworks/bard/scenarios/write_draft.yml
+
+  - id: revise_draft
+    priority: 10
+    preconditions:
+      - project_has_beats
+    triggers:
+      - user gives feedback on a draft or wants it rewritten differently
+      - user wants a new version of something already written
+    file: frameworks/bard/scenarios/revise_draft.yml
+
+  - id: close_project
+    priority: 10
+    preconditions:
+      - open_project_exists
+    triggers:
+      - user says a project is finished, published or released
+      - user wants to shelve or abandon a project
+    file: frameworks/bard/scenarios/close_project.yml
+
+  - id: unknown_scenario
+    priority: 0
+    preconditions:
+      - any
+    triggers:
+      - any message that does not match any other scenario
+    file: frameworks/bard/scenarios/unknown_scenario.yml

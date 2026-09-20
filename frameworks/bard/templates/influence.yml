@@ -1,0 +1,18 @@
+# influences/{slug}.yml
+# One named reference a voice is built from. Shared across every project in the instance.
+# An influence is studied, never copied: it describes what to take, never supplies text to reuse.
+
+slug: "{{SLUG}}"
+name: "{{NAME}}"
+kind: "{{KIND}}"                    # frameworks/bard/overview.yml#enums.influence_kind
+author: null                        # author, director, host — whoever made it
+
+takes: |
+  {{What exactly is taken from it, concretely: the rhythm of the sentences, the way it opens cold,
+  the refusal to explain, the humour under the grief. Never "the vibe".}}
+
+avoids: |
+  {{What is explicitly NOT taken — the part of this reference that would be wrong here.}}
+
+owner_note: null                    # why this matters to the owner, in their words
+used_by: []                         # project slugs whose voice.yml cites this influence

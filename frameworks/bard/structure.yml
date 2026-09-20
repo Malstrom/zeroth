@@ -1,0 +1,132 @@
+# frameworks/bard/structure.yml
+# Canonical layout of any bard instance repo.
+# All names: snake_case, lowercase, English. AI files: .yml | human files and drafts: .md
+
+root: "{instance}"
+
+files:
+  - path: CLAUDE.md
+    role: agent entry point — instance identity + import of frameworks/bard/CLAUDE.md
+    from_template: frameworks/bard/templates/instance_claude.md
+    access: read-only
+    required: true
+
+  - path: .claude/settings.json
+    role: Claude Code permissions + SessionStart hooks
+    from_template: frameworks/bard/templates/instance_settings.json
+    access: read-only
+    required: true
+
+  - path: .bard.yml
+    role: owner identity — language, default truth_mode, capture preferences
+    from_template: frameworks/bard/templates/.bard.yml
+    access: read-write
+    required: true
+
+  - path: .registry.yml
+    role: cross-repo connection map
+    from_template: templates/.registry.yml
+    access: read-only
+    required: true
+
+  - path: README.md
+    role: human navigation hub — projects and their status
+    from_template: frameworks/bard/templates/instance_readme.md
+    access: read-write
+    required: true
+
+folders:
+
+  diary:
+    path: diary/{YYYY}/
+    description: >
+      raw lived material, one file per day, shared by every project. The heart of the instance:
+      this is what a capture session writes.
+    created_by: capture
+    subfolders:
+      - path: diary/{YYYY}/{YYYY-MM-DD}.yml
+        role: every entry recorded that day — append entries, never edit one
+        from_template: frameworks/bard/templates/diary_day.yml
+        access: append-only
+
+      - path: diary/media/
+        role: photos, recordings and files attached to an entry
+        pattern: "YYYY-MM-DD_{slug}.{ext}"
+        access: write-once
+
+  influences:
+    path: influences/
+    description: named references the voices are built from — shared across projects
+    created_by: start_project
+    subfolders:
+      - path: influences/{slug}.yml
+        role: one influence — what it is and what exactly is taken from it
+        from_template: frameworks/bard/templates/influence.yml
+        access: read-write
+
+  projects:
+    path: projects/{slug}/
+    description: one work being made
+    created_by: start_project
+    subfolders:
+      - path: projects/{slug}/project.yml
+        role: premise, medium, status, outline order, append-only history
+        from_template: frameworks/bard/templates/project.yml
+        access: read-write
+
+      - path: projects/{slug}/voice.yml
+        role: style and tone contract — persona, pov, tense, register, influences, never-do rules
+        from_template: frameworks/bard/templates/voice.yml
+        access: read-write
+
+      - path: projects/{slug}/characters/{slug}.yml
+        role: one figure in this project — real, composite or fictional
+        from_template: frameworks/bard/templates/character.yml
+        access: read-write
+
+      - path: projects/{slug}/beats/{nn}_{slug}.yml
+        role: one chapter, scene or segment — purpose, sources, liberties, status
+        from_template: frameworks/bard/templates/beat.yml
+        access: read-write
+
+      - path: projects/{slug}/drafts/{beat_slug}_v{n}_{YYYY-MM-DD}.md
+        role: written output for a beat, in the project voice — one file per version
+        from_template: frameworks/bard/templates/draft.md
+        access: write-once
+
+cross_refs:
+  - label: "beat drawing on a diary entry that does not exist"
+    source: projects/{slug}/beats/*.yml#sources[]
+    target: diary/{YYYY}/{YYYY-MM-DD}.yml#entries[].id
+    target_type: entry_exists
+    level: error
+
+  - label: "beat referencing a character not defined in the project"
+    source: projects/{slug}/beats/*.yml#characters[]
+    target: projects/{slug}/characters/{value}.yml
+    target_type: file_exists
+    level: error
+
+  - label: "voice citing an influence with no file"
+    source: projects/{slug}/voice.yml#influences[]
+    target: influences/{value}.yml
+    target_type: file_exists
+    level: error
+
+  - label: "project in status drafting or later without voice.yml"
+    source: projects/{slug}/project.yml#status
+    target: projects/{slug}/voice.yml
+    target_type: file_exists
+    level: error
+
+  - label: "draft with no matching beat"
+    source: projects/{slug}/drafts/*.md
+    target: projects/{slug}/beats/*.yml
+    target_type: beat_exists
+    level: warning
+
+  - label: "beat with liberties declared in a project whose truth_mode is memoir"
+    source: projects/{slug}/beats/*.yml#liberties
+    target: projects/{slug}/project.yml#truth_mode
+    target_type: value_conflict
+    level: error

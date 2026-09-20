@@ -1,0 +1,19 @@
+# projects/{slug}/characters/{slug}.yml
+# One figure in this project. Always declares whether it is a real person.
+
+slug: "{{SLUG}}"
+name_in_work: "{{NAME_IN_WORK}}"    # the name used in the drafts
+kind: "{{KIND}}"                    # real | composite | fictional
+
+real_person: null                   # the actual name, when kind is real or composite.
+                                    # Stays in the repo, never automatically carried into a draft.
+consent_status: unknown             # unknown | asked | given | refused — the owner's call, not bard's
+
+based_on_entries: []                # "{YYYY-MM-DD}#e{n}" — where this figure comes from in the diary
+
+wants: null                         # what they are after in this work
+speech: |
+  {{How they talk — from the quotes in the diary, not invented. Cadence, vocabulary, what they
+  never say.}}
+arc: null                           # how they change across the outline, if they do
+notes: null

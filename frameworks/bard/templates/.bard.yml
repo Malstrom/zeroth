@@ -1,0 +1,23 @@
+# .bard.yml
+# Owner identity for a bard instance. Read at every session start.
+# Contains NO diary or project data — those live under diary/ and projects/.
+
+owner:
+  name: "{{OWNER_NAME}}"
+  handle: "{{GITHUB_HANDLE}}"
+
+language:
+  chat: "{{LANGUAGE}}"         # language used with the owner, e.g. italian
+  files: english               # structure files, commits, issues — always English
+  drafts: "{{DRAFT_LANGUAGE}}" # default language for drafts; a project may override it in voice.yml
+
+defaults:
+  truth_mode: "{{TRUTH_MODE}}" # memoir | autofiction | fiction — frameworks/bard/overview.yml#enums
+
+capture:
+  ask_for_date_when_unclear: true    # never date an entry by assumption
+  split_long_sessions: true          # one entry per distinct piece of material, never one blob
+
+preferences:
+  stale_project_days: 45             # flag an open project untouched for this long
+  notes: null

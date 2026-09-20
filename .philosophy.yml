@@ -19,7 +19,7 @@ metaphor:
     It cannot be seen; nothing is valid without its approval.
 
   frameworks: >
-    Frameworks are the robots: dojo, daneel, sudo_hire_me, tensho, andrew, multivac.
+    Frameworks are the robots: dojo, daneel, sudo_hire_me, tensho, andrew, multivac, bard.
     They act, produce, and remember — within the laws defined by zeroth.
     Each framework is one dimension of a person's life — professional or personal.
 
@@ -105,6 +105,25 @@ frameworks:
     note: >
       Spec only (zeroth#365) — framework definition (overview.yml, structure.yml, scenarios,
       templates) exists under frameworks/multivac/, no instance has been spawned yet.
+
+  bard:
+    status: draft
+    question: "What story am I telling, and what have I actually lived that feeds it?"
+    tracks: a diary of lived raw material, and the projects built from it — premise, voice,
+      influences, characters, beats, drafts, in any medium
+    philosophy: >
+      Bard is not a writing assistant. It keeps two things apart and makes each honest:
+      a diary that is record and never invention, and projects that are made — structured,
+      voiced and drafted. The AI listens first and writes the owner's words down as they were
+      told; then, on a declared voice built from named influences, it drafts the work all the
+      way to the page. Invention is legitimate only inside a draft, only where the beat says so,
+      and never in the diary. The owner revises and decides what ships; bard never publishes.
+      Named after the Bard of Asimov's "Someday" — the storytelling machine that tells stories
+      from what it is fed, until it is rewired to tell its own.
+    entry_point: CLAUDE.md — no .agent.yml, follows the andrew format (zeroth#361)
+    note: >
+      Spec only (zeroth#367) — framework definition (overview.yml, structure.yml, scenarios,
+      templates) exists under frameworks/bard/, no instance has been spawned yet.
 
 # ---------------------------------------------------------------------------
 # CROSS-FRAMEWORK PRINCIPLE

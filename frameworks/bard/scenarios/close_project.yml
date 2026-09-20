@@ -1,0 +1,34 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/close_project.yml
+
+id: close_project
+on:
+  - user says a project is finished, published or released
+  - user wants to shelve or abandon a project
+preconditions:
+  - open_project_exists
+creates_issue: false
+read:
+  - "projects/{{project}}/project.yml"
+  - "projects/{{project}}/beats/*.yml"
+  - "issues: {instance} label project:{{project}}"
+steps:
+  - ask: "How does it end — published, shelved for later, or dropped?"
+  - ask_if: 
+      condition: outcome == published
+      ask: "Where did it go out, and when? (I record it — I don't publish anything.)"
+  - compute: unused_material        # entries bound to no final beat — they stay in the diary
+  - update:
+      path: "projects/{{project}}/project.yml"
+      fields: [status, outcome, published_at, history]
+      via: commit
+      approval: none
+  - close_issue:
+      comment: "{{outcome}} — {{summary}}"
+  - commit_before_reply
+  - say: |
+      {{project_title}}: {{outcome}}.
+      {{beats | count}} beats, {{drafts | count}} drafts kept.
+      Material that never made it in stays in the diary — it's still yours for the next one:
+      {{unused_material | themes | "none"}}
+output:
+  state_changes: [project-closed]

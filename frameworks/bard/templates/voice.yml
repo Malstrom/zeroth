@@ -1,0 +1,32 @@
+# projects/{slug}/voice.yml
+# The style and tone contract of one project. No voice, no draft — this file gates write_draft.
+# Changing it does not rewrite existing drafts; the change is logged in project.yml#history.
+
+project: "{{PROJECT_SLUG}}"
+
+language: "{{LANGUAGE}}"            # the language the drafts are written in
+
+persona: |
+  {{Who is speaking, and from what distance. Not "the author" — a stance:
+  someone telling this years later, someone still inside it, someone explaining it to a stranger.}}
+
+pov: "{{POV}}"                      # frameworks/bard/overview.yml#enums.pov
+tense: "{{TENSE}}"                  # past | present
+register: "{{REGISTER}}"            # frameworks/bard/overview.yml#enums.register
+
+rhythm: |
+  {{Sentence and scene rhythm: short and flat, long and accumulating, cut on the beat,
+  paragraph breaks as breathing. For video: pace, where the hook lands, how a segment turns.}}
+
+influences: []                      # slugs under influences/ — each must exist as a file
+
+address: null                       # who the work speaks to — a reader, a viewer, one person
+opens_with: null                    # how a beat typically starts in this voice
+ends_with: null                     # how a beat typically lands
+
+never: |
+  {{The rules that make it the owner's and not generic. Examples of the kind of thing that goes
+  here: never explain a feeling that the scene already shows; no rhetorical questions; no summary
+  paragraph at the end; never soften a real person to be likeable.}}
+
+samples: []                         # paths to drafts the owner marked as "this is the voice"

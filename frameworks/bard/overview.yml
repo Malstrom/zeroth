@@ -1,0 +1,109 @@
+# frameworks/bard/overview.yml
+# bard framework — purpose, vocabulary, enums, key principles.
+
+framework: bard
+version: 0.1.0
+question: "What story am I telling, and what have I actually lived that feeds it?"
+purpose: >
+  Personal storytelling framework. The repository holds a diary of lived raw material — what
+  happened, what was said, what was noticed — and turns it into finished narrative work in any
+  medium: a book, a film, a short, a YouTube video, a podcast episode. Each project declares its
+  own voice, built from named influences, and structures the story into beats that draw on diary
+  entries. The AI captures, structures and writes drafts in that voice; the owner revises and
+  decides what ships. The diary is record, never invention — invention lives only in drafts, and
+  only where a beat declares it.
+name_origin: >
+  The Bard, the storytelling machine in Asimov's "Someday" (1956) — a battered computer toy that
+  tells stories from the material it is fed, until two children rewire it to tell its own. It is
+  the one Asimov machine whose entire function is narrative.
+
+cycle:
+  - onboarding          # owner identity and defaults (.bard.yml)
+  - capture             # the core loop — record raw material into the diary
+  - start_project       # open a work: medium, premise, voice, influences
+  - shape_story         # characters, beats, outline — bind beats to diary entries
+  - write_draft         # produce a draft for a beat or a whole project, in the project voice
+  - revise_draft        # new version from owner feedback — previous versions stay
+  - close_project       # published, shelved or dropped
+
+vocabulary:
+  entry: >
+    one piece of raw material recorded in the diary — an event, a conversation, a thought, a dream,
+    an observation. Dated, write-once, the lived record. Entries are never rewritten to fit a story.
+  diary: the full set of entries — shared by every project in the instance, owned by no project
+  thread: a recurring theme or through-line the AI recognises across entries and names in chat
+  project: one work being made — one medium, one voice, one outline, its own beats and drafts
+  medium: the form the project takes — book, film, youtube_video, podcast… (closed list)
+  voice: >
+    the style and tone contract of a project — persona, point of view, tense, rhythm, register, and
+    explicit "never do this" rules. Every draft is written against it.
+  influence: >
+    a named reference the voice is built from — an author, a film, a director, a channel, an album.
+    Lives at instance root, reusable across projects; a voice cites influences, never copies them.
+  character: a figure appearing in a project — real, composite or fictional, always declared as such
+  beat: >
+    one structural unit of a project — a chapter, a scene, a video segment. Carries its own purpose,
+    the diary entries it draws on, and whatever invention it is licensed to add.
+  draft: >
+    written output for a beat or a whole project, in the project voice. Versioned and dated —
+    a revision is a new file, the previous version stays.
+  liberties: what a beat is allowed to invent or alter relative to the diary entries it draws on
+
+enums:
+  medium:
+    - book
+    - short_story
+    - film
+    - short_film
+    - series
+    - youtube_video
+    - podcast
+    - article
+    - comic
+    - stage
+    - other
+  project_status: [seed, outlining, drafting, revising, published, shelved, dropped]
+  entry_type: [event, conversation, reflection, observation, memory, dream, research]
+  beat_status: [planned, drafted, revised, final]
+  character_kind: [real, composite, fictional]
+  influence_kind: [book, author, film, director, series, channel, album, artist, genre, person]
+  pov: [first, second, third_limited, third_omniscient]
+  tense: [past, present]
+  register: [intimate, conversational, literary, documentary, comic, lyrical, deadpan, raw]
+  truth_mode:
+    - memoir            # everything told happened; names may change, facts may not
+    - autofiction       # grounded in the diary, invention allowed where declared
+    - fiction           # diary is fuel only; the work owes it nothing
+
+state_conditions:
+  identity_exists: .bard.yml exists and owner.name is not empty
+  identity_missing: .bard.yml missing or owner.name empty
+  diary_has_entries: at least one file under diary/
+  project_exists: at least one projects/{slug}/project.yml exists
+  open_project_exists: at least one project with status not in [published, shelved, dropped]
+  project_has_beats: the active project has at least one file under beats/
+
+labels:
+  project: "project:{slug}"          # exactly one per issue
+  medium: "medium:{medium}"          # exactly one per issue
+  note: labels are created on first use if they do not exist
+
+key_principles:
+  - one repository per owner, private by default — the diary holds the owner's real life and other
+    people's words; it is never made public, and never published as-is
+  - the diary is the spine: one diary, many projects — a project reads entries, never owns them
+  - entries are write-once — a correction or a second thought is a new entry that references the old
+    one, never an edit; memory drifting is itself material
+  - the AI never invents an entry, a quote or a fact in the diary; if it did not come from the owner,
+    it does not go in — the AI may ask questions, never fill gaps
+  - invention is legitimate only in drafts, only where the beat declares liberties, and a beat that
+    invents says so — a memoir project may forbid liberties entirely via truth_mode
+  - voice is explicit or it is nothing — a project without voice.yml cannot be drafted
+  - influences are cited and studied, never imitated at the sentence level — bard writes in the
+    owner's voice informed by them, and never reproduces text from a copyrighted source
+  - real people appear in the diary; before a real person's name reaches a draft meant to be
+    published, the owner decides — bard flags it, never decides for them
+  - drafts are versioned files — a revision is a new dated version, previous versions stay as history
+  - projects live as GitHub issues (lifecycle) + projects/{slug}/project.yml (state and outline)
+  - work facts belong to daneel and study facts to dojo — bard may draw on that life, but never
+    duplicates their records; it names the connection in chat and lets the owner decide

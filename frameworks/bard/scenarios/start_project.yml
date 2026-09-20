@@ -1,0 +1,47 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/start_project.yml
+
+id: start_project
+on:
+  - user wants to start a new work — book, film, video, podcast, article
+  - user wants to turn material or a thread into a project
+preconditions:
+  - identity_exists
+creates_issue: true
+issue:
+  title: "{{project_title}} ({{medium}})"
+  from: frameworks/bard/templates/issue_project.md
+  labels: ["project:{{project_slug}}", "medium:{{medium}}"]
+  update: comment
+  approval: none
+  on_complete: close
+read:
+  - .bard.yml
+  - "projects/*/project.yml"
+  - frameworks/bard/templates/project.yml
+  - frameworks/bard/overview.yml
+steps:
+  - ask: "What is it, and in what form — book, film, short, YouTube video, podcast, article?"
+  - ask: "The premise in one or two sentences: what is this about, and why this and not something else?"
+  - ask: "Who is it for?"
+  - ask: "Truth mode — memoir (nothing invented), autofiction (grounded, invention where declared), or fiction (the diary is only fuel)?"
+  - compute: project_slug
+  - compute: seed_entries          # diary entries the owner points at, or that clearly feed the premise
+  - write:
+      path: "projects/{{project_slug}}/project.yml"
+      from: frameworks/bard/templates/project.yml
+      access: read-write
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: "Project opened: {{project_title}} — {{medium}}, {{truth_mode}}. Issue {{issue.url}}."
+  - propose: "Nothing can be drafted until the voice exists. Define it now?"
+    on_confirm:
+      - call:
+          scenario: define_voice
+          file: frameworks/bard/scenarios/define_voice.yml
+          load: on_demand
+          with: { project: "{{project_slug}}" }
+    on_reject:
+      - say: "Project stays in status seed until it has a voice."
+output:
+  state_changes: [project-opened]

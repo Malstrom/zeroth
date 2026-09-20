@@ -1,0 +1,30 @@
+# projects/{slug}/project.yml
+# One work. Created by start_project, shaped by shape_story, closed by close_project.
+# `history` is append-only — new entries only, never edited.
+
+slug: "{{PROJECT_SLUG}}"
+title: "{{TITLE}}"
+medium: "{{MEDIUM}}"                # frameworks/bard/overview.yml#enums.medium
+status: seed                        # seed | outlining | drafting | revising | published | shelved | dropped
+truth_mode: "{{TRUTH_MODE}}"        # memoir | autofiction | fiction — gates what beats may invent
+
+premise: |
+  {{What this is about, in two sentences. The thing that stays true when everything else changes.}}
+
+why_now: null                       # why the owner is making this, in their words
+audience: null                      # who it is for
+
+target:
+  length: null                      # words, minutes, pages — whatever the medium counts
+  deadline: null                    # YYYY-MM-DD, or null
+
+seed_entries: []                    # diary entry ids that started this — "{YYYY-MM-DD}#e{n}"
+
+outline: []                         # beat files in order — ["01_slug", "02_slug", …]
+
+opened: "{{TODAY}}"
+history: []                         # append-only — [{date, event}], oldest first
+
+outcome: null                       # null while open; published | shelved | dropped when closed
+published_at: null                  # where and when it went out — recorded, never done by bard
+notes: null

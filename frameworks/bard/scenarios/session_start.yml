@@ -1,0 +1,36 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/session_start.yml
+
+id: session_start
+on:
+  - this is the first message of the conversation and no other scenario matches
+  - user greets bard or opens a new session
+  - user asks where their projects stand
+preconditions:
+  - any
+creates_issue: false
+read:
+  - .bard.yml
+  - "projects/*/project.yml"
+  - "projects/*/beats/*.yml"
+  - "diary/{{year}}/*.yml"
+  - "issues: {instance} open ordered_by updated desc"
+steps:
+  - if:
+      condition: identity_missing
+      then:
+        - call:
+            scenario: onboarding
+            file: frameworks/bard/scenarios/onboarding.yml
+            load: on_demand
+        - stop
+  - compute: days_since_last_entry
+  - compute: open_projects              # status, next planned beat, drafted vs total beats
+  - compute: unused_material            # recent entries no beat draws on yet
+  - say: |
+      {{owner.name}}. Where we are:
+      Open projects: {{open_projects | title, medium, status, next beat}}
+      Last diary entry: {{days_since_last_entry}} days ago
+      Material not used yet: {{unused_material | count, one-line themes | none}}
+  - ask: "Do we write today, or do you have something to tell me first?"
+output:
+  state_changes: []

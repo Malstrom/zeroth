@@ -1,0 +1,48 @@
+# source: https://raw.githubusercontent.com/Malstrom/zeroth/main/frameworks/bard/scenarios/revise_draft.yml
+
+id: revise_draft
+on:
+  - user gives feedback on a draft or wants it rewritten differently
+  - user wants a new version of something already written
+preconditions:
+  - project_has_beats
+creates_issue: false
+read:
+  - "projects/{{project}}/project.yml"
+  - "projects/{{project}}/voice.yml"
+  - "projects/{{project}}/beats/{{beat}}.yml"
+  - "projects/{{project}}/drafts/{{beat_slug}}_*.md"
+  - frameworks/bard/templates/draft.md
+steps:
+  - compute: latest_version
+  - ask_if_missing: "What's wrong with it — and is it this draft that's wrong, or the voice?"
+  - if:
+      condition: feedback is about style, tone or register rather than this beat
+      then:
+        - propose: "That's the voice, not the draft. Change voice.yml so it holds for everything else too?"
+          on_confirm:
+            - call:
+                scenario: define_voice
+                file: frameworks/bard/scenarios/define_voice.yml
+                load: on_demand
+  - compute: new_version            # latest_version + 1
+  - write:
+      path: "projects/{{project}}/drafts/{{beat_slug}}_v{{new_version}}_{{today}}.md"
+      from: frameworks/bard/templates/draft.md
+      access: write-once
+      via: commit
+      approval: none
+      note: >
+        never edit the previous version — it stays. The front matter records what changed and why,
+        so the reason for a rewrite is not lost between sessions.
+  - update:
+      path: "projects/{{project}}/beats/{{beat}}.yml"
+      fields: [status, drafts]
+      via: commit
+      approval: none
+  - commit_before_reply
+  - say: |
+      v{{new_version}} written — changed: {{changes}}.
+      v{{latest_version}} kept at {{previous_path}}.
+output:
+  state_changes: [draft-revised]
