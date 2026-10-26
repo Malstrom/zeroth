@@ -168,3 +168,26 @@ notes: >
   tracking code (internal/admin work, or client issues created before this
   requirement existed) are excluded from the report entirely, not given a
   fallback code.
+
+peer_review_exclusion:
+  rule: >
+    An issue whose actual content is Igor reviewing a colleague's merge
+    request (code review of someone else's work — e.g. "Review MR !371
+    Данила") is EXCLUDED from the report, even if it has a valid tracking
+    code and a proper closing summary. The report must reflect only work
+    Igor personally authored/built, not oversight of other people's work.
+    This is a judgment call on the issue's actual content, not a filter on
+    the work_type label — a "code_review"-labeled issue where Igor is the
+    one doing the fixing (e.g. "Fix controller EqRepairs") still counts;
+    only the "I reviewed someone else's PR/MR" kind is excluded.
+  detection: >
+    Look for explicit signs in the issue body/title: "Review MR", "Ревью
+    MR", a colleague's name attached to the MR/branch being reviewed, or a
+    closing comment whose "Output delivered" is review feedback (comments
+    left on someone else's MR) rather than a commit/branch of Igor's own.
+  on_match:
+    - exclude the issue from `tasks` entirely (same as a missing tracking
+      code — drop before the spreading step runs)
+    - when unsure whether an issue is a peer review or Igor's own fix,
+      ask Igor rather than guessing either way
+
