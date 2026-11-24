@@ -107,7 +107,7 @@ frameworks:
       and onboarded — .multivac.yml and people/ exist.
 
   bard:
-    status: draft
+    status: active
     question: "What story am I telling, and what have I actually lived that feeds it?"
     tracks: a diary of lived raw material, and the projects built from it — premise, voice,
       influences, characters, beats, drafts, in any medium
@@ -122,8 +122,8 @@ frameworks:
       from what it is fed, until it is rewired to tell its own.
     entry_point: CLAUDE.md — no .agent.yml, follows the andrew format (zeroth#361)
     note: >
-      Spec only (zeroth#367) — framework definition (overview.yml, structure.yml, scenarios,
-      templates) exists under frameworks/bard/, no instance has been spawned yet.
+      Framework defined in zeroth#367. Instance Malstrom/bard spawned 2026-09-20 (private) and
+      onboarded — .bard.yml exists, ritual set to tue/thu/sun. No diary entries or projects yet.
 
 # ---------------------------------------------------------------------------
 # CROSS-FRAMEWORK PRINCIPLE
