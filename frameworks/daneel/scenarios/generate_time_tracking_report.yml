@@ -123,6 +123,9 @@ steps:
           - if: tracking_code is null or tracking_code == "none"
             then:
               - continue                                 # not client-tracker work — excluded from the report
+          - if: issue is a peer review of a colleague's MR (not Igor's own work)
+            then:
+              - continue                                 # excluded per templates/time_tracking_report.yml#peer_review_exclusion — oversight of someone else's work never counts, even with a valid tracking code
           - extract:
               field: task_description
               from: issue.comments
